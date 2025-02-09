@@ -10,7 +10,7 @@ use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
-    net::{Ipv4Addr, SocketAddr, SocketAddrV4},
+    net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4},
     sync::Arc,
     time::Duration,
 };
@@ -19,7 +19,7 @@ use tokio::{
     time,
 };
 use tower_http::cors::{Any, CorsLayer};
-use tracing::{error, info};
+use tracing::{debug, error, info, warn};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -195,16 +195,15 @@ async fn heartbeat(
     Json("Heartbeat acknowledged")
 }
 
-fn get_current_ip() -> Result<Ipv4Addr> {
-    // Get all network interfaces
+fn get_network_interfaces() -> Result<Vec<Ipv4Addr>> {
     let output = std::process::Command::new("ip")
         .args(["addr", "show"])
         .output()
         .map_err(|e| anyhow::anyhow!("Failed to run ip command: {}", e))?;
 
     let output_str = String::from_utf8_lossy(&output.stdout);
+    let mut interfaces = Vec::new();
     
-    // Find the first non-loopback IPv4 address
     for line in output_str.lines() {
         if line.contains("inet ") && !line.contains("127.0.0.1") {
             if let Some(ip_str) = line
@@ -213,60 +212,139 @@ fn get_current_ip() -> Result<Ipv4Addr> {
                 .and_then(|s| s.split('/').next())
             {
                 if let Ok(ip) = ip_str.parse() {
-                    return Ok(ip);
+                    interfaces.push(ip);
                 }
             }
         }
     }
     
-    Err(anyhow::anyhow!("No valid network interface found"))
+    Ok(interfaces)
 }
 
-async fn get_external_ip() -> Result<String> {
-    let response = reqwest::get("https://api.ipify.org")
-        .await
-        .map_err(|e| anyhow::anyhow!("Failed to get external IP: {}", e))?
-        .text()
-        .await
-        .map_err(|e| anyhow::anyhow!("Failed to read external IP response: {}", e))?;
-    Ok(response)
+async fn try_setup_upnp(port: u16) -> Result<Vec<igd::aio::Gateway>> {
+    let mut gateways = Vec::new();
+    let interfaces = get_network_interfaces()?;
+    let mut seen_gateway_addrs = std::collections::HashSet::new();
+    let mut inner_router_ip: Option<Ipv4Addr> = None;
+
+    // Common gateway addresses to try
+    let gateway_addrs = [
+        // Local network gateways
+        "192.168.0.1:1900",
+        "192.168.1.1:1900",
+        "192.168.2.1:1900",
+        // Double NAT scenarios (upstream routers)
+        "10.0.0.1:1900",
+        "10.0.1.1:1900",
+        "10.1.0.1:1900",
+        // ISP gateways
+        "172.16.0.1:1900",
+        "172.16.1.1:1900",
+    ];
+
+    // Try searching on each interface
+    for interface in interfaces.iter() {
+        info!("Searching for UPnP gateways on interface {}", interface);
+        
+        // First try multicast discovery for inner router
+        let options = SearchOptions {
+            broadcast_address: SocketAddrV4::new(Ipv4Addr::new(239, 255, 255, 250), 1900).into(),
+            timeout: Some(Duration::from_secs(3)),
+            ..SearchOptions::default()
+        };
+
+        match search_gateway(options).await {
+            Ok(gateway) => {
+                if seen_gateway_addrs.insert(gateway.addr.to_string()) {
+                    info!("Found inner gateway at {} on interface {} (via multicast)", gateway.addr, interface);
+                    // Store the inner router's IP for outer router mapping
+                    inner_router_ip = Some(*gateway.addr.ip());
+                    try_add_port_mapping(&mut gateways, gateway, port, *interface).await;
+                }
+            }
+            Err(e) => {
+                warn!("Failed to find gateway via multicast on {}: {}", interface, e);
+            }
+        }
+
+        // Then try direct connections to find outer router
+        for addr in gateway_addrs.iter() {
+            if let Ok(socket_addr) = addr.parse() {
+                let options = SearchOptions {
+                    broadcast_address: socket_addr,
+                    timeout: Some(Duration::from_secs(1)),
+                    ..SearchOptions::default()
+                };
+
+                match search_gateway(options).await {
+                    Ok(gateway) => {
+                        if seen_gateway_addrs.insert(gateway.addr.to_string()) {
+                            info!("Found outer gateway at {} on interface {} (via direct)", gateway.addr, interface);
+                            
+                            // For outer router, map to inner router if we found one
+                            let target_ip = if gateway.addr.to_string().starts_with("192.168.") {
+                                inner_router_ip.unwrap_or(*interface)
+                            } else {
+                                *interface
+                            };
+                            
+                            try_add_port_mapping(&mut gateways, gateway, port, target_ip).await;
+                        }
+                    }
+                    Err(e) => {
+                        debug!("Failed to find gateway at {}: {}", addr, e);
+                    }
+                }
+            }
+        }
+    }
+
+    if gateways.is_empty() {
+        return Err(anyhow::anyhow!("No successful UPnP port mappings"));
+    }
+
+    Ok(gateways)
 }
 
-async fn try_setup_upnp(port: u16) -> Result<()> {
-    // Get current IP address
-    let ip = get_current_ip()?;
-    
-    // Search for IGD (Internet Gateway Device) with increased timeout
-    let gateway = search_gateway(SearchOptions {
-        timeout: Some(Duration::from_secs(5)), // Increase timeout to 5 seconds
-        ..SearchOptions::default()
-    })
-    .await
-    .map_err(|e| anyhow::anyhow!("Failed to find UPnP gateway: {}", e))?;
-
-    // Add port mapping
-    gateway
+async fn try_add_port_mapping(
+    gateways: &mut Vec<igd::aio::Gateway>,
+    gateway: igd::aio::Gateway,
+    port: u16,
+    interface: Ipv4Addr,
+) {
+    match gateway
         .add_port(
             PortMappingProtocol::TCP,
             port,
-            SocketAddrV4::new(ip, port),
-            0,  // lease duration (0 = unlimited)
+            SocketAddrV4::new(interface, port),
+            0,
             "P2P Network HTTP Server",
         )
         .await
-        .map_err(|e| anyhow::anyhow!("Failed to add UPnP port mapping: {}", e))?;
-
-    info!("Successfully set up UPnP port mapping for port {} on IP {}", port, ip);
-    Ok(())
+    {
+        Ok(()) => {
+            info!(
+                "Successfully set up UPnP port mapping for port {} on IP {} through gateway {}",
+                port, interface, gateway.addr
+            );
+            gateways.push(gateway);
+        }
+        Err(e) => {
+            warn!(
+                "Failed to set up UPnP port mapping through gateway {}: {}",
+                gateway.addr, e
+            );
+        }
+    }
 }
 
-async fn setup_upnp(mut port: u16) -> Result<u16> {
+async fn setup_upnp(mut port: u16) -> Result<(u16, Vec<igd::aio::Gateway>)> {
     const MAX_RETRIES: u32 = 5;
     let mut rng = rand::thread_rng();
     
     for attempt in 0..MAX_RETRIES {
         match try_setup_upnp(port).await {
-            Ok(()) => return Ok(port),
+            Ok(gateways) => return Ok((port, gateways)),
             Err(e) => {
                 if attempt < MAX_RETRIES - 1 && e.to_string().contains("conflicts with a mapping") {
                     // Try a different random port
@@ -280,6 +358,26 @@ async fn setup_upnp(mut port: u16) -> Result<u16> {
     }
     
     Err(anyhow::anyhow!("Failed to find an available port after {} attempts", MAX_RETRIES))
+}
+
+// Function to clean up UPnP mappings on program exit
+async fn cleanup_upnp(port: u16, gateways: Vec<igd::aio::Gateway>) {
+    for gateway in gateways {
+        if let Err(e) = gateway
+            .remove_port(PortMappingProtocol::TCP, port)
+            .await
+        {
+            error!(
+                "Failed to remove UPnP port mapping: {}",
+                e
+            );
+        } else {
+            info!(
+                "Successfully removed UPnP port mapping for port {}",
+                port
+            );
+        }
+    }
 }
 
 async fn run_http_server(
@@ -300,7 +398,7 @@ async fn run_http_server(
         .layer(cors)
         .with_state(app_state);
     
-    let internal_ip = get_current_ip()?;
+    let internal_ip = get_network_interfaces()?.into_iter().next().unwrap();
     let external_ip = get_external_ip().await?;
     let addr = SocketAddr::from((internal_ip, port));
     let listener = tokio::net::TcpListener::bind(addr).await?;
@@ -371,14 +469,29 @@ async fn main() -> Result<()> {
     let (tx, _) = broadcast::channel(100);
     
     // Set up UPnP port mapping
-    match setup_upnp(port).await {
-        Ok(mapped_port) => {
+    let gateways = match setup_upnp(port).await {
+        Ok((mapped_port, gateways)) => {
             port = mapped_port; // Use the successfully mapped port
-            info!("Successfully set up UPnP port mapping");
+            info!("Successfully set up UPnP port mapping on {} gateways", gateways.len());
+            Some(gateways)
         }
         Err(e) => {
             error!("Failed to set up UPnP: {}. Continuing without port forwarding...", e);
+            None
         }
+    };
+
+    // Set up cleanup on program exit
+    if let Some(gateways) = gateways.clone() {
+        let cleanup_port = port;
+        ctrlc::set_handler(move || {
+            info!("Received Ctrl+C, cleaning up UPnP mappings...");
+            let gateways = gateways.clone();
+            tokio::spawn(async move {
+                cleanup_upnp(cleanup_port, gateways).await;
+                std::process::exit(0);
+            });
+        })?;
     }
 
     // Start peer health checker
@@ -415,4 +528,14 @@ async fn main() -> Result<()> {
     run_http_server(port, app_state).await?;
     
     Ok(())
+}
+
+async fn get_external_ip() -> Result<String> {
+    let response = reqwest::get("https://api.ipify.org")
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to get external IP: {}", e))?
+        .text()
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to read external IP response: {}", e))?;
+    Ok(response)
 }
