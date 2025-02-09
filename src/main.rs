@@ -5,10 +5,11 @@ use axum::{
     Json, Router,
 };
 use clap::Parser;
+use igd::{aio::search_gateway, PortMappingProtocol, SearchOptions};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
-    net::SocketAddr,
+    net::{SocketAddr, SocketAddrV4},
     sync::Arc,
     time::Duration,
 };
@@ -193,6 +194,31 @@ async fn heartbeat(
     Json("Heartbeat acknowledged")
 }
 
+async fn setup_upnp(port: u16) -> Result<()> {
+    // Search for IGD (Internet Gateway Device) with increased timeout
+    let gateway = search_gateway(SearchOptions {
+        timeout: Some(Duration::from_secs(5)), // Increase timeout to 5 seconds
+        ..SearchOptions::default()
+    })
+    .await
+    .map_err(|e| anyhow::anyhow!("Failed to find UPnP gateway: {}", e))?;
+
+    // Add port mapping
+    gateway
+        .add_port(
+            PortMappingProtocol::TCP,
+            port,
+            SocketAddrV4::new([0, 0, 0, 0].into(), port),
+            0,  // lease duration (0 = unlimited)
+            "P2P Network HTTP Server",
+        )
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to add UPnP port mapping: {}", e))?;
+
+    info!("Successfully set up UPnP port mapping for port {}", port);
+    Ok(())
+}
+
 async fn run_http_server(
     port: u16,
     app_state: Arc<AppState>,
@@ -211,7 +237,7 @@ async fn run_http_server(
         .layer(cors)
         .with_state(app_state);
     
-    let addr = SocketAddr::from(([127, 0, 0, 1], port));
+    let addr = SocketAddr::from(([0, 0, 0, 0], port));
     let listener = tokio::net::TcpListener::bind(addr).await?;
     info!("HTTP server listening on {}", addr);
     
@@ -259,6 +285,11 @@ async fn main() -> Result<()> {
     let peers: PeerMap = Arc::new(Mutex::new(HashMap::new()));
     let (tx, _) = broadcast::channel(100);
     
+    // Set up UPnP port mapping
+    if let Err(e) = setup_upnp(args.port).await {
+        error!("Failed to set up UPnP: {}. Continuing without port forwarding...", e);
+    }
+
     // Start peer health checker
     let peers_clone = peers.clone();
     tokio::spawn(async move {
