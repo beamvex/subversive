@@ -15,6 +15,7 @@ use std::{
     time::Duration,
 };
 use tokio::{
+    signal,
     sync::{broadcast, Mutex},
     time,
 };
@@ -224,29 +225,12 @@ fn get_network_interfaces() -> Result<Vec<Ipv4Addr>> {
 async fn try_setup_upnp(port: u16) -> Result<Vec<igd::aio::Gateway>> {
     let mut gateways = Vec::new();
     let interfaces = get_network_interfaces()?;
-    let mut seen_gateway_addrs = std::collections::HashSet::new();
-    let mut inner_router_ip: Option<Ipv4Addr> = None;
-
-    // Common gateway addresses to try
-    let gateway_addrs = [
-        // Local network gateways
-        "192.168.0.1:1900",
-        "192.168.1.1:1900",
-        "192.168.2.1:1900",
-        // Double NAT scenarios (upstream routers)
-        "10.0.0.1:1900",
-        "10.0.1.1:1900",
-        "10.1.0.1:1900",
-        // ISP gateways
-        "172.16.0.1:1900",
-        "172.16.1.1:1900",
-    ];
 
     // Try searching on each interface
     for interface in interfaces.iter() {
-        info!("Searching for UPnP gateways on interface {}", interface);
+        info!("Searching for UPnP gateway on interface {}", interface);
         
-        // First try multicast discovery for inner router
+        // Try multicast discovery
         let options = SearchOptions {
             broadcast_address: SocketAddrV4::new(Ipv4Addr::new(239, 255, 255, 250), 1900).into(),
             timeout: Some(Duration::from_secs(3)),
@@ -255,52 +239,21 @@ async fn try_setup_upnp(port: u16) -> Result<Vec<igd::aio::Gateway>> {
 
         match search_gateway(options).await {
             Ok(gateway) => {
-                if seen_gateway_addrs.insert(gateway.addr.to_string()) {
-                    info!("Found inner gateway at {} on interface {} (via multicast)", gateway.addr, interface);
-                    // Store the inner router's IP for outer router mapping
-                    inner_router_ip = Some(*gateway.addr.ip());
-                    try_add_port_mapping(&mut gateways, gateway, port, *interface).await;
+                info!("Found gateway at {} on interface {}", gateway.addr, interface);
+                try_add_port_mapping(&mut gateways, gateway, port, *interface).await;
+                // Return after finding the first working gateway
+                if !gateways.is_empty() {
+                    return Ok(gateways);
                 }
             }
             Err(e) => {
-                warn!("Failed to find gateway via multicast on {}: {}", interface, e);
-            }
-        }
-
-        // Then try direct connections to find outer router
-        for addr in gateway_addrs.iter() {
-            if let Ok(socket_addr) = addr.parse() {
-                let options = SearchOptions {
-                    broadcast_address: socket_addr,
-                    timeout: Some(Duration::from_secs(1)),
-                    ..SearchOptions::default()
-                };
-
-                match search_gateway(options).await {
-                    Ok(gateway) => {
-                        if seen_gateway_addrs.insert(gateway.addr.to_string()) {
-                            info!("Found outer gateway at {} on interface {} (via direct)", gateway.addr, interface);
-                            
-                            // For outer router, map to inner router if we found one
-                            let target_ip = if gateway.addr.to_string().starts_with("192.168.") {
-                                inner_router_ip.unwrap_or(*interface)
-                            } else {
-                                *interface
-                            };
-                            
-                            try_add_port_mapping(&mut gateways, gateway, port, target_ip).await;
-                        }
-                    }
-                    Err(e) => {
-                        debug!("Failed to find gateway at {}: {}", addr, e);
-                    }
-                }
+                warn!("Failed to find gateway on {}: {}", interface, e);
             }
         }
     }
 
     if gateways.is_empty() {
-        return Err(anyhow::anyhow!("No successful UPnP port mappings"));
+        return Err(anyhow::anyhow!("No UPnP gateway found"));
     }
 
     Ok(gateways)
@@ -481,17 +434,21 @@ async fn main() -> Result<()> {
         }
     };
 
-    // Set up cleanup on program exit
+    // Set up cleanup on program exit using tokio's signal handling
     if let Some(gateways) = gateways.clone() {
         let cleanup_port = port;
-        ctrlc::set_handler(move || {
-            info!("Received Ctrl+C, cleaning up UPnP mappings...");
-            let gateways = gateways.clone();
-            tokio::spawn(async move {
-                cleanup_upnp(cleanup_port, gateways).await;
-                std::process::exit(0);
-            });
-        })?;
+        tokio::spawn(async move {
+            match signal::ctrl_c().await {
+                Ok(()) => {
+                    info!("Received Ctrl+C, cleaning up UPnP mappings...");
+                    cleanup_upnp(cleanup_port, gateways).await;
+                    std::process::exit(0);
+                }
+                Err(err) => {
+                    error!("Error setting up Ctrl+C handler: {}", err);
+                }
+            }
+        });
     }
 
     // Start peer health checker
