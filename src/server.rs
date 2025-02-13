@@ -1,19 +1,22 @@
 use crate::{AppState, ChatMessage, Message, PeerInfo, HeartbeatMessage};
-use anyhow::Result;
+use anyhow::Result as AnyhowResult;
 use axum::{
-    extract::State,
+    extract::{State, Json},
     routing::{get, post},
-    Json, Router,
-    response::{IntoResponse, Response},
+    Router,
+    response::{IntoResponse, Response, Result},
+    http::StatusCode,
 };
 use log::{error, info};
 use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
 
+type ApiResult<T> = Result<T, Response>;
+
 pub async fn run_http_server(
     port: u16,
     app_state: Arc<AppState>,
-) -> Result<()> {
+) -> AnyhowResult<()> {
     // Set up CORS
     let cors = CorsLayer::new()
         .allow_origin(Any)
@@ -44,15 +47,16 @@ pub async fn run_http_server(
 
 pub async fn list_peers(
     State(state): State<Arc<AppState>>,
-) -> Response {
+) -> Result<Json<Vec<String>>> {
     let peers = state.peers.lock().unwrap();
-    Json(peers.keys().cloned().collect::<Vec<String>>()).into_response()
+    let peers_list = peers.keys().cloned().collect::<Vec<String>>();
+    Ok(Json(peers_list))
 }
 
 pub async fn send_message(
     State(state): State<Arc<AppState>>,
     Json(message): Json<ChatMessage>,
-) -> Response {
+) -> Result<Json<&'static str>> {
     let msg = Message::Chat {
         content: message.content,
     };
@@ -62,37 +66,37 @@ pub async fn send_message(
         .send((msg.clone(), "local".to_string()))
     {
         error!("Error broadcasting message: {}", e);
-        return Json("Error sending message").into_response();
+        return Err(StatusCode::INTERNAL_SERVER_ERROR.into_response());
     }
 
     if let Err(e) = crate::broadcast_to_peers(msg, "local", &state.peers).await {
         error!("Error broadcasting to peers: {}", e);
-        return Json("Error broadcasting to peers").into_response();
+        return Err(StatusCode::INTERNAL_SERVER_ERROR.into_response());
     }
 
-    Json("Message sent").into_response()
+    Ok(Json("Message sent"))
 }
 
 pub async fn receive_message(
     State(state): State<Arc<AppState>>,
     Json(message): Json<Message>,
-) -> Response {
+) -> Result<Json<&'static str>> {
     if let Err(e) = state.tx.send((message, "remote".to_string())) {
         error!("Error broadcasting received message: {}", e);
-        return Json("Error broadcasting message").into_response();
+        return Err(StatusCode::INTERNAL_SERVER_ERROR.into_response());
     }
-    Json("Message received").into_response()
+    Ok(Json("Message received"))
 }
 
 pub async fn add_peer(
     State(state): State<Arc<AppState>>,
     Json(peer_info): Json<PeerInfo>,
-) -> Response {
+) -> Result<Json<&'static str>> {
     let mut peers = state.peers.lock().unwrap();
     
     // Check if we already have this peer
     if peers.contains_key(&peer_info.address) {
-        return Json("Peer already exists").into_response();
+        return Err(StatusCode::BAD_REQUEST.into_response());
     }
 
     // Create HTTP client for the peer
@@ -136,19 +140,19 @@ pub async fn add_peer(
         }
     }
 
-    Json("Peer added").into_response()
+    Ok(Json("Peer added"))
 }
 
 pub async fn heartbeat(
     State(state): State<Arc<AppState>>,
     Json(heartbeat): Json<HeartbeatMessage>,
-) -> Response {
+) -> Result<Json<&'static str>> {
     let peers = state.peers.lock().unwrap();
     
     // Check if we have this peer
     if !peers.contains_key(&heartbeat.port.to_string()) {
-        return Json("Unknown peer").into_response();
+        return Err(StatusCode::NOT_FOUND.into_response());
     }
 
-    Json("Heartbeat received").into_response()
+    Ok(Json("Heartbeat received"))
 }
