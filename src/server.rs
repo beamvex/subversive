@@ -1,6 +1,6 @@
 // Import required dependencies and types
 use axum::{
-    extract::{State, Json},
+    extract::{State},
     extract::rejection::JsonRejection,
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -53,7 +53,7 @@ pub async fn run_http_server(port: u16, app_state: Arc<AppState>) -> anyhow::Res
 /// List all connected peers
 async fn list_peers(
     State(state): State<Arc<AppState>>,
-) -> impl IntoResponse {
+) -> Json<Vec<PeerInfo>>{
     let peers = state.peers.lock().unwrap();
     let peer_list = peers
         .keys()
@@ -61,7 +61,7 @@ async fn list_peers(
             address: addr.clone(),
         })
         .collect::<Vec<_>>();
-    (StatusCode::OK, Json(peer_list))
+    Json(peer_list)
 }
 
 /// Send a message to all peers
