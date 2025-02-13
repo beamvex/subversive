@@ -1,15 +1,34 @@
 use anyhow::Result;
+use igd::aio::Gateway;
 use log::{error, info};
-use std::net::{Ipv4Addr, SocketAddrV4};
+use std::net::{IpAddr, Ipv4Addr, SocketAddrV4};
 
-pub async fn try_setup_upnp(port: u16) -> Result<Vec<igd::aio::Gateway>> {
+pub async fn try_setup_upnp(port: u16) -> Result<Vec<Gateway>> {
     let gateway = igd::aio::search_gateway(Default::default()).await?;
-    Ok(vec![gateway])
+    match gateway
+        .add_port(
+            igd::PortMappingProtocol::TCP,
+            port,
+            SocketAddrV4::new(Ipv4Addr::LOCALHOST, port),
+            0,
+            "P2P Network",
+        )
+        .await
+    {
+        Ok(()) => {
+            info!("Successfully added port mapping for port {}", port);
+            Ok(vec![gateway])
+        }
+        Err(e) => {
+            error!("Failed to add port mapping: {}", e);
+            Err(anyhow::anyhow!("Failed to add port mapping: {}", e))
+        }
+    }
 }
 
 pub async fn try_add_port_mapping(
-    gateways: &mut Vec<igd::aio::Gateway>,
-    gateway: igd::aio::Gateway,
+    gateways: &mut Vec<Gateway>,
+    gateway: Gateway,
     port: u16,
     interface: Ipv4Addr,
 ) {
@@ -33,11 +52,13 @@ pub async fn try_add_port_mapping(
     }
 }
 
-pub async fn setup_upnp(mut port: u16) -> Result<(u16, Vec<igd::aio::Gateway>)> {
+pub async fn setup_upnp(mut port: u16) -> Result<(u16, Vec<Gateway>)> {
     let interfaces = crate::get_network_interfaces()?;
     let mut gateways = Vec::new();
+    let mut attempts = 0;
+    let max_attempts = 10;
 
-    for _ in 0..10 {
+    while attempts < max_attempts {
         match try_setup_upnp(port).await {
             Ok(found_gateways) => {
                 for gateway in found_gateways {
@@ -49,28 +70,21 @@ pub async fn setup_upnp(mut port: u16) -> Result<(u16, Vec<igd::aio::Gateway>)> 
                     return Ok((port, gateways));
                 }
             }
-            Err(e) => {
-                error!("Failed to set up UPnP: {}", e);
+            Err(_) => {
+                port += 1;
+                attempts += 1;
             }
         }
-        port += 1;
     }
 
     Err(anyhow::anyhow!("Failed to set up UPnP after multiple attempts"))
 }
 
-pub async fn cleanup_upnp(port: u16, gateways: Vec<igd::aio::Gateway>) {
+pub async fn cleanup_upnp(port: u16, gateways: Vec<Gateway>) -> Result<()> {
     for gateway in gateways {
-        match gateway
-            .remove_port(igd::PortMappingProtocol::TCP, port)
-            .await
-        {
-            Ok(()) => {
-                info!("Successfully removed port mapping for port {}", port);
-            }
-            Err(e) => {
-                error!("Failed to remove port mapping: {}", e);
-            }
+        if let Err(e) = gateway.remove_port(igd::PortMappingProtocol::TCP, port).await {
+            error!("Error removing port mapping: {}", e);
         }
     }
+    Ok(())
 }
