@@ -8,7 +8,7 @@ use std::{
     sync::{Arc, Mutex},
     time::Duration,
 };
-use tokio::{sync::broadcast, signal};
+use tokio::{sync::{MutexGuard, broadcast}, signal};
 use tracing::{error, info};
 
 // Re-export modules
@@ -93,7 +93,7 @@ async fn main() -> Result<()> {
     info!("Using port {}", actual_port);
 
     // Spawn a task to handle message processing
-    let state = app_state.clone();
+    let _state = app_state.clone();
     tokio::spawn(async move {
         while let Ok((message, source)) = rx.recv().await {
             match message {
@@ -126,7 +126,8 @@ async fn main() -> Result<()> {
     // Start peer health checker
     let peers_clone = app_state.peers.clone();
     tokio::spawn(async move {
-        check_peer_health(peers_clone).await;
+        let mut peers = peers_clone.lock().unwrap();
+        check_peer_health(&mut peers).await;
     });
 
     // Start the HTTP server
@@ -172,12 +173,11 @@ pub async fn broadcast_to_peers(
 /// 
 /// # Arguments
 /// * `peers` - Map of peer addresses to their HTTP clients
-pub async fn check_peer_health(peers: Arc<Mutex<HashMap<String, reqwest::Client>>>) {
+pub async fn check_peer_health(peers: &mut MutexGuard<'_, HashMap<String, reqwest::Client>>) {
     let mut interval = tokio::time::interval(Duration::from_secs(30));
     loop {
         interval.tick().await;
-        let peers_guard = peers.lock().unwrap();
-        for (addr, client) in peers_guard.iter() {
+        for (addr, client) in peers.iter() {
             if let Err(e) = client
                 .post(format!("{}/heartbeat", addr))
                 .send()

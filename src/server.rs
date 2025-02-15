@@ -1,20 +1,15 @@
 // Import required dependencies and types
 use axum::{
-    extract::{State},
-    extract::rejection::JsonRejection,
-    http::StatusCode,
-    response::{IntoResponse, Response},
-    routing::{get, post},
-    Json, Router,
+    extract::Json,
+    routing::{post,get},
+    Router,
+    extract::State,
 };
-use serde::{Deserialize, Serialize};
 use std::{net::SocketAddr, sync::Arc};
 use tower_http::cors::{Any, CorsLayer};
 use tracing::info;
 
 use crate::{AppState, ChatMessage, HeartbeatMessage, Message, PeerInfo};
-
-type HandlerResult = Result<Response, Response>;
 
 /// Start the HTTP server
 /// 
@@ -65,23 +60,23 @@ async fn list_peers(
 }
 
 /// Send a message to all peers
-async fn send_message(
+pub async fn send_message(
     State(state): State<Arc<AppState>>,
     Json(message): Json<ChatMessage>,
-) -> Json<String> {
+) -> Json<&'static str> {
     let msg = Message::Chat {
         content: message.content,
     };
 
     if let Err(_) = state.tx.send((msg.clone(), "local".to_string())) {
-        return Json("Failed to send message locally".to_string());
+        return axum::response::Json("Failed to send message locally");
     }
 
     if let Err(_) = crate::broadcast_to_peers(msg, "local", &state.peers).await {
-        return Json("Failed to broadcast message to peers".to_string());
+        return axum::response::Json("Failed to broadcast message to peers");
     }
 
-    Json("Message sent".to_string())
+    axum::response::Json("Message sent")
 }
 
 /// Receive a message from a peer
