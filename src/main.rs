@@ -24,7 +24,7 @@ pub struct Args {
     port: u16,
 
     /// Initial peer to connect to
-    #[arg(short, long)]
+    #[arg(short('e'), long)]
     peer: Option<String>,
 }
 
@@ -87,6 +87,7 @@ async fn main() -> Result<()> {
         peers: Arc::new(Mutex::new(HashMap::new())),
         tx: tx.clone(),
     });
+    info!("Starting up");
 
     // Set up UPnP port mapping
     let (actual_port, gateways) = upnp::setup_upnp(args.port).await?;

@@ -58,7 +58,10 @@ pub async fn setup_upnp(mut port: u16) -> Result<(u16, Vec<Gateway>)> {
     let mut attempts = 0;
     let max_attempts = 10;
 
+    info!("Searching for UPnP gateway");
+
     while attempts < max_attempts {
+        info!("Attempt {} of {}", attempts + 1, max_attempts);
         match try_setup_upnp(port).await {
             Ok(found_gateways) => {
                 for gateway in found_gateways {
