@@ -1,7 +1,8 @@
 use anyhow::Result;
 use igd::aio::Gateway;
 use log::{error, info};
-use std::net::{ Ipv4Addr, SocketAddrV4};
+use std::net::{Ipv4Addr, SocketAddrV4};
+use std::path::Path;
 
 pub async fn try_setup_upnp(port: u16) -> Result<Vec<Gateway>> {
     let gateway = igd::aio::search_gateway(Default::default()).await?;
@@ -52,7 +53,15 @@ pub async fn try_add_port_mapping(
     }
 }
 
+pub fn is_wsl() -> bool {
+    Path::new("/proc/sys/fs/binfmt_misc/WSLInterop").exists()
+}
+
 pub async fn setup_upnp(mut port: u16) -> Result<(u16, Vec<Gateway>)> {
+    if is_wsl() {
+        info!("WSL2 detected - skipping UPnP port mapping");
+        return Ok((port, Vec::new()));
+    }
     let interfaces = crate::get_network_interfaces()?;
     let mut gateways = Vec::new();
     let mut attempts = 0;

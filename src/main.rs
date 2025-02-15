@@ -93,6 +93,15 @@ async fn main() -> Result<()> {
     let (actual_port, gateways) = upnp::setup_upnp(args.port).await?;
     info!("Using port {}", actual_port);
 
+    // After UPnP setup
+    if crate::upnp::is_wsl() {
+        info!("Manual port forwarding required:");
+        info!("1. On Windows host, run PowerShell as Admin");
+        info!("2. Execute: netsh interface portproxy add v4tov4 listenport={} listenaddress=0.0.0.0 connectport={} connectaddress=127.0.0.1", actual_port, actual_port);
+        info!("3. Allow the port in Windows Defender Firewall:");
+        info!("   New-NetFirewallRule -DisplayName 'P2P Port' -Direction Inbound -Action Allow -Protocol TCP -LocalPort {}", actual_port);
+    }
+
     // Spawn a task to handle message processing
     let _state = app_state.clone();
     tokio::spawn(async move {
