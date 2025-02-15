@@ -26,10 +26,10 @@ pub async fn run_http_server(port: u16, app_state: Arc<AppState>) -> anyhow::Res
     // Create router with routes
     let app = Router::new()
         .route("/peers", get(list_peers))
-        .route("/send", post(send_message))
-        .route("/receive", post(receive_message))
-        .route("/peer", post(add_peer))
-        .route("/heartbeat", post(heartbeat))
+        //.route("/send", post(send_message))
+        //.route("/receive", post(receive_message))
+        //.route("/peer", post(add_peer))
+        //.route("/heartbeat", post(heartbeat))
         .layer(cors)
         .with_state(app_state);
 
