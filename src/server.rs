@@ -68,41 +68,41 @@ async fn list_peers(
 async fn send_message(
     State(state): State<Arc<AppState>>,
     Json(message): Json<ChatMessage>,
-) -> impl IntoResponse {
+) -> Json<String> {
     let msg = Message::Chat {
         content: message.content,
     };
 
     if let Err(_) = state.tx.send((msg.clone(), "local".to_string())) {
-        return (StatusCode::INTERNAL_SERVER_ERROR, Json("Failed to send message locally"));
+        return Json("Failed to send message locally".to_string());
     }
 
     if let Err(_) = crate::broadcast_to_peers(msg, "local", &state.peers).await {
-        return (StatusCode::INTERNAL_SERVER_ERROR, Json("Failed to broadcast message to peers"));
+        return Json("Failed to broadcast message to peers".to_string());
     }
 
-    (StatusCode::OK, Json("Message sent"))
+    Json("Message sent".to_string())
 }
 
 /// Receive a message from a peer
 async fn receive_message(
     State(state): State<Arc<AppState>>,
     Json(message): Json<Message>,
-) -> impl IntoResponse {
+) -> Json<String> {
     if let Err(_) = state.tx.send((message, "remote".to_string())) {
-        return (StatusCode::INTERNAL_SERVER_ERROR, Json("Failed to process received message"));
+        return Json("Failed to process received message".to_string());
     }
 
-    (StatusCode::OK, Json("Message received"))
+    Json("Message received".to_string())
 }
 
 /// Add a new peer to the network
 async fn add_peer(
     State(state): State<Arc<AppState>>,
     Json(peer): Json<PeerInfo>,
-) -> impl IntoResponse {
+) -> Json<String> {
     if peer.address.is_empty() {
-        return (StatusCode::BAD_REQUEST, Json("Peer address cannot be empty"));
+        return Json("Peer address cannot be empty".to_string());
     }
 
     let client = reqwest::Client::new();
@@ -113,24 +113,24 @@ async fn add_peer(
     };
 
     if let Err(_) = state.tx.send((msg.clone(), "local".to_string())) {
-        return (StatusCode::INTERNAL_SERVER_ERROR, Json("Failed to process new peer locally"));
+        return Json("Failed to process new peer locally".to_string());
     }
 
     if let Err(_) = crate::broadcast_to_peers(msg, "local", &state.peers).await {
-        return (StatusCode::INTERNAL_SERVER_ERROR, Json("Failed to broadcast new peer to network"));
+        return Json("Failed to broadcast new peer to network".to_string());
     }
 
-    (StatusCode::OK, Json("Peer added"))
+    Json("Peer added".to_string())
 }
 
 /// Handle heartbeat from a peer
 async fn heartbeat(
     State(state): State<Arc<AppState>>,
     Json(heartbeat): Json<HeartbeatMessage>,
-) -> impl IntoResponse {
+) -> Json<String> {
     let peers = state.peers.lock().unwrap();
     if !peers.contains_key(&format!("http://localhost:{}", heartbeat.port)) {
-        return (StatusCode::NOT_FOUND, Json("Peer not found"));
+        return Json("Peer not found".to_string());
     }
-    (StatusCode::OK, Json("Heartbeat received"))
+    Json("Heartbeat received".to_string())
 }
