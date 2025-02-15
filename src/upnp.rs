@@ -1,7 +1,7 @@
 use anyhow::Result;
 use igd::aio::Gateway;
 use log::{error, info};
-use std::net::{IpAddr, Ipv4Addr, SocketAddrV4};
+use std::net::{ Ipv4Addr, SocketAddrV4};
 
 pub async fn try_setup_upnp(port: u16) -> Result<Vec<Gateway>> {
     let gateway = igd::aio::search_gateway(Default::default()).await?;
