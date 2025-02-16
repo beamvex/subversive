@@ -10,10 +10,14 @@ use std::{
 };
 use tokio::{sync::{MutexGuard, broadcast}, signal};
 use tracing::{error, info};
+use chrono;
 
 // Re-export modules
 pub mod server;
 pub mod upnp;
+mod db;
+
+use db::DbContext;
 
 /// Command line arguments for the P2P network application
 #[derive(Parser, Debug)]
@@ -68,6 +72,8 @@ pub struct AppState {
     pub peers: Arc<Mutex<HashMap<String, reqwest::Client>>>,
     /// Channel for sending messages within the application
     pub tx: broadcast::Sender<(Message, String)>,
+    /// Database context
+    pub db: Arc<DbContext>,
 }
 
 /// Main entry point of the application
@@ -80,12 +86,16 @@ async fn main() -> Result<()> {
     let args = Args::parse();
 
     // Create a channel for message passing
-    let (tx, mut rx) = broadcast::channel(100);
+    let (tx, mut rx) = broadcast::channel(32);
+
+    // Initialize database
+    let db = Arc::new(DbContext::new("p2p_network.db")?);
 
     // Initialize shared application state
     let app_state = Arc::new(AppState {
         peers: Arc::new(Mutex::new(HashMap::new())),
         tx: tx.clone(),
+        db: db.clone(),
     });
     info!("Starting up");
 
@@ -109,9 +119,15 @@ async fn main() -> Result<()> {
             match message {
                 Message::Chat { content } => {
                     info!("Received chat message from {}: {}", source, content);
+                    if let Err(e) = db.save_message(&content, &source, chrono::Utc::now().timestamp()) {
+                        error!("Failed to save message: {}", e);
+                    }
                 }
                 Message::NewPeer { addr } => {
-                    info!("New peer joined: {}", addr);
+                    info!("Received new peer from {}: {}", source, addr);
+                    if let Err(e) = db.save_peer(&addr, chrono::Utc::now().timestamp()) {
+                        error!("Failed to save peer: {}", e);
+                    }
                 }
             }
         }
