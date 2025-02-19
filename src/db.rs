@@ -1,10 +1,10 @@
 use anyhow::Result;
 use polodb_core::{Database, db::Collection, DbResult};
-use polodb_bson::{doc, Document};
+use polodb_bson::{doc};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
-use std::rc::Rc;
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MessageDoc {

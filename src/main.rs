@@ -150,11 +150,13 @@ async fn main() -> Result<()> {
     });
 
     // Start peer health checker
+    /*
     let peers_clone = app_state.peers.clone();
     tokio::spawn(async move {
-        let mut peers = peers_clone.lock();
+        let peers = peers_clone.lock();
         //check_peer_health(&mut peers).await;
     });
+    */
 
     // Start the HTTP server
     server::run_http_server(actual_port, app_state).await?;
