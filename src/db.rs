@@ -1,11 +1,11 @@
 use anyhow::Result;
-use polodb_core::{Database, db::Collection, DbResult};
+use polodb_core::Database;
 use polodb_bson::{doc};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
-
+/// Represents a message document in the database.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MessageDoc {
     pub content: String,
@@ -13,17 +13,20 @@ pub struct MessageDoc {
     pub timestamp: i64,
 }
 
+/// Represents a peer document in the database.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PeerDoc {
     pub address: String,
     pub last_seen: i64,
 }
 
+/// Represents a database context.
 pub struct DbContext {
     db: Arc<Mutex<Database>>,
 }
 
 impl DbContext {
+    /// Creates a new database context from a file path.
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
         let db = Database::open_file(path)?;
         Ok(Self { 
@@ -31,22 +34,16 @@ impl DbContext {
         })
     }
 
-    pub fn get_messages(&self) -> DbResult<Collection> {
-        self.db.lock().unwrap().collection("messages")
-    }
-
-    pub fn get_peers(&self) -> DbResult<Collection> {
-        self.db.lock().unwrap().collection("peers")
-    }
-
+    /// Saves a message to the database.
     pub fn save_message(&self, content: &str, source: &str, timestamp: i64) -> Result<()> {
-        let mut messages = self.get_messages()?;
+        let mut db = self.db.lock().unwrap();
+        let mut messages = db.collection("messages")?;
         let message = MessageDoc {
             content: content.to_string(),
             source: source.to_string(),
             timestamp,
         };
-        messages.insert(&doc! {
+        messages.insert(&mut doc! {
             "content": message.content,
             "source": message.source,
             "timestamp": message.timestamp,
@@ -54,28 +51,32 @@ impl DbContext {
         Ok(())
     }
 
+    /// Saves a peer to the database.
     pub fn save_peer(&self, address: &str, last_seen: i64) -> Result<()> {
-        let mut peers = self.get_peers()?;
+        let mut db = self.db.lock().unwrap();
+        let mut peers = db.collection("peers")?;
         let peer = PeerDoc {
             address: address.to_string(),
             last_seen,
         };
-        peers.insert(&doc! {
+        peers.insert(&mut doc! {
             "address": peer.address,
             "last_seen": peer.last_seen,
         })?;
         Ok(())
     }
 
+    /// Gets recent messages from the database.
     pub fn get_recent_messages(&self, limit: i64) -> Result<Vec<MessageDoc>> {
-        let mut messages = self.get_messages()?;
+        let mut db = self.db.lock().unwrap();
+        let mut messages = db.collection("messages")?;
         let filter = doc! {};
         let results = messages.find(&filter)?;
         let mut docs = results.into_iter()
             .map(|doc| MessageDoc {
-                content: doc.get_str("content").unwrap_or_default().to_string(),
-                source: doc.get_str("source").unwrap_or_default().to_string(),
-                timestamp: doc.get_i64("timestamp").unwrap_or_default(),
+                content: doc.get("content").map(|v| v.to_string()).unwrap_or_default(),
+                source: doc.get("source").map(|v| v.to_string()).unwrap_or_default(),
+                timestamp: doc.get("timestamp").and_then(|v| v.to_string().parse().ok()).unwrap_or_default(),
             })
             .collect::<Vec<_>>();
         docs.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
@@ -85,30 +86,28 @@ impl DbContext {
         Ok(docs)
     }
 
+    /// Gets active peers from the database.
     pub fn get_active_peers(&self, since: i64) -> Result<Vec<PeerDoc>> {
-        let mut peers = self.get_peers()?;
-        let filter = doc! {
-            "last_seen": doc! { "$gt": since }
-        };
+        let mut db = self.db.lock().unwrap();
+        let mut peers = db.collection("peers")?;
+        let filter = doc! {};  // Get all peers
         let results = peers.find(&filter)?;
         Ok(results.into_iter()
             .map(|doc| PeerDoc {
-                address: doc.get_str("address").unwrap_or_default().to_string(),
-                last_seen: doc.get_i64("last_seen").unwrap_or_default(),
+                address: doc.get("address").map(|v| v.to_string()).unwrap_or_default(),
+                last_seen: doc.get("last_seen").and_then(|v| v.to_string().parse().ok()).unwrap_or_default(),
             })
+            .filter(|peer| peer.last_seen > since)
             .collect())
     }
 
+    /// Updates the last seen timestamp of a peer.
     pub fn update_peer_last_seen(&self, address: &str, timestamp: i64) -> Result<()> {
-        let mut peers = self.get_peers()?;
-        let filter = doc! { 
-            "address": address.to_string() 
-        };
-        let update = doc! {
-            "address": address.to_string(),
-            "last_seen": timestamp,
-        };
-        peers.update(&filter, &update)?;
+        let mut db = self.db.lock().unwrap();
+        let mut peers = db.collection("peers")?;
+        let filter = doc! { "address": address };
+        let update = doc! { "last_seen": timestamp };
+        peers.update(Some(&filter), &update)?;
         Ok(())
     }
 }
