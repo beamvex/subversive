@@ -140,7 +140,7 @@ async fn main() -> Result<()> {
         match signal::ctrl_c().await {
             Ok(()) => {
                 info!("Received Ctrl+C, cleaning up UPnP mappings...");
-                upnp::cleanup_upnp(cleanup_port, gateways).await;
+                let _ =upnp::cleanup_upnp(cleanup_port, gateways).await;
                 std::process::exit(0);
             }
             Err(err) => {
