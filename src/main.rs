@@ -9,8 +9,10 @@ use std::{
     time::Duration,
 };
 use tokio::{sync::{MutexGuard, broadcast}, signal};
-use tracing::{error, info};
+use tracing::{error, info, Level};
+use tracing_subscriber;
 use chrono;
+use rand::Rng;
 
 // Re-export modules
 pub mod server;
@@ -23,9 +25,9 @@ use db::DbContext;
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct Args {
-    /// Port to listen on for P2P communication
-    #[arg(short, long, default_value_t = 8080)]
-    port: u16,
+    /// Port to listen on for P2P communication (defaults to random port between 10000-65535)
+    #[arg(short, long)]
+    port: Option<u16>,
 
     /// Initial peer to connect to
     #[arg(short('e'), long)]
@@ -80,10 +82,20 @@ pub struct AppState {
 #[tokio::main]
 async fn main() -> Result<()> {
     // Initialize logging
-    tracing_subscriber::fmt::init();
+    tracing_subscriber::fmt()
+        .with_max_level(Level::INFO)
+        .init();
 
     // Parse command line arguments
     let args = Args::parse();
+    
+    // Generate random port between 10000-65535 if not specified
+    let port = args.port.unwrap_or_else(|| {
+        let mut rng = rand::thread_rng();
+        rng.gen_range(10000..=65535)
+    });
+    
+    info!("Using port: {}", port);
 
     // Create a channel for message passing
     let (tx, mut rx) = broadcast::channel(32);
@@ -100,7 +112,7 @@ async fn main() -> Result<()> {
     info!("Starting up");
 
     // Set up UPnP port mapping
-    let (actual_port, gateways) = upnp::setup_upnp(args.port).await?;
+    let (actual_port, gateways) = upnp::setup_upnp(port).await?;
     info!("Using port {}", actual_port);
 
     // After UPnP setup

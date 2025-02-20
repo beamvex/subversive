@@ -5,8 +5,11 @@ use axum::{
     extract::State,
     response::{IntoResponse, Response},
 };
-use std::{net::SocketAddr, sync::Arc};
-use tower_http::cors::{Any, CorsLayer};
+use std::{net::SocketAddr, sync::Arc, path::PathBuf};
+use tower_http::{
+    cors::{Any, CorsLayer},
+    services::ServeDir,
+};
 use tracing::info;
 use chrono::Utc;
 
@@ -25,6 +28,10 @@ pub async fn run_http_server(port: u16, app_state: Arc<AppState>) -> anyhow::Res
         .allow_methods(Any)
         .allow_headers(Any);
 
+    // Set up static file serving from public directory
+    let public_dir = PathBuf::from("public");
+    let static_files_service = ServeDir::new(public_dir);
+
     // Create router with routes
     let app = Router::new()
         .route("/peers", get(list_peers))
@@ -33,6 +40,7 @@ pub async fn run_http_server(port: u16, app_state: Arc<AppState>) -> anyhow::Res
         .route("/peer", post(add_peer))
         .route("/heartbeat", post(heartbeat))
         .route("/recent_messages", get(get_recent_messages))
+        .nest_service("/", static_files_service)
         .layer(cors)
         .with_state(app_state);
 
