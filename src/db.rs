@@ -90,7 +90,11 @@ impl DbContext {
     pub fn get_active_peers(&self, since: i64) -> Result<Vec<PeerDoc>> {
         let mut db = self.db.lock().unwrap();
         let mut peers = db.collection("peers")?;
-        let filter = doc! {};  // Get all peers
+        let filter = doc! {
+            "last_seen": doc! {
+                "$gt": since
+            }
+        };  // Get all peers
         let results = peers.find(&filter)?;
         Ok(results.into_iter()
             .map(|doc| PeerDoc {
