@@ -6,6 +6,9 @@ import { Header } from './components/Header';
 import { PostList } from './components/PostList';
 import { PostForm } from './components/PostForm';
 import { Post } from './types/Post';
+import { Container, Row, Col } from 'react-bootstrap';
+import NavBar from './components/NavBar';
+import SideBar from './components/SideBar';
 
 function App() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -30,13 +33,25 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <Header />
-      <main className="container mx-auto p-4">
-        <PostForm onCreatePost={handleCreatePost} />
-        <PostList posts={posts} onVote={handleVote} />
-      </main>
-    </div>
+    <>
+      <NavBar />
+      <Container fluid>
+        <Row>
+          <Col md={3} className="p-3">
+            <SideBar />
+          </Col>
+          <Col md={9} className="p-3">
+            <div className="min-h-screen bg-gray-100">
+              <Header />
+              <main className="container mx-auto p-4">
+                <PostForm onCreatePost={handleCreatePost} />
+                <PostList posts={posts} onVote={handleVote} />
+              </main>
+            </div>
+          </Col>
+        </Row>
+      </Container>
+    </>
   );
 }
 
