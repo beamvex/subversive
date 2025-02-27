@@ -10,7 +10,7 @@ use std::{
 };
 use tokio::{sync::{MutexGuard, broadcast}, signal};
 use tracing::{error, info, Level};
-use tracing_subscriber;
+use tracing_subscriber::{self, fmt::format::FmtSpan};
 use chrono;
 use rand::Rng;
 
@@ -37,6 +37,10 @@ pub struct Args {
     /// Database file name (defaults to p2p_network.db)
     #[arg(short, long, default_value = "p2p_network.db")]
     database: String,
+
+    /// Custom name for HTTP access logs
+    #[arg(short, long, default_value = "p2p_network")]
+    name: String,
 }
 
 /// Message types that can be exchanged between peers
@@ -86,9 +90,14 @@ pub struct AppState {
 /// Main entry point of the application
 #[tokio::main]
 async fn main() -> Result<()> {
-    // Initialize logging
+    // Initialize the tracing subscriber with formatting options
     tracing_subscriber::fmt()
-        .with_max_level(Level::INFO)
+        .with_target(false)
+        .with_thread_ids(false)
+        .with_level(true)
+        .with_file(false)
+        .with_line_number(false)
+        .with_span_events(FmtSpan::CLOSE)
         .init();
 
     // Parse command line arguments
@@ -184,7 +193,10 @@ async fn main() -> Result<()> {
     */
 
     // Start the HTTP server
-    server::run_http_server(actual_port, app_state).await?;
+    if let Err(e) = server::run_http_server(actual_port, app_state.clone(), args.name).await {
+        error!("Failed to start HTTP server: {}", e);
+        return Err(e);
+    }
 
     Ok(())
 }

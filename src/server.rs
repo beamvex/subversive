@@ -2,6 +2,7 @@ use crate::{AppState, ChatMessage, HeartbeatMessage, Message, PeerInfo};
 use axum::{
     extract::Json,
     extract::State,
+    http::Request,
     response::{IntoResponse, Response},
     routing::{get, post},
     Router,
@@ -13,20 +14,27 @@ use std::{
     net::SocketAddr,
     path::{Path, PathBuf},
     sync::Arc,
+    time::Duration,
 };
 
 use tower_http::{
     cors::{Any, CorsLayer},
     services::ServeDir,
+    trace::TraceLayer,
 };
-use tracing::info;
+use tracing::{info, Level, Span};
 
 /// Start the HTTP server
 ///
 /// # Arguments
 /// * `port` - Port to listen on
 /// * `app_state` - Shared application state
-pub async fn run_http_server(port: u16, app_state: Arc<AppState>) -> anyhow::Result<()> {
+/// * `name` - Custom name for logging
+pub async fn run_http_server(
+    port: u16,
+    app_state: Arc<AppState>,
+    name: String,
+) -> anyhow::Result<()> {
     // Set up CORS
     let cors = CorsLayer::new()
         .allow_origin(Any)
@@ -36,6 +44,24 @@ pub async fn run_http_server(port: u16, app_state: Arc<AppState>) -> anyhow::Res
     // Set up static file serving from public directory
     let public_dir = PathBuf::from("public");
     let static_files_service = ServeDir::new(public_dir);
+
+    // Set up logging middleware
+    let trace_layer = TraceLayer::new_for_http()
+        .make_span_with(move |request: &Request<_>| {
+            tracing::span!(
+                Level::INFO,
+                "http_request",
+                name = %name,
+                method = %request.method(),
+                uri = %request.uri(),
+                status = tracing::field::Empty,
+                latency = tracing::field::Empty,
+            )
+        })
+        .on_response(|response: &Response<_>, latency: Duration, span: &Span| {
+            span.record("status", response.status().as_u16());
+            span.record("latency", latency.as_secs_f64());
+        });
 
     // Create router with routes
     let app = Router::new()
@@ -47,6 +73,7 @@ pub async fn run_http_server(port: u16, app_state: Arc<AppState>) -> anyhow::Res
         .route("/recent_messages", get(get_recent_messages))
         .nest_service("/", static_files_service)
         .layer(cors)
+        .layer(trace_layer)
         .with_state(app_state);
 
     // Set up TLS
