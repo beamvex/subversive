@@ -32,6 +32,10 @@ pub struct Args {
     /// Initial peer to connect to
     #[arg(short('e'), long)]
     peer: Option<String>,
+
+    /// Database file name (defaults to p2p_network.db)
+    #[arg(short, long, default_value = "p2p_network.db")]
+    database: String,
 }
 
 /// Message types that can be exchanged between peers
@@ -95,13 +99,21 @@ async fn main() -> Result<()> {
         rng.gen_range(10000..=65535)
     });
     
+    // Ensure database name has .db extension
+    let database = if !args.database.ends_with(".db") {
+        format!("{}.db", args.database)
+    } else {
+        args.database
+    };
+    
     info!("Using port: {}", port);
+    info!("Using database: {}", database);
 
     // Create a channel for message passing
     let (tx, mut rx) = broadcast::channel(32);
 
     // Initialize database
-    let db = Arc::new(DbContext::new("p2p_network.db")?);
+    let db = Arc::new(DbContext::new(&database)?);
 
     // Initialize shared application state
     let app_state = Arc::new(AppState {
