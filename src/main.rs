@@ -186,13 +186,16 @@ async fn main() -> Result<()> {
     // Connect to initial peer if specified
     if let Some(peer_addr) = args.peer {
         info!("Connecting to initial peer: {}", peer_addr);
-        let client = reqwest::Client::new();
+        let client = reqwest::Client::builder()
+            .danger_accept_invalid_certs(true)
+            .build()
+            .expect("Failed to create HTTP client");
         let mut peers = app_state.peers.lock().unwrap();
         peers.insert(peer_addr.clone(), client.clone());
         drop(peers);
 
         // Notify the peer about our presence
-        let my_addr = format!("http://{}:{}", get_external_ip().await?, actual_port);
+        let my_addr = format!("https://{}:{}", get_external_ip().await?, actual_port);
         if let Err(e) = client
             .post(format!("{}/peer", peer_addr))
             .json(&PeerInfo { address: my_addr })
@@ -212,7 +215,14 @@ async fn main() -> Result<()> {
                 let peers = peers_clone.lock().unwrap();
                 peers
                     .iter()
-                    .map(|(addr, client)| (addr.clone(), client.clone()))
+                    .map(|(addr, client)| {
+                        let addr = if !addr.starts_with("https://") {
+                            addr.replace("http://", "https://")
+                        } else {
+                            addr.clone()
+                        };
+                        (addr, client.clone())
+                    })
                     .collect::<HashMap<String, reqwest::Client>>()
             }; // Lock is dropped here
 

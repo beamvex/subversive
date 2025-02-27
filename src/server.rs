@@ -165,23 +165,33 @@ async fn add_peer(State(state): State<Arc<AppState>>, Json(peer): Json<PeerInfo>
         return Json("Peer address cannot be empty").into_response();
     }
 
-    let client = reqwest::Client::new();
+    // Ensure we're using HTTPS
+    let peer_address = if !peer.address.starts_with("https://") {
+        peer.address.replace("http://", "https://")
+    } else {
+        peer.address
+    };
+
+    let client = reqwest::Client::builder()
+        .danger_accept_invalid_certs(true)
+        .build()
+        .expect("Failed to create HTTP client");
     state
         .peers
         .lock()
         .unwrap()
-        .insert(peer.address.clone(), client);
+        .insert(peer_address.clone(), client);
 
     // Update peer's last seen timestamp in database
     if let Err(e) = state
         .db
-        .update_peer_last_seen(&peer.address, Utc::now().timestamp())
+        .update_peer_last_seen(&peer_address, Utc::now().timestamp())
     {
         return Json(format!("Failed to update peer in database: {}", e)).into_response();
     }
 
     let msg = Message::NewPeer {
-        addr: peer.address.clone(),
+        addr: peer_address.clone(),
     };
 
     if let Err(_) = state.tx.send((msg.clone(), "local".to_string())) {
