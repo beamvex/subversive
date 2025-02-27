@@ -1,6 +1,8 @@
 // Import required dependencies and types
 use anyhow::Result;
+use chrono;
 use clap::Parser;
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -8,17 +10,15 @@ use std::{
     sync::{Arc, Mutex},
     time::Duration,
 };
-use tokio::{sync::{MutexGuard, broadcast}, signal};
-use tracing::{error, info, Level};
+use tokio::{signal, sync::broadcast};
+use tracing::{error, info};
 use tracing_subscriber::{self, fmt::format::FmtSpan};
-use chrono;
-use rand::Rng;
 
 // Re-export modules
-pub mod server;
 pub mod db;
-pub mod upnp;
+pub mod server;
 pub mod tls;
+pub mod upnp;
 
 use db::DbContext;
 
@@ -47,13 +47,9 @@ pub struct Args {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum Message {
     /// Regular chat message
-    Chat {
-        content: String,
-    },
+    Chat { content: String },
     /// Message indicating a new peer has joined
-    NewPeer {
-        addr: String,
-    },
+    NewPeer { addr: String },
 }
 
 /// Information about a peer in the network
@@ -102,20 +98,20 @@ async fn main() -> Result<()> {
 
     // Parse command line arguments
     let args = Args::parse();
-    
+
     // Generate random port between 10000-65535 if not specified
     let port = args.port.unwrap_or_else(|| {
         let mut rng = rand::thread_rng();
         rng.gen_range(10000..=65535)
     });
-    
+
     // Ensure database name has .db extension
     let database = if !args.database.ends_with(".db") {
         format!("{}.db", args.database)
     } else {
         args.database
     };
-    
+
     info!("Using port: {}", port);
     info!("Using database: {}", database);
 
@@ -153,7 +149,9 @@ async fn main() -> Result<()> {
             match message {
                 Message::Chat { content } => {
                     info!("Received chat message from {}: {}", source, content);
-                    if let Err(e) = db.save_message(&content, &source, chrono::Utc::now().timestamp()) {
+                    if let Err(e) =
+                        db.save_message(&content, &source, chrono::Utc::now().timestamp())
+                    {
                         error!("Failed to save message: {}", e);
                     }
                 }
@@ -174,7 +172,7 @@ async fn main() -> Result<()> {
         match signal::ctrl_c().await {
             Ok(()) => {
                 info!("Received Ctrl+C, cleaning up UPnP mappings...");
-                let _ =upnp::cleanup_upnp(cleanup_port, gateways).await;
+                let _ = upnp::cleanup_upnp(cleanup_port, gateways).await;
                 std::process::exit(0);
             }
             Err(err) => {
@@ -184,13 +182,27 @@ async fn main() -> Result<()> {
     });
 
     // Start peer health checker
-    /*
+
     let peers_clone = app_state.peers.clone();
     tokio::spawn(async move {
-        let peers = peers_clone.lock();
-        //check_peer_health(&mut peers).await;
+        loop {
+            let peers_to_check = {
+                let peers = peers_clone.lock().unwrap();
+                peers
+                    .iter()
+                    .map(|(addr, client)| (addr.clone(), client.clone()))
+                    .collect::<HashMap<String, reqwest::Client>>()
+            }; // Lock is dropped here
+
+            for (addr, client) in peers_to_check.iter() {
+                if let Err(e) = client.post(format!("{}/heartbeat", addr)).send().await {
+                    info!("Error sending heartbeat to {}: {}", addr, e);
+                }
+            }
+
+            tokio::time::sleep(Duration::from_secs(30)).await;
+        }
     });
-    */
 
     // Start the HTTP server
     if let Err(e) = server::run_http_server(actual_port, app_state.clone(), args.name).await {
@@ -202,7 +214,7 @@ async fn main() -> Result<()> {
 }
 
 /// Broadcast a message to all connected peers
-/// 
+///
 /// # Arguments
 /// * `message` - The message to broadcast
 /// * `source` - The source of the message (to avoid sending back to sender)
@@ -239,49 +251,38 @@ pub async fn broadcast_to_peers(
 }
 
 /// Check the health of all connected peers
-/// 
+///
 /// # Arguments
 /// * `peers` - Map of peer addresses to their HTTP clients
-pub async fn check_peer_health(peers: &mut MutexGuard<'_, HashMap<String, reqwest::Client>>) {
-    let mut interval = tokio::time::interval(Duration::from_secs(30));
-    loop {
-        interval.tick().await;
-        for (addr, client) in peers.iter() {
-            if let Err(e) = client
-                .post(format!("{}/heartbeat", addr))
-                .send()
-                .await
-            {
-                info!("Error sending heartbeat to {}: {}", addr, e);
-            }
+pub async fn check_peer_health(peers: &mut HashMap<String, reqwest::Client>) {
+    for (addr, client) in peers.iter() {
+        if let Err(e) = client.post(format!("{}/heartbeat", addr)).send().await {
+            info!("Error sending heartbeat to {}: {}", addr, e);
         }
     }
 }
 
 /// Get the external IP address of the machine
-/// 
+///
 /// # Returns
 /// The external IP address as a string
 pub async fn get_external_ip() -> Result<String> {
-    let response = reqwest::get("https://api.ipify.org")
-        .await?
-        .text()
-        .await?;
+    let response = reqwest::get("https://api.ipify.org").await?.text().await?;
     Ok(response)
 }
 
 /// Get the network interfaces of the machine
-/// 
+///
 /// # Returns
 /// A vector of IPv4 addresses of the network interfaces
 pub fn get_network_interfaces() -> Result<Vec<Ipv4Addr>> {
     let output = std::process::Command::new("ip")
         .args(["addr", "show"])
         .output()?;
-    
+
     let stdout = String::from_utf8_lossy(&output.stdout);
     let mut addresses = Vec::new();
-    
+
     for line in stdout.lines() {
         if line.contains("inet ") {
             let parts: Vec<&str> = line.split_whitespace().collect();
@@ -294,6 +295,6 @@ pub fn get_network_interfaces() -> Result<Vec<Ipv4Addr>> {
             }
         }
     }
-    
+
     Ok(addresses)
 }
