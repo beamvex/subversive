@@ -1,3 +1,4 @@
+use crate::{AppState, ChatMessage, HeartbeatMessage, Message, PeerInfo};
 use axum::{
     extract::Json,
     extract::State,
@@ -5,16 +6,20 @@ use axum::{
     routing::{get, post},
     Router,
 };
+use axum_macros::debug_handler;
+use axum_server::tls_rustls::RustlsConfig;
 use chrono::Utc;
-use std::{net::SocketAddr, path::PathBuf, sync::Arc};
+use std::{
+    net::SocketAddr,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
+
 use tower_http::{
     cors::{Any, CorsLayer},
     services::ServeDir,
 };
 use tracing::info;
-
-use crate::{AppState, ChatMessage, HeartbeatMessage, Message, PeerInfo};
-use axum_macros::debug_handler;
 
 /// Start the HTTP server
 ///
@@ -44,14 +49,27 @@ pub async fn run_http_server(port: u16, app_state: Arc<AppState>) -> anyhow::Res
         .layer(cors)
         .with_state(app_state);
 
-    // Start server
+    // Set up TLS
+    let cert_path = Path::new("cert.pem");
+    let key_path = Path::new("key.pem");
+
+    // Create self-signed certificate if it doesn't exist
+    if !cert_path.exists() || !key_path.exists() {
+        crate::tls::create_self_signed_cert(cert_path, key_path)?;
+    }
+
+    // Load TLS configuration
+    let tls_config = RustlsConfig::from_pem_file(cert_path, key_path).await?;
+
+    // Create TLS acceptor
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
-    info!("Starting HTTP server on {}", addr);
-    axum::serve(
-        tokio::net::TcpListener::bind(addr).await?,
-        app.into_make_service(),
-    )
-    .await?;
+
+    info!("Listening on https://{}", addr);
+
+    // Accept connections
+    axum_server::bind_rustls(addr, tls_config)
+        .serve(app.into_make_service())
+        .await?;
 
     Ok(())
 }

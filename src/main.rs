@@ -16,8 +16,9 @@ use rand::Rng;
 
 // Re-export modules
 pub mod server;
+pub mod db;
 pub mod upnp;
-mod db;
+pub mod tls;
 
 use db::DbContext;
 
