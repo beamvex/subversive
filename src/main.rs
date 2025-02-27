@@ -187,22 +187,26 @@ pub async fn broadcast_to_peers(
     source: &str,
     peers: &Arc<Mutex<HashMap<String, reqwest::Client>>>,
 ) -> Result<()> {
-    // Get a lock on the peers map
-    let peers_guard = peers.lock().unwrap();
+    // Create a vector of (address, client) pairs that we need to send to
+    let targets: Vec<(String, reqwest::Client)> = {
+        // Scope the lock to this block
+        let peers_guard = peers.lock().unwrap();
+        peers_guard
+            .iter()
+            .filter(|(addr, _)| *addr != source)
+            .map(|(addr, client)| (addr.clone(), client.clone()))
+            .collect()
+    }; // Lock is released here
 
-    // Send the message to each peer except the source
-    for (addr, client) in peers_guard.iter() {
-        if addr == source {
-            continue;
-        }
-
+    // Send the message to each peer
+    for (addr, client) in targets {
         if let Err(e) = client
             .post(format!("{}/receive", addr))
             .json(&message)
             .send()
             .await
         {
-            info!("Error sending message to {}: {}", addr, e);
+            error!("Failed to send message to {}: {}", addr, e);
         }
     }
 

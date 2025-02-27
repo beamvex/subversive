@@ -95,11 +95,9 @@ async fn send_message(
         return Json("Failed to send message locally").into_response();
     }
 
-    /*
     if let Err(_) = crate::broadcast_to_peers(msg, "local", &state.peers).await {
         return Json("Failed to broadcast message to peers").into_response();
     }
-    */
 
     Json("Message sent").into_response()
 }
@@ -145,11 +143,9 @@ async fn add_peer(State(state): State<Arc<AppState>>, Json(peer): Json<PeerInfo>
         return Json("Failed to process new peer locally").into_response();
     }
 
-    /*
     if let Err(_) = crate::broadcast_to_peers(msg, "local", &state.peers).await {
         return Json("Failed to broadcast new peer to network").into_response();
     }
-    */
 
     Json("Peer added").into_response()
 }
