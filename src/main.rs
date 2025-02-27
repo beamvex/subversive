@@ -172,7 +172,9 @@ async fn main() -> Result<()> {
         match signal::ctrl_c().await {
             Ok(()) => {
                 info!("Received Ctrl+C, cleaning up UPnP mappings...");
-                let _ = upnp::cleanup_upnp(cleanup_port, gateways).await;
+                if let Err(e) = upnp::cleanup_upnp(cleanup_port, gateways).await {
+                    error!("Failed to clean up UPnP mappings: {}", e);
+                }
                 std::process::exit(0);
             }
             Err(err) => {
@@ -180,6 +182,26 @@ async fn main() -> Result<()> {
             }
         }
     });
+
+    // Connect to initial peer if specified
+    if let Some(peer_addr) = args.peer {
+        info!("Connecting to initial peer: {}", peer_addr);
+        let client = reqwest::Client::new();
+        let mut peers = app_state.peers.lock().unwrap();
+        peers.insert(peer_addr.clone(), client.clone());
+        drop(peers);
+
+        // Notify the peer about our presence
+        let my_addr = format!("http://{}:{}", get_external_ip().await?, actual_port);
+        if let Err(e) = client
+            .post(format!("{}/peer", peer_addr))
+            .json(&PeerInfo { address: my_addr })
+            .send()
+            .await
+        {
+            error!("Failed to connect to initial peer {}: {}", peer_addr, e);
+        }
+    }
 
     // Start peer health checker
 
