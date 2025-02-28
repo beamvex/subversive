@@ -4,9 +4,9 @@ use axum::{
 };
 use chrono::Utc;
 use std::sync::Arc;
-use tracing::{error, info};
+use tracing::error;
 
-use crate::{types::{state::AppState, message::HeartbeatMessage}};
+use crate::types::{message::HeartbeatMessage, state::AppState};
 
 /// Handle heartbeat from a peer
 pub async fn heartbeat(

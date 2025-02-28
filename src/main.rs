@@ -7,7 +7,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 use tokio::sync::broadcast;
-use tracing::info;
+use tracing::{error, info};
 use tracing_subscriber::{self, fmt::format::FmtSpan};
 
 // Re-export modules
@@ -24,7 +24,9 @@ pub mod upnp;
 use db::DbContext;
 
 use types::args::Args;
-
+use types::message::{HeartbeatMessage, Message};
+use types::peer::PeerInfo;
+use types::state::AppState;
 /// Main entry point of the application
 #[tokio::main]
 pub async fn main() -> Result<()> {
