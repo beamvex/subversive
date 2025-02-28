@@ -15,6 +15,7 @@ use tracing::{error, info};
 use tracing_subscriber::{self, fmt::format::FmtSpan};
 
 // Re-export modules
+pub mod api;
 pub mod db;
 pub mod health;
 pub mod server;
