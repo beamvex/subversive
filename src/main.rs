@@ -1,5 +1,6 @@
 // Import required dependencies and types
 use anyhow::Result;
+use clap::Parser;
 use rand::Rng;
 use std::{
     collections::HashMap,
@@ -60,7 +61,7 @@ pub async fn main() -> Result<()> {
     info!("Using database: {}", database);
 
     // Create a channel for message passing
-    let (tx, mut rx) = broadcast::channel(32);
+    let (tx, rx) = broadcast::channel(32);
 
     // Initialize database
     let db = Arc::new(DbContext::new(&database)?);
@@ -99,12 +100,16 @@ pub async fn main() -> Result<()> {
             .danger_accept_invalid_certs(true)
             .build()
             .expect("Failed to create HTTP client");
-        let mut peers = app_state.peers.lock().unwrap();
-        peers.insert(peer_addr.clone(), client.clone());
-        drop(peers);
 
-        // Notify the peer about our presence
+        // Get our external IP first
         let my_addr = format!("https://{}:{}", get_external_ip().await?, actual_port);
+
+        // Then acquire the lock
+        {
+            let mut peers = app_state.peers.lock().unwrap();
+            peers.insert(peer_addr.clone(), client.clone());
+        } // Lock is dropped here
+
         if let Err(e) = client
             .post(format!("{}/peer", peer_addr))
             .json(&PeerInfo { address: my_addr })

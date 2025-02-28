@@ -54,8 +54,8 @@ pub async fn run_http_server(
             )
         })
         .on_response(|response: &Response<_>, latency: Duration, span: &Span| {
-            span.record("status", &tracing::field::display(response.status()));
-            span.record("latency", &tracing::field::display(latency.as_secs_f64()));
+            span.record("status", tracing::field::display(response.status()));
+            span.record("latency", tracing::field::display(latency.as_secs_f64()));
         });
 
     // Build router with all routes
