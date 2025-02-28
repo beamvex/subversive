@@ -4,7 +4,6 @@ use clap::Parser;
 use rand::Rng;
 use std::{
     collections::HashMap,
-    net::Ipv4Addr,
     sync::{Arc, Mutex},
 };
 use tokio::sync::broadcast;
@@ -27,8 +26,7 @@ pub mod upnp;
 use db::DbContext;
 
 use types::args::Args;
-use types::message::{HeartbeatMessage, Message};
-use types::peer::PeerInfo;
+use types::message::HeartbeatMessage;
 use types::state::AppState;
 
 /// Main entry point of the application
@@ -99,12 +97,8 @@ pub async fn main() -> Result<()> {
     // Connect to initial peer if specified
     if let Some(peer_addr) = args.peer {
         let external_ip = network::get_external_ip().await?;
-        peer::connect_to_initial_peer(
-            peer_addr,
-            actual_port,
-            app_state.peers.clone(),
-            external_ip,
-        ).await?;
+        peer::connect_to_initial_peer(peer_addr, actual_port, app_state.peers.clone(), external_ip)
+            .await?;
     }
 
     // Start peer health checker
