@@ -6,7 +6,7 @@ use chrono::Utc;
 use std::sync::Arc;
 use tracing::error;
 
-use crate::{AppState, ChatMessage, Message};
+use crate::{types::{state::AppState, message::{ChatMessage, Message}}};
 
 /// Get recent messages
 pub async fn get_recent_messages(State(state): State<Arc<AppState>>) -> Response {

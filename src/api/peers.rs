@@ -6,7 +6,7 @@ use chrono::Utc;
 use std::sync::Arc;
 use tracing::error;
 
-use crate::{AppState, Message, PeerInfo};
+use crate::{types::{state::AppState, message::Message, peer::PeerInfo}};
 
 /// List all connected peers
 pub async fn list_peers(State(state): State<Arc<AppState>>) -> Response {

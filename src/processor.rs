@@ -1,8 +1,7 @@
-use std::sync::Arc;
 use tokio::sync::broadcast::Receiver;
 use tracing::{error, info};
 
-use crate::{db::DbContext, Message};
+use crate::{db::DbContext, types::message::Message};
 
 /// Start the message processing thread
 ///

@@ -1,0 +1,22 @@
+use clap::Parser;
+
+/// Command line arguments for the P2P network application
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+pub struct Args {
+    /// Port to listen on for P2P communication (defaults to random port between 10000-65535)
+    #[arg(short, long)]
+    pub port: Option<u16>,
+
+    /// Initial peer to connect to
+    #[arg(short('e'), long)]
+    pub peer: Option<String>,
+
+    /// Database file name (defaults to p2p_network.db)
+    #[arg(short, long, default_value = "p2p_network.db")]
+    pub database: String,
+
+    /// Custom name for HTTP access logs
+    #[arg(short, long, default_value = "p2p_network")]
+    pub name: String,
+}
