@@ -55,14 +55,15 @@ impl DbContext {
     pub fn save_peer(&self, address: &str, last_seen: i64) -> Result<()> {
         let mut db = self.db.lock().unwrap();
         let mut peers = db.collection("peers")?;
-        let peer = PeerDoc {
-            address: address.to_string(),
-            last_seen,
+        let filter = doc! { "address": address };
+        let update = doc! {
+            "$set": {
+                "address": address.to_string(),
+                "last_seen": last_seen,
+            }
         };
-        peers.insert(&mut doc! {
-            "address": peer.address,
-            "last_seen": peer.last_seen,
-        })?;
+        // Upsert - update if exists, insert if not
+        peers.update(Some(&filter), &update)?;
         Ok(())
     }
 
@@ -110,7 +111,11 @@ impl DbContext {
         let mut db = self.db.lock().unwrap();
         let mut peers = db.collection("peers")?;
         let filter = doc! { "address": address };
-        let update = doc! { "last_seen": timestamp };
+        let update = doc! {
+            "$set": {
+                "last_seen": timestamp
+            }
+        };
         peers.update(Some(&filter), &update)?;
         Ok(())
     }

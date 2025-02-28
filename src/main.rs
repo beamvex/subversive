@@ -16,6 +16,7 @@ use tracing_subscriber::{self, fmt::format::FmtSpan};
 
 // Re-export modules
 pub mod db;
+pub mod health;
 pub mod server;
 pub mod tls;
 pub mod upnp;
@@ -207,34 +208,7 @@ async fn main() -> Result<()> {
     }
 
     // Start peer health checker
-
-    let peers_clone = app_state.peers.clone();
-    tokio::spawn(async move {
-        loop {
-            let peers_to_check = {
-                let peers = peers_clone.lock().unwrap();
-                peers
-                    .iter()
-                    .map(|(addr, client)| {
-                        let addr = if !addr.starts_with("https://") {
-                            addr.replace("http://", "https://")
-                        } else {
-                            addr.clone()
-                        };
-                        (addr, client.clone())
-                    })
-                    .collect::<HashMap<String, reqwest::Client>>()
-            }; // Lock is dropped here
-
-            for (addr, client) in peers_to_check.iter() {
-                if let Err(e) = client.post(format!("{}/heartbeat", addr)).send().await {
-                    info!("Error sending heartbeat to {}: {}", addr, e);
-                }
-            }
-
-            tokio::time::sleep(Duration::from_secs(30)).await;
-        }
-    });
+    health::start_health_checker(app_state.clone()).await;
 
     // Start the HTTP server
     if let Err(e) = server::run_http_server(actual_port, app_state.clone(), args.name).await {
@@ -280,18 +254,6 @@ pub async fn broadcast_to_peers(
     }
 
     Ok(())
-}
-
-/// Check the health of all connected peers
-///
-/// # Arguments
-/// * `peers` - Map of peer addresses to their HTTP clients
-pub async fn check_peer_health(peers: &mut HashMap<String, reqwest::Client>) {
-    for (addr, client) in peers.iter() {
-        if let Err(e) = client.post(format!("{}/heartbeat", addr)).send().await {
-            info!("Error sending heartbeat to {}: {}", addr, e);
-        }
-    }
 }
 
 /// Get the external IP address of the machine
