@@ -18,9 +18,12 @@ pub mod processor;
 pub mod server;
 pub mod shutdown;
 pub mod tls;
+pub mod types;
 pub mod upnp;
 
 use db::DbContext;
+
+use types::args::Args;
 
 /// Main entry point of the application
 #[tokio::main]
