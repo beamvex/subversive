@@ -1,4 +1,4 @@
-use crate::{api, AppState, tls};
+use crate::{api, tls, AppState};
 use axum::{
     extract::State,
     http::Request,
@@ -61,7 +61,8 @@ pub async fn run_http_server(
 
     // Build router with all routes
     let app = Router::new()
-        .route("/peers", get(api::peers::list_peers).post(api::peers::add_peer))
+        .route("/peers", get(api::peers::list_peers))
+        .route("/peer", post(api::peers::add_peer))
         .route("/messages", get(api::messages::get_recent_messages))
         .route("/message", post(api::messages::send_message))
         .route("/receive", post(api::messages::receive_message))
