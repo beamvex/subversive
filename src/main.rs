@@ -1,6 +1,5 @@
 // Import required dependencies and types
 use anyhow::Result;
-use chrono;
 use clap::Parser;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
@@ -8,7 +7,6 @@ use std::{
     collections::HashMap,
     net::Ipv4Addr,
     sync::{Arc, Mutex},
-    time::Duration,
 };
 use tokio::{signal, sync::broadcast};
 use tracing::{error, info};
@@ -18,7 +16,9 @@ use tracing_subscriber::{self, fmt::format::FmtSpan};
 pub mod api;
 pub mod db;
 pub mod health;
+pub mod processor;
 pub mod server;
+pub mod shutdown;
 pub mod tls;
 pub mod upnp;
 
@@ -144,46 +144,11 @@ async fn main() -> Result<()> {
         info!("   New-NetFirewallRule -DisplayName 'P2P Port' -Direction Inbound -Action Allow -Protocol TCP -LocalPort {}", actual_port);
     }
 
-    // Spawn a task to handle message processing
-    let _state = app_state.clone();
-    tokio::spawn(async move {
-        while let Ok((message, source)) = rx.recv().await {
-            match message {
-                Message::Chat { content } => {
-                    info!("Received chat message from {}: {}", source, content);
-                    if let Err(e) =
-                        db.save_message(&content, &source, chrono::Utc::now().timestamp())
-                    {
-                        error!("Failed to save message: {}", e);
-                    }
-                }
-                Message::NewPeer { addr } => {
-                    info!("Received new peer from {}: {}", source, addr);
-                    if let Err(e) = db.save_peer(&addr, chrono::Utc::now().timestamp()) {
-                        error!("Failed to save peer: {}", e);
-                    }
-                }
-            }
-        }
-    });
+    // Start message processor
+    processor::start_message_processor(rx, db.clone()).await;
 
     // Set up cleanup on Ctrl+C
-    let gateways = gateways.clone();
-    let cleanup_port = actual_port;
-    tokio::spawn(async move {
-        match signal::ctrl_c().await {
-            Ok(()) => {
-                info!("Received Ctrl+C, cleaning up UPnP mappings...");
-                if let Err(e) = upnp::cleanup_upnp(cleanup_port, gateways).await {
-                    error!("Failed to clean up UPnP mappings: {}", e);
-                }
-                std::process::exit(0);
-            }
-            Err(err) => {
-                error!("Error setting up Ctrl+C handler: {}", err);
-            }
-        }
-    });
+    shutdown::handle_shutdown(actual_port, gateways.clone()).await;
 
     // Connect to initial peer if specified
     if let Some(peer_addr) = args.peer {
