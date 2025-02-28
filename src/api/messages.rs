@@ -6,7 +6,13 @@ use chrono::Utc;
 use std::sync::Arc;
 use tracing::error;
 
-use crate::{types::{state::AppState, message::{ChatMessage, Message}}};
+use crate::{
+    peer::broadcast_to_peers,
+    types::{
+        message::{ChatMessage, Message},
+        state::AppState,
+    },
+};
 
 /// Get recent messages
 pub async fn get_recent_messages(State(state): State<Arc<AppState>>) -> Response {
@@ -41,7 +47,7 @@ pub async fn send_message(
         return Json("Failed to process message locally").into_response();
     }
 
-    if let Err(e) = crate::broadcast_to_peers(msg, "local", &state.peers).await {
+    if let Err(e) = broadcast_to_peers(msg, "local", &state.peers).await {
         error!("Failed to broadcast message to peers: {}", e);
         return Json("Failed to broadcast message").into_response();
     }

@@ -6,7 +6,8 @@ use chrono::Utc;
 use std::sync::Arc;
 use tracing::error;
 
-use crate::{types::{state::AppState, message::Message, peer::PeerInfo}};
+use crate::peer::broadcast_to_peers;
+use crate::types::{message::Message, peer::PeerInfo, state::AppState};
 
 /// List all connected peers
 pub async fn list_peers(State(state): State<Arc<AppState>>) -> Response {
@@ -70,7 +71,7 @@ pub async fn add_peer(State(state): State<Arc<AppState>>, Json(peer): Json<PeerI
         return Json("Failed to process new peer locally").into_response();
     }
 
-    if let Err(e) = crate::broadcast_to_peers(msg, "local", &state.peers).await {
+    if let Err(e) = broadcast_to_peers(msg, "local", &state.peers).await {
         error!("Failed to broadcast new peer to network: {}", e);
         return Json("Failed to broadcast new peer to network").into_response();
     }

@@ -15,6 +15,8 @@ use tracing_subscriber::{self, fmt::format::FmtSpan};
 pub mod api;
 pub mod db;
 pub mod health;
+pub mod network;
+pub mod peer;
 pub mod processor;
 pub mod server;
 pub mod shutdown;
@@ -28,6 +30,7 @@ use types::args::Args;
 use types::message::{HeartbeatMessage, Message};
 use types::peer::PeerInfo;
 use types::state::AppState;
+
 /// Main entry point of the application
 #[tokio::main]
 pub async fn main() -> Result<()> {
@@ -95,29 +98,13 @@ pub async fn main() -> Result<()> {
 
     // Connect to initial peer if specified
     if let Some(peer_addr) = args.peer {
-        info!("Connecting to initial peer: {}", peer_addr);
-        let client = reqwest::Client::builder()
-            .danger_accept_invalid_certs(true)
-            .build()
-            .expect("Failed to create HTTP client");
-
-        // Get our external IP first
-        let my_addr = format!("https://{}:{}", get_external_ip().await?, actual_port);
-
-        // Then acquire the lock
-        {
-            let mut peers = app_state.peers.lock().unwrap();
-            peers.insert(peer_addr.clone(), client.clone());
-        } // Lock is dropped here
-
-        if let Err(e) = client
-            .post(format!("{}/peer", peer_addr))
-            .json(&PeerInfo { address: my_addr })
-            .send()
-            .await
-        {
-            error!("Failed to connect to initial peer {}: {}", peer_addr, e);
-        }
+        let external_ip = network::get_external_ip().await?;
+        peer::connect_to_initial_peer(
+            peer_addr,
+            actual_port,
+            app_state.peers.clone(),
+            external_ip,
+        ).await?;
     }
 
     // Start peer health checker
@@ -130,78 +117,4 @@ pub async fn main() -> Result<()> {
     }
 
     Ok(())
-}
-
-/// Broadcast a message to all connected peers
-///
-/// # Arguments
-/// * `message` - The message to broadcast
-/// * `source` - The source of the message (to avoid sending back to sender)
-/// * `peers` - Map of peer addresses to their HTTP clients
-pub async fn broadcast_to_peers(
-    message: Message,
-    source: &str,
-    peers: &Arc<Mutex<HashMap<String, reqwest::Client>>>,
-) -> Result<()> {
-    // Create a vector of (address, client) pairs that we need to send to
-    let targets: Vec<(String, reqwest::Client)> = {
-        // Scope the lock to this block
-        let peers_guard = peers.lock().unwrap();
-        peers_guard
-            .iter()
-            .filter(|(addr, _)| *addr != source)
-            .map(|(addr, client)| (addr.clone(), client.clone()))
-            .collect()
-    }; // Lock is released here
-
-    // Send the message to each peer
-    for (addr, client) in targets {
-        if let Err(e) = client
-            .post(format!("{}/receive", addr))
-            .json(&message)
-            .send()
-            .await
-        {
-            error!("Failed to send message to {}: {}", addr, e);
-        }
-    }
-
-    Ok(())
-}
-
-/// Get the external IP address of the machine
-///
-/// # Returns
-/// The external IP address as a string
-pub async fn get_external_ip() -> Result<String> {
-    let response = reqwest::get("https://api.ipify.org").await?.text().await?;
-    Ok(response)
-}
-
-/// Get the network interfaces of the machine
-///
-/// # Returns
-/// A vector of IPv4 addresses of the network interfaces
-pub fn get_network_interfaces() -> Result<Vec<Ipv4Addr>> {
-    let output = std::process::Command::new("ip")
-        .args(["addr", "show"])
-        .output()?;
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let mut addresses = Vec::new();
-
-    for line in stdout.lines() {
-        if line.contains("inet ") {
-            let parts: Vec<&str> = line.split_whitespace().collect();
-            if let Some(addr_str) = parts.get(1) {
-                if let Some(addr_str) = addr_str.split('/').next() {
-                    if let Ok(addr) = addr_str.parse() {
-                        addresses.push(addr);
-                    }
-                }
-            }
-        }
-    }
-
-    Ok(addresses)
 }
