@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use tokio::signal;
 use tracing::{error, info};
 
@@ -9,7 +8,7 @@ use crate::upnp;
 /// # Arguments
 /// * `port` - Port number to clean up UPnP mappings for
 /// * `gateways` - UPnP gateways to clean up
-pub async fn handle_shutdown(port: u16, gateways: Arc<Vec<String>>) {
+pub async fn handle_shutdown(port: u16, gateways: Vec<igd::aio::Gateway>) {
     tokio::spawn(async move {
         match signal::ctrl_c().await {
             Ok(()) => {
