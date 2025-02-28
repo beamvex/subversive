@@ -16,13 +16,12 @@ use std::{
     sync::Arc,
     time::Duration,
 };
-
 use tower_http::{
     cors::{Any, CorsLayer},
     services::ServeDir,
     trace::TraceLayer,
 };
-use tracing::{info, Level, Span};
+use tracing::{error, info, Level, Span};
 
 /// Start the HTTP server
 ///
@@ -114,15 +113,21 @@ async fn list_peers(State(state): State<Arc<AppState>>) -> Response {
                 .collect::<Vec<_>>();
             Json(peer_list).into_response()
         }
-        Err(_) => Json(Vec::<PeerInfo>::new()).into_response(),
+        Err(e) => {
+            error!("Failed to get active peers: {}", e);
+            Json(Vec::<PeerInfo>::new()).into_response()
+        }
     }
 }
 
 /// Get recent messages
 async fn get_recent_messages(State(state): State<Arc<AppState>>) -> Response {
-    match state.db.get_recent_messages(50) {
+    match state.db.get_recent_messages(100) {
         Ok(messages) => Json(messages).into_response(),
-        Err(_) => Json(Vec::<crate::db::MessageDoc>::new()).into_response(),
+        Err(e) => {
+            error!("Failed to get recent messages: {}", e);
+            Json(Vec::<ChatMessage>::new()).into_response()
+        }
     }
 }
 
@@ -132,16 +137,26 @@ async fn send_message(
     State(state): State<Arc<AppState>>,
     Json(message): Json<ChatMessage>,
 ) -> Response {
+    // Save message to database
+    let timestamp = Utc::now().timestamp();
+    if let Err(e) = state.db.save_message(&message.content, "local", timestamp) {
+        error!("Failed to save message to database: {}", e);
+        return Json("Failed to save message").into_response();
+    }
+
+    // Broadcast message to all peers
     let msg = Message::Chat {
         content: message.content,
     };
 
-    if let Err(_) = state.tx.send((msg.clone(), "local".to_string())) {
-        return Json("Failed to send message locally").into_response();
+    if let Err(e) = state.tx.send((msg.clone(), "local".to_string())) {
+        error!("Failed to process message locally: {}", e);
+        return Json("Failed to process message locally").into_response();
     }
 
-    if let Err(_) = crate::broadcast_to_peers(msg, "local", &state.peers).await {
-        return Json("Failed to broadcast message to peers").into_response();
+    if let Err(e) = crate::broadcast_to_peers(msg, "local", &state.peers).await {
+        error!("Failed to broadcast message to peers: {}", e);
+        return Json("Failed to broadcast message").into_response();
     }
 
     Json("Message sent").into_response()
@@ -152,16 +167,17 @@ async fn receive_message(
     State(state): State<Arc<AppState>>,
     Json(message): Json<Message>,
 ) -> Response {
-    if let Err(_) = state.tx.send((message, "remote".to_string())) {
-        return Json("Failed to process received message").into_response();
+    if let Err(e) = state.tx.send((message, "remote".to_string())) {
+        error!("Failed to process received message: {}", e);
+        return Json("Failed to process message").into_response();
     }
-
     Json("Message received").into_response()
 }
 
 /// Add a new peer to the network
 async fn add_peer(State(state): State<Arc<AppState>>, Json(peer): Json<PeerInfo>) -> Response {
     if peer.address.is_empty() {
+        error!("Attempted to add peer with empty address");
         return Json("Peer address cannot be empty").into_response();
     }
 
@@ -187,6 +203,7 @@ async fn add_peer(State(state): State<Arc<AppState>>, Json(peer): Json<PeerInfo>
         .db
         .update_peer_last_seen(&peer_address, Utc::now().timestamp())
     {
+        error!("Failed to update peer in database: {}", e);
         return Json(format!("Failed to update peer in database: {}", e)).into_response();
     }
 
@@ -194,11 +211,13 @@ async fn add_peer(State(state): State<Arc<AppState>>, Json(peer): Json<PeerInfo>
         addr: peer_address.clone(),
     };
 
-    if let Err(_) = state.tx.send((msg.clone(), "local".to_string())) {
+    if let Err(e) = state.tx.send((msg.clone(), "local".to_string())) {
+        error!("Failed to process new peer locally: {}", e);
         return Json("Failed to process new peer locally").into_response();
     }
 
-    if let Err(_) = crate::broadcast_to_peers(msg, "local", &state.peers).await {
+    if let Err(e) = crate::broadcast_to_peers(msg, "local", &state.peers).await {
+        error!("Failed to broadcast new peer to network: {}", e);
         return Json("Failed to broadcast new peer to network").into_response();
     }
 
@@ -214,6 +233,7 @@ async fn heartbeat(
     let peers = state.peers.lock().unwrap();
 
     if !peers.contains_key(&peer_addr) {
+        error!("Heartbeat received from unknown peer: {}", peer_addr);
         return Json("Peer not found").into_response();
     }
 
@@ -222,8 +242,9 @@ async fn heartbeat(
         .db
         .update_peer_last_seen(&peer_addr, Utc::now().timestamp())
     {
-        return Json(format!("Failed to update peer last seen: {}", e)).into_response();
+        error!("Failed to update peer last seen timestamp: {}", e);
+        return Json("Failed to update peer timestamp").into_response();
     }
 
-    Json("Heartbeat received").into_response()
+    Json("Heartbeat acknowledged").into_response()
 }

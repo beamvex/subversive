@@ -1,6 +1,6 @@
 use anyhow::Result;
+use polodb_bson::doc;
 use polodb_core::Database;
-use polodb_bson::{doc};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
@@ -29,8 +29,8 @@ impl DbContext {
     /// Creates a new database context from a file path.
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
         let db = Database::open_file(path)?;
-        Ok(Self { 
-            db: Arc::new(Mutex::new(db))
+        Ok(Self {
+            db: Arc::new(Mutex::new(db)),
         })
     }
 
@@ -57,7 +57,7 @@ impl DbContext {
         let mut peers = db.collection("peers")?;
         let filter = doc! { "address": address };
         let update = doc! {
-            "$set": {
+            "$set": doc!{
                 "address": address.to_string(),
                 "last_seen": last_seen,
             }
@@ -73,11 +73,18 @@ impl DbContext {
         let mut messages = db.collection("messages")?;
         let filter = doc! {};
         let results = messages.find(&filter)?;
-        let mut docs = results.into_iter()
+        let mut docs = results
+            .into_iter()
             .map(|doc| MessageDoc {
-                content: doc.get("content").map(|v| v.to_string()).unwrap_or_default(),
+                content: doc
+                    .get("content")
+                    .map(|v| v.to_string())
+                    .unwrap_or_default(),
                 source: doc.get("source").map(|v| v.to_string()).unwrap_or_default(),
-                timestamp: doc.get("timestamp").and_then(|v| v.to_string().parse().ok()).unwrap_or_default(),
+                timestamp: doc
+                    .get("timestamp")
+                    .and_then(|v| v.to_string().parse().ok())
+                    .unwrap_or_default(),
             })
             .collect::<Vec<_>>();
         docs.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
@@ -95,12 +102,19 @@ impl DbContext {
             "last_seen": doc! {
                 "$gt": since
             }
-        };  // Get all peers
+        }; // Get all peers
         let results = peers.find(&filter)?;
-        Ok(results.into_iter()
+        Ok(results
+            .into_iter()
             .map(|doc| PeerDoc {
-                address: doc.get("address").map(|v| v.to_string()).unwrap_or_default(),
-                last_seen: doc.get("last_seen").and_then(|v| v.to_string().parse().ok()).unwrap_or_default(),
+                address: doc
+                    .get("address")
+                    .map(|v| v.to_string())
+                    .unwrap_or_default(),
+                last_seen: doc
+                    .get("last_seen")
+                    .and_then(|v| v.to_string().parse().ok())
+                    .unwrap_or_default(),
             })
             .filter(|peer| peer.last_seen > since)
             .collect())
@@ -112,7 +126,7 @@ impl DbContext {
         let mut peers = db.collection("peers")?;
         let filter = doc! { "address": address };
         let update = doc! {
-            "$set": {
+            "$set": doc! {
                 "last_seen": timestamp
             }
         };
