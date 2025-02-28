@@ -1,4 +1,4 @@
-use crate::{api, AppState};
+use crate::{api, AppState, tls};
 use axum::{
     extract::State,
     http::Request,
@@ -71,12 +71,24 @@ pub async fn run_http_server(
         .layer(cors)
         .with_state(app_state);
 
-    // Get the bind address
-    let addr = SocketAddr::from(([0, 0, 0, 0], port));
-    info!("Starting HTTP server on {}", addr);
+    // Set up TLS
+    let cert_path = Path::new("cert.pem");
+    let key_path = Path::new("key.pem");
 
-    // Start the server
-    axum_server::bind(addr)
+    // Create self-signed certificate if it doesn't exist
+    if !cert_path.exists() || !key_path.exists() {
+        tls::create_self_signed_cert(cert_path, key_path)?;
+    }
+
+    // Load TLS configuration
+    let tls_config = RustlsConfig::from_pem_file(cert_path, key_path).await?;
+
+    // Get the bind address and start the server
+    let addr = SocketAddr::from(([0, 0, 0, 0], port));
+    info!("Starting HTTPS server on {}", addr);
+
+    // Start the server with TLS
+    axum_server::bind_rustls(addr, tls_config)
         .serve(app.into_make_service())
         .await?;
 
