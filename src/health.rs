@@ -10,9 +10,10 @@ pub async fn start_health_checker(app_state: Arc<AppState>) {
     let own_address = app_state.own_address.clone();
     tokio::spawn(async move {
         loop {
-            let peers_to_check = {
+            let (peers_to_check, known_peers) = {
                 let peers = peers_clone.lock().unwrap();
-                peers
+                let known_peers = peers.keys().cloned().collect::<Vec<_>>();
+                let peers_map = peers
                     .iter()
                     .map(|(addr, client)| {
                         let addr = if !addr.starts_with("https://") {
@@ -22,10 +23,11 @@ pub async fn start_health_checker(app_state: Arc<AppState>) {
                         };
                         (addr, client.clone())
                     })
-                    .collect::<HashMap<String, reqwest::Client>>()
+                    .collect::<HashMap<String, reqwest::Client>>();
+                (peers_map, known_peers)
             }; // Lock is dropped here
 
-            check_peer_health(&peers_to_check, &own_address).await;
+            check_peer_health(&peers_to_check, &own_address, &known_peers).await;
             tokio::time::sleep(Duration::from_secs(30)).await;
         }
     });
@@ -36,7 +38,8 @@ pub async fn start_health_checker(app_state: Arc<AppState>) {
 /// # Arguments
 /// * `peers` - Map of peer addresses to their HTTP clients
 /// * `own_address` - Our own address that peers can use to connect to us
-async fn check_peer_health(peers: &HashMap<String, reqwest::Client>, own_address: &str) {
+/// * `known_peers` - List of all known peer addresses
+async fn check_peer_health(peers: &HashMap<String, reqwest::Client>, own_address: &str, known_peers: &[String]) {
     for (addr, client) in peers.iter() {
         // Extract port from address
         let port = addr
@@ -48,6 +51,7 @@ async fn check_peer_health(peers: &HashMap<String, reqwest::Client>, own_address
         let heartbeat = HeartbeatMessage { 
             port,
             address: own_address.to_string(),
+            known_peers: known_peers.to_vec(),
         };
 
         if let Err(e) = client

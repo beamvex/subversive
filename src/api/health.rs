@@ -5,7 +5,7 @@ use axum::{
 };
 use chrono::Utc;
 use std::sync::Arc;
-use tracing::error;
+use tracing::{error, info};
 
 use crate::types::{message::HeartbeatMessage, state::AppState};
 
@@ -15,7 +15,7 @@ pub async fn heartbeat(
     Json(heartbeat): Json<HeartbeatMessage>,
 ) -> Response {
     let peer_addr = &heartbeat.address;
-    let peers = state.peers.lock().unwrap();
+    let mut peers = state.peers.lock().unwrap();
 
     if !peers.contains_key(peer_addr) {
         error!("Heartbeat received from unknown peer: {}", peer_addr);
@@ -33,6 +33,18 @@ pub async fn heartbeat(
             "Failed to update peer timestamp",
         )
             .into_response();
+    }
+
+    // Add any new peers we don't know about
+    for peer_address in heartbeat.known_peers {
+        if peer_address != state.own_address && !peers.contains_key(&peer_address) {
+            info!("Discovered new peer from heartbeat: {}", peer_address);
+            let client = reqwest::Client::builder()
+                .danger_accept_invalid_certs(true)
+                .build()
+                .expect("Failed to create HTTP client");
+            peers.insert(peer_address, client);
+        }
     }
 
     (StatusCode::OK, "Heartbeat acknowledged").into_response()

@@ -23,4 +23,6 @@ pub struct HeartbeatMessage {
     pub port: u16,
     /// Address of the peer sending the heartbeat
     pub address: String,
+    /// List of known peer addresses
+    pub known_peers: Vec<String>,
 }
