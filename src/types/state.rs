@@ -11,4 +11,6 @@ pub struct AppState {
     pub tx: broadcast::Sender<(Message, String)>,
     /// Database context
     pub db: Arc<DbContext>,
+    /// Our own address that peers can use to connect to us
+    pub own_address: String,
 }

@@ -11,22 +11,15 @@ use crate::types::{message::Message, peer::PeerInfo, state::AppState};
 
 /// List all connected peers
 pub async fn list_peers(State(state): State<Arc<AppState>>) -> Response {
-    let one_hour_ago = Utc::now().timestamp() - 3600;
-    match state.db.get_active_peers(one_hour_ago) {
-        Ok(active_peers) => {
-            let peer_list = active_peers
-                .into_iter()
-                .map(|peer| PeerInfo {
-                    address: peer.address,
-                })
-                .collect::<Vec<_>>();
-            Json(peer_list).into_response()
-        }
-        Err(e) => {
-            error!("Failed to get active peers: {}", e);
-            Json(Vec::<PeerInfo>::new()).into_response()
-        }
-    }
+    let peers = state.peers.lock().unwrap();
+    let peer_list = peers
+        .keys()
+        .map(|addr| PeerInfo {
+            address: addr.clone(),
+        })
+        .collect::<Vec<_>>();
+    
+    Json(peer_list).into_response()
 }
 
 /// Add a new peer to the network

@@ -21,4 +21,6 @@ pub struct ChatMessage {
 pub struct HeartbeatMessage {
     /// Port number of the peer sending the heartbeat
     pub port: u16,
+    /// Address of the peer sending the heartbeat
+    pub address: String,
 }

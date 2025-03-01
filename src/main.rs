@@ -67,11 +67,17 @@ pub async fn main() -> Result<()> {
     // Initialize database
     let db = Arc::new(DbContext::new(&database)?);
 
+    // Get external IP and log the full endpoint address
+    let external_ip = network::get_external_ip().await?;
+    let own_address = format!("https://{}:{}", external_ip, port);
+    info!("Server listening on internet endpoint: {}", own_address);
+
     // Initialize shared application state
     let app_state = Arc::new(AppState {
         peers: Arc::new(Mutex::new(HashMap::new())),
         tx: tx.clone(),
         db: db.clone(),
+        own_address: own_address.clone(),
     });
     info!("Starting up");
 
