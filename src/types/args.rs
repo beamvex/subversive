@@ -23,4 +23,16 @@ pub struct Args {
     /// Path to YAML configuration file
     #[arg(short, long)]
     pub config: Option<String>,
+
+    /// No-IP hostname (e.g., example.ddns.net)
+    #[arg(long)]
+    pub noip_hostname: Option<String>,
+
+    /// No-IP username
+    #[arg(long)]
+    pub noip_username: Option<String>,
+
+    /// No-IP password
+    #[arg(long)]
+    pub noip_password: Option<String>,
 }

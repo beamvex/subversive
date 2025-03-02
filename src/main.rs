@@ -12,6 +12,7 @@ pub mod api;
 pub mod db;
 pub mod health;
 pub mod network;
+pub mod noip;
 pub mod peer;
 pub mod processor;
 pub mod server;
@@ -79,6 +80,22 @@ pub async fn main() -> Result<()> {
     let external_ip = network::get_external_ip().await?;
     let own_address = format!("https://{}:{}", external_ip, port);
     info!("Server listening on internet endpoint: {}", own_address);
+
+    // Start No-IP updater if configured
+    if let (Some(hostname), Some(username), Some(password)) = (
+        config.noip_hostname,
+        config.noip_username,
+        config.noip_password,
+    ) {
+        info!("Starting No-IP DNS updater for hostname: {}", hostname);
+        noip::start_noip_updater(
+            hostname,
+            username,
+            password,
+            reqwest::Client::new(),
+        )
+        .await?;
+    }
 
     // Set up UPnP port mapping
     let (actual_port, gateways) = upnp::setup_upnp(port).await?;

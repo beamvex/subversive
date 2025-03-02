@@ -33,3 +33,4 @@ rustls = "0.22"
 rustls-pemfile = "2.1"
 tokio-rustls = "0.25"
 rcgen = "0.12"  # For generating self-signed certificates
+base64 = "0.21"  # For No-IP authentication

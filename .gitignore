@@ -2,3 +2,6 @@
 
 *.db
 *.journal
+
+config/*
+!config/config.example.yaml

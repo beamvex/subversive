@@ -13,6 +13,12 @@ pub struct Config {
     pub database: Option<String>,
     /// Custom name for HTTP access logs
     pub name: Option<String>,
+    /// No-IP hostname (e.g., example.ddns.net)
+    pub noip_hostname: Option<String>,
+    /// No-IP username
+    pub noip_username: Option<String>,
+    /// No-IP password
+    pub noip_password: Option<String>,
 }
 
 impl Config {
@@ -30,6 +36,9 @@ impl Config {
             peer: None,
             database: Some("p2p_network.db".to_string()),
             name: Some("p2p_network".to_string()),
+            noip_hostname: None,
+            noip_username: None,
+            noip_password: None,
         }
     }
 
@@ -40,6 +49,9 @@ impl Config {
             peer: args.peer.clone().or(self.peer.clone()),
             database: Some(args.database.clone()),
             name: Some(args.name.clone()),
+            noip_hostname: args.noip_hostname.clone().or(self.noip_hostname.clone()),
+            noip_username: args.noip_username.clone().or(self.noip_username.clone()),
+            noip_password: args.noip_password.clone().or(self.noip_password.clone()),
         }
     }
 }

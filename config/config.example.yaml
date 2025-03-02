@@ -11,3 +11,9 @@ database: "my_network.db"
 
 # Custom name for HTTP access logs (optional, defaults to p2p_network)
 name: "my_p2p_network"
+
+# No-IP Dynamic DNS configuration (all optional)
+# Uncomment and fill in these values to enable No-IP support
+#noip_hostname: "your-domain.ddns.net"
+#noip_username: "your-username"
+#noip_password: "your-password"
