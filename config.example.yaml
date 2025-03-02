@@ -1,0 +1,13 @@
+# Example configuration file for the P2P network application
+
+# Port to listen on (optional, will use random port if not specified)
+port: 12345
+
+# Initial peer to connect to (optional)
+peer: "https://example.com:12345"
+
+# Database file name (optional, defaults to p2p_network.db)
+database: "my_network.db"
+
+# Custom name for HTTP access logs (optional, defaults to p2p_network)
+name: "my_p2p_network"

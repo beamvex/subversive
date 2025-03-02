@@ -19,4 +19,8 @@ pub struct Args {
     /// Custom name for HTTP access logs
     #[arg(short, long, default_value = "p2p_network")]
     pub name: String,
+
+    /// Path to YAML configuration file
+    #[arg(short, long)]
+    pub config: Option<String>,
 }

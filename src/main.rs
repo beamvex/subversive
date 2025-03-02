@@ -26,6 +26,7 @@ pub mod upnp;
 use db::DbContext;
 
 use types::args::Args;
+use types::config::Config;
 use types::message::HeartbeatMessage;
 use types::state::AppState;
 
@@ -45,18 +46,28 @@ pub async fn main() -> Result<()> {
     // Parse command line arguments
     let args = Args::parse();
 
+    // Load configuration
+    let config = if let Some(config_path) = &args.config {
+        info!("Loading configuration from {}", config_path);
+        Config::from_file(config_path).unwrap_or_else(|e| {
+            error!("Failed to load config file: {}", e);
+            Config::default()
+        })
+    } else {
+        Config::default()
+    };
+
+    // Merge config with command line arguments
+    let config = config.merge_with_args(&args);
+
     // Generate random port between 10000-65535 if not specified
-    let port = args.port.unwrap_or_else(|| {
+    let port = config.port.unwrap_or_else(|| {
         let mut rng = rand::thread_rng();
         rng.gen_range(10000..=65535)
     });
 
-    // Ensure database name has .db extension
-    let database = if !args.database.ends_with(".db") {
-        format!("{}.db", args.database)
-    } else {
-        args.database
-    };
+    // Get database name from config
+    let database = config.database.unwrap_or_else(|| "p2p_network.db".to_string());
 
     info!("Using port: {}", port);
     info!("Using database: {}", database);
@@ -94,24 +105,20 @@ pub async fn main() -> Result<()> {
         info!("   New-NetFirewallRule -DisplayName 'P2P Port' -Direction Inbound -Action Allow -Protocol TCP -LocalPort {}", actual_port);
     }
 
-    // Start message processor
-    processor::start_message_processor(rx, db.clone()).await;
-
-    // Set up cleanup on Ctrl+C
-    shutdown::handle_shutdown(actual_port, gateways.clone()).await;
-
     // Connect to initial peer if specified
-    if let Some(peer_addr) = args.peer {
-        let external_ip = network::get_external_ip().await?;
+    if let Some(peer_addr) = config.peer {
         peer::connect_to_initial_peer(peer_addr, actual_port, app_state.peers.clone(), external_ip)
             .await?;
     }
+
+    // Start message processor
+    processor::start_message_processor(rx, db.clone()).await;
 
     // Start peer health checker
     health::start_health_checker(app_state.clone()).await;
 
     // Start the HTTP server
-    if let Err(e) = server::run_http_server(actual_port, app_state.clone(), args.name).await {
+    if let Err(e) = server::run_http_server(actual_port, app_state.clone(), config.name.unwrap_or_else(|| "p2p_network".to_string())).await {
         error!("Failed to start HTTP server: {}", e);
         return Err(e);
     }
