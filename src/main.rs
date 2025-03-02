@@ -85,7 +85,7 @@ pub async fn main() -> Result<()> {
 
     // Initialize shared application state
     let app_state = Arc::new(AppState {
-        peers: Arc::new(Mutex::new(HashMap::new())),
+        peers: Arc::new(Mutex::new(HashMap::<String, health::PeerHealth>::new())),
         tx: tx.clone(),
         db: db.clone(),
         own_address: own_address.clone(),

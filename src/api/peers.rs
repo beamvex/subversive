@@ -7,7 +7,7 @@ use std::sync::Arc;
 use tracing::error;
 
 use crate::peer::broadcast_to_peers;
-use crate::types::{message::Message, peer::PeerInfo, state::AppState};
+use crate::types::{message::Message, peer::PeerInfo, state::AppState, PeerHealth};
 
 /// List all connected peers
 pub async fn list_peers(State(state): State<Arc<AppState>>) -> Response {
@@ -40,26 +40,21 @@ pub async fn add_peer(State(state): State<Arc<AppState>>, Json(peer): Json<PeerI
         .danger_accept_invalid_certs(true)
         .build()
         .expect("Failed to create HTTP client");
+
+    let peer_health = PeerHealth::new(client.clone());
     state
         .peers
         .lock()
         .unwrap()
-        .insert(peer_address.clone(), client);
+        .insert(peer_address.clone(), peer_health);
 
-    // Update peer's last seen timestamp in database
-    if let Err(e) = state
-        .db
-        .update_peer_last_seen(&peer_address, Utc::now().timestamp())
-    {
-        error!("Failed to update peer in database: {}", e);
-        return Json(format!("Failed to update peer in database: {}", e)).into_response();
-    }
-
+    // Create a message to broadcast the new peer
     let msg = Message::NewPeer {
         addr: peer_address.clone(),
     };
 
-    if let Err(e) = state.tx.send((msg.clone(), "local".to_string())) {
+    // Process the message locally first
+    if let Err(e) = state.db.process_message(&msg).await {
         error!("Failed to process new peer locally: {}", e);
         return Json("Failed to process new peer locally").into_response();
     }
@@ -69,5 +64,5 @@ pub async fn add_peer(State(state): State<Arc<AppState>>, Json(peer): Json<PeerI
         return Json("Failed to broadcast new peer to network").into_response();
     }
 
-    Json("Peer added").into_response()
+    Json("Peer added successfully").into_response()
 }
