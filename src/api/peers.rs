@@ -11,7 +11,7 @@ use crate::types::{message::Message, peer::PeerInfo, state::AppState, PeerHealth
 
 /// List all connected peers
 pub async fn list_peers(State(state): State<Arc<AppState>>) -> Response {
-    let peers = state.peers.lock().unwrap();
+    let peers = state.peers.lock().await;
     let peer_list = peers
         .keys()
         .map(|addr| PeerInfo {
@@ -45,7 +45,7 @@ pub async fn add_peer(State(state): State<Arc<AppState>>, Json(peer): Json<PeerI
     state
         .peers
         .lock()
-        .unwrap()
+        .await
         .insert(peer_address.clone(), peer_health);
 
     // Create a message to broadcast the new peer

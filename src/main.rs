@@ -2,11 +2,8 @@
 use anyhow::Result;
 use clap::Parser;
 use rand::Rng;
-use std::{
-    collections::HashMap,
-    sync::{Arc, Mutex},
-};
-use tokio::sync::broadcast;
+use std::{collections::HashMap, sync::Arc};
+use tokio::sync::{broadcast, Mutex};
 use tracing::{error, info};
 use tracing_subscriber::{self, fmt::format::FmtSpan};
 
@@ -76,15 +73,32 @@ pub async fn main() -> Result<()> {
     info!("Using database: {}", database);
 
     // Create a channel for message passing
-    let (tx, rx) = broadcast::channel(32);
-
-    // Initialize database
-    let db = Arc::new(DbContext::new(&database)?);
+    let (_tx, rx) = broadcast::channel(32);
 
     // Get external IP and log the full endpoint address
     let external_ip = network::get_external_ip().await?;
     let own_address = format!("https://{}:{}", external_ip, port);
     info!("Server listening on internet endpoint: {}", own_address);
+
+    // Set up UPnP port mapping
+    let (actual_port, gateways) = upnp::setup_upnp(port).await?;
+    info!("Using port {}", actual_port);
+
+    // After UPnP setup
+    let own_address = format!("https://{}:{}", external_ip, actual_port);
+    info!("Own address: {}", own_address);
+
+    // Create shutdown state
+    let shutdown_state = shutdown::ShutdownState::new(actual_port, gateways);
+
+    // Set up Ctrl+C handler
+    shutdown::handle_shutdown(shutdown_state.clone()).await;
+
+    // Initialize database
+    let db: Arc<DbContext> = Arc::new(DbContext::new(&database).unwrap());
+
+    // Set up broadcast channel for peer messages
+    let (tx, _) = broadcast::channel(100);
 
     // Initialize shared application state
     let app_state = Arc::new(AppState {
@@ -92,21 +106,9 @@ pub async fn main() -> Result<()> {
         tx: tx.clone(),
         db: db.clone(),
         own_address: own_address.clone(),
+        shutdown: Arc::new(shutdown_state),
     });
     info!("Starting up");
-
-    // Set up UPnP port mapping
-    let (actual_port, _) = upnp::setup_upnp(port).await?;
-    info!("Using port {}", actual_port);
-
-    // After UPnP setup
-    if crate::upnp::is_wsl() {
-        info!("Manual port forwarding required:");
-        info!("1. On Windows host, run PowerShell as Admin");
-        info!("2. Execute: netsh interface portproxy add v4tov4 listenport={} listenaddress=0.0.0.0 connectport={} connectaddress=127.0.0.1", actual_port, actual_port);
-        info!("3. Allow the port in Windows Defender Firewall:");
-        info!("   New-NetFirewallRule -DisplayName 'P2P Port' -Direction Inbound -Action Allow -Protocol TCP -LocalPort {}", actual_port);
-    }
 
     // Connect to initial peer if specified
     if let Some(peer_addr) = config.peer {

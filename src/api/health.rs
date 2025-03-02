@@ -15,7 +15,7 @@ pub async fn heartbeat(
     Json(heartbeat): Json<HeartbeatMessage>,
 ) -> Response {
     let peer_addr = &heartbeat.address;
-    let mut peers = state.peers.lock().unwrap();
+    let mut peers = state.peers.lock().await;
 
     if !peers.contains_key(peer_addr) {
         error!("Heartbeat received from unknown peer: {}", peer_addr);

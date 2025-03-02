@@ -1,7 +1,8 @@
-use std::{collections::HashMap, sync::{Arc, Mutex}};
-use tokio::sync::broadcast;
+use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::{broadcast, Mutex};
 
-use crate::{db::DbContext, types::{message::Message, health::PeerHealth}};
+use crate::{db::DbContext, types::{message::Message, health::PeerHealth}, shutdown::ShutdownState};
 
 /// Shared application state
 pub struct AppState {
@@ -13,4 +14,6 @@ pub struct AppState {
     pub db: Arc<DbContext>,
     /// Our own address that peers can use to connect to us
     pub own_address: String,
+    /// Shared shutdown state for cleanup
+    pub shutdown: Arc<ShutdownState>,
 }

@@ -2,10 +2,8 @@ use crate::types::health::PeerHealth;
 use crate::types::peer::PeerInfo;
 use anyhow::Result;
 use reqwest::Client;
-use std::{
-    collections::HashMap,
-    sync::{Arc, Mutex},
-};
+use std::{collections::HashMap, sync::Arc};
+use tokio::sync::Mutex;
 use tracing::{error, info};
 
 /// Initialize connection to an initial peer
@@ -31,7 +29,7 @@ pub async fn connect_to_initial_peer(
 
     // Acquire the lock to update peers
     {
-        let mut peers = peers.lock().unwrap();
+        let mut peers = peers.lock().await;
         peers.insert(peer_addr.clone(), PeerHealth::new(client.clone()));
     } // Lock is dropped here
 
@@ -61,7 +59,7 @@ pub async fn broadcast_to_peers(
     // Create a vector of (address, client) pairs that we need to send to
     let targets: Vec<(String, Client)> = {
         // Scope the lock to this block
-        let peers_guard = peers.lock().unwrap();
+        let peers_guard = peers.lock().await;
         peers_guard
             .iter()
             .filter(|(addr, _)| *addr != source)
