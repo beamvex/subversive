@@ -112,7 +112,7 @@ async fn check_peer_health(
                             shutdown_state.shutdown().await;
                         }
                     } else {
-                        info!(
+                        warn!(
                             "Failed to send heartbeat to {} (attempt {}): {}",
                             addr, failures, e
                         );
