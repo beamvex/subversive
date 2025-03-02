@@ -1,8 +1,12 @@
+use crate::types::health::PeerHealth;
+use crate::types::peer::PeerInfo;
 use anyhow::Result;
 use reqwest::Client;
-use std::{collections::HashMap, sync::{Arc, Mutex}};
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
 use tracing::{error, info};
-use crate::types::peer::PeerInfo;
 
 /// Initialize connection to an initial peer
 ///
@@ -14,7 +18,7 @@ use crate::types::peer::PeerInfo;
 pub async fn connect_to_initial_peer(
     peer_addr: String,
     actual_port: u16,
-    peers: Arc<Mutex<HashMap<String, Client>>>,
+    peers: Arc<Mutex<HashMap<String, PeerHealth>>>,
     external_ip: String,
 ) -> Result<()> {
     info!("Connecting to initial peer: {}", peer_addr);
@@ -28,7 +32,7 @@ pub async fn connect_to_initial_peer(
     // Acquire the lock to update peers
     {
         let mut peers = peers.lock().unwrap();
-        peers.insert(peer_addr.clone(), client.clone());
+        peers.insert(peer_addr.clone(), PeerHealth::new(client.clone()));
     } // Lock is dropped here
 
     if let Err(e) = client
@@ -52,7 +56,7 @@ pub async fn connect_to_initial_peer(
 pub async fn broadcast_to_peers(
     message: crate::types::message::Message,
     source: &str,
-    peers: &Arc<Mutex<HashMap<String, Client>>>,
+    peers: &Arc<Mutex<HashMap<String, PeerHealth>>>,
 ) -> Result<()> {
     // Create a vector of (address, client) pairs that we need to send to
     let targets: Vec<(String, Client)> = {
@@ -61,7 +65,7 @@ pub async fn broadcast_to_peers(
         peers_guard
             .iter()
             .filter(|(addr, _)| *addr != source)
-            .map(|(addr, client)| (addr.clone(), client.clone()))
+            .map(|(addr, client)| (addr.clone(), client.client.clone()))
             .collect()
     }; // Lock is released here
 

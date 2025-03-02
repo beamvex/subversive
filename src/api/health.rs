@@ -7,7 +7,7 @@ use chrono::Utc;
 use std::sync::Arc;
 use tracing::{error, info};
 
-use crate::types::{message::HeartbeatMessage, state::AppState};
+use crate::types::{message::HeartbeatMessage, state::AppState, PeerHealth};
 
 /// Handle heartbeat from a peer
 pub async fn heartbeat(
@@ -43,7 +43,7 @@ pub async fn heartbeat(
                 .danger_accept_invalid_certs(true)
                 .build()
                 .expect("Failed to create HTTP client");
-            peers.insert(peer_address, client);
+            peers.insert(peer_address, PeerHealth::new(client));
         }
     }
 

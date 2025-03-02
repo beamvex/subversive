@@ -27,6 +27,7 @@ use db::DbContext;
 
 use types::args::Args;
 use types::config::Config;
+use types::health::PeerHealth;
 use types::message::HeartbeatMessage;
 use types::state::AppState;
 
@@ -67,7 +68,9 @@ pub async fn main() -> Result<()> {
     });
 
     // Get database name from config
-    let database = config.database.unwrap_or_else(|| "p2p_network.db".to_string());
+    let database = config
+        .database
+        .unwrap_or_else(|| "p2p_network.db".to_string());
 
     info!("Using port: {}", port);
     info!("Using database: {}", database);
@@ -85,7 +88,7 @@ pub async fn main() -> Result<()> {
 
     // Initialize shared application state
     let app_state = Arc::new(AppState {
-        peers: Arc::new(Mutex::new(HashMap::<String, health::PeerHealth>::new())),
+        peers: Arc::new(Mutex::new(HashMap::<String, PeerHealth>::new())),
         tx: tx.clone(),
         db: db.clone(),
         own_address: own_address.clone(),
@@ -93,7 +96,7 @@ pub async fn main() -> Result<()> {
     info!("Starting up");
 
     // Set up UPnP port mapping
-    let (actual_port, gateways) = upnp::setup_upnp(port).await?;
+    let (actual_port, _) = upnp::setup_upnp(port).await?;
     info!("Using port {}", actual_port);
 
     // After UPnP setup
@@ -118,7 +121,13 @@ pub async fn main() -> Result<()> {
     health::start_health_checker(app_state.clone()).await;
 
     // Start the HTTP server
-    if let Err(e) = server::run_http_server(actual_port, app_state.clone(), config.name.unwrap_or_else(|| "p2p_network".to_string())).await {
+    if let Err(e) = server::run_http_server(
+        actual_port,
+        app_state.clone(),
+        config.name.unwrap_or_else(|| "p2p_network".to_string()),
+    )
+    .await
+    {
         error!("Failed to start HTTP server: {}", e);
         return Err(e);
     }

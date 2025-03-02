@@ -2,7 +2,7 @@ use axum::{
     extract::{Json, State},
     response::{IntoResponse, Response},
 };
-use chrono::Utc;
+
 use std::sync::Arc;
 use tracing::error;
 
@@ -18,7 +18,7 @@ pub async fn list_peers(State(state): State<Arc<AppState>>) -> Response {
             address: addr.clone(),
         })
         .collect::<Vec<_>>();
-    
+
     Json(peer_list).into_response()
 }
 
@@ -52,12 +52,6 @@ pub async fn add_peer(State(state): State<Arc<AppState>>, Json(peer): Json<PeerI
     let msg = Message::NewPeer {
         addr: peer_address.clone(),
     };
-
-    // Process the message locally first
-    if let Err(e) = state.db.process_message(&msg).await {
-        error!("Failed to process new peer locally: {}", e);
-        return Json("Failed to process new peer locally").into_response();
-    }
 
     if let Err(e) = broadcast_to_peers(msg, "local", &state.peers).await {
         error!("Failed to broadcast new peer to network: {}", e);
