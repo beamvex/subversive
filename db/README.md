@@ -1,0 +1,1 @@
+# DB folder for storing database files

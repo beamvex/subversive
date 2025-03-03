@@ -17,6 +17,7 @@ pub mod peer;
 pub mod processor;
 pub mod server;
 pub mod shutdown;
+pub mod survival;
 pub mod tls;
 pub mod types;
 pub mod upnp;
@@ -164,17 +165,17 @@ pub async fn main() -> Result<()> {
     // Start peer health checker
     health::start_health_checker(app_state.clone()).await;
 
+    // Start survival mode if enabled
+    if config.survival_mode.unwrap_or(false) {
+        survival::start_survival_mode(app_state.clone()).await;
+    }
+
     // Start the HTTP server
-    if let Err(e) = server::run_http_server(
+    let server_handle = tokio::spawn(server::run_http_server(
         actual_port,
         app_state.clone(),
         config.name.unwrap_or_else(|| "p2p_network".to_string()),
-    )
-    .await
-    {
-        error!("Failed to start HTTP server: {}", e);
-        return Err(e);
-    }
+    ));
 
     Ok(())
 }

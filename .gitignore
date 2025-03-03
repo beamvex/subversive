@@ -1,7 +1,12 @@
 /target
 
+certs/*
+
+db/*
 *.db
 *.journal
 
 config/*
 !config/config.example.yaml
+
+!README.md

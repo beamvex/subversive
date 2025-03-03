@@ -1,3 +1,4 @@
+use std::fs;
 use crate::{api, tls, types::state::AppState};
 use axum::{
     http::Request,
@@ -72,12 +73,17 @@ pub async fn run_http_server(
         .with_state(app_state);
 
     // Set up TLS
-    let cert_path = Path::new("cert.pem");
-    let key_path = Path::new("key.pem");
+    let certs_dir = Path::new("certs");
+    if !certs_dir.exists() {
+        fs::create_dir_all(certs_dir)?;
+    }
+
+    let cert_path = certs_dir.join("cert.pem");
+    let key_path = certs_dir.join("key.pem");
 
     // Create self-signed certificate if it doesn't exist
     if !cert_path.exists() || !key_path.exists() {
-        tls::create_self_signed_cert(cert_path, key_path)?;
+        tls::create_self_signed_cert(&cert_path, &key_path)?;
     }
 
     // Load TLS configuration

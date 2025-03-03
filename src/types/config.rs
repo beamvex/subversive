@@ -1,6 +1,6 @@
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use anyhow::Result;
 
 /// Configuration for the P2P network application
 #[derive(Debug, Serialize, Deserialize)]
@@ -27,6 +27,8 @@ pub struct Config {
     pub opendns_password: Option<String>,
     /// OpenDNS network label
     pub opendns_network: Option<String>,
+    /// Enable post-apocalyptic survival mode
+    pub survival_mode: Option<bool>,
 }
 
 impl Config {
@@ -51,6 +53,7 @@ impl Config {
             opendns_username: None,
             opendns_password: None,
             opendns_network: None,
+            survival_mode: None,
         }
     }
 
@@ -64,10 +67,23 @@ impl Config {
             noip_hostname: args.noip_hostname.clone().or(self.noip_hostname.clone()),
             noip_username: args.noip_username.clone().or(self.noip_username.clone()),
             noip_password: args.noip_password.clone().or(self.noip_password.clone()),
-            opendns_hostname: args.opendns_hostname.clone().or(self.opendns_hostname.clone()),
-            opendns_username: args.opendns_username.clone().or(self.opendns_username.clone()),
-            opendns_password: args.opendns_password.clone().or(self.opendns_password.clone()),
-            opendns_network: args.opendns_network.clone().or(self.opendns_network.clone()),
+            opendns_hostname: args
+                .opendns_hostname
+                .clone()
+                .or(self.opendns_hostname.clone()),
+            opendns_username: args
+                .opendns_username
+                .clone()
+                .or(self.opendns_username.clone()),
+            opendns_password: args
+                .opendns_password
+                .clone()
+                .or(self.opendns_password.clone()),
+            opendns_network: args
+                .opendns_network
+                .clone()
+                .or(self.opendns_network.clone()),
+            survival_mode: args.survival_mode.clone(),
         }
     }
 }

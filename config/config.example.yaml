@@ -24,3 +24,6 @@ name: "my_p2p_network"
 #opendns_username: "your-username"
 #opendns_password: "your-password"
 #opendns_network: "your-network-label"  # The network label from your OpenDNS dashboard
+
+# Enable post-apocalyptic survival mode (optional, defaults to false)
+#survival_mode: true

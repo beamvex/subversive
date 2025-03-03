@@ -1,0 +1,1 @@
+# Certs folder for storing SSL certificates

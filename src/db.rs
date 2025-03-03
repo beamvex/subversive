@@ -2,7 +2,7 @@ use anyhow::Result;
 use polodb_bson::doc;
 use polodb_core::Database;
 use serde::{Deserialize, Serialize};
-use std::path::Path;
+use std::{fs, path::Path};
 use std::sync::{Arc, Mutex};
 
 /// Represents a message document in the database.
@@ -28,7 +28,15 @@ pub struct DbContext {
 impl DbContext {
     /// Creates a new database context from a file path.
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let db = Database::open_file(path)?;
+        // Ensure db directory exists
+        let db_dir = Path::new("db");
+        if !db_dir.exists() {
+            fs::create_dir_all(db_dir)?;
+        }
+
+        // Create full path in db directory
+        let db_path = db_dir.join(path.as_ref());
+        let db = Database::open_file(db_path)?;
         Ok(Self {
             db: Arc::new(Mutex::new(db)),
         })

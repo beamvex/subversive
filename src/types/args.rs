@@ -24,6 +24,10 @@ pub struct Args {
     #[arg(short, long)]
     pub config: Option<String>,
 
+    /// Enable post-apocalyptic survival mode
+    #[arg(long)]
+    pub survival_mode: Option<bool>,
+
     /// No-IP hostname (e.g., example.ddns.net)
     #[arg(long)]
     pub noip_hostname: Option<String>,
