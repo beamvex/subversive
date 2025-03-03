@@ -17,3 +17,10 @@ name: "my_p2p_network"
 #noip_hostname: "your-domain.ddns.net"
 #noip_username: "your-username"
 #noip_password: "your-password"
+
+# OpenDNS Dynamic DNS configuration (all optional)
+# Uncomment and fill in these values to enable OpenDNS support
+#opendns_hostname: "your-hostname.opendns.com"
+#opendns_username: "your-username"
+#opendns_password: "your-password"
+#opendns_network: "your-network-label"  # The network label from your OpenDNS dashboard

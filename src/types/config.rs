@@ -19,6 +19,14 @@ pub struct Config {
     pub noip_username: Option<String>,
     /// No-IP password
     pub noip_password: Option<String>,
+    /// OpenDNS hostname
+    pub opendns_hostname: Option<String>,
+    /// OpenDNS username
+    pub opendns_username: Option<String>,
+    /// OpenDNS password
+    pub opendns_password: Option<String>,
+    /// OpenDNS network label
+    pub opendns_network: Option<String>,
 }
 
 impl Config {
@@ -39,6 +47,10 @@ impl Config {
             noip_hostname: None,
             noip_username: None,
             noip_password: None,
+            opendns_hostname: None,
+            opendns_username: None,
+            opendns_password: None,
+            opendns_network: None,
         }
     }
 
@@ -52,6 +64,10 @@ impl Config {
             noip_hostname: args.noip_hostname.clone().or(self.noip_hostname.clone()),
             noip_username: args.noip_username.clone().or(self.noip_username.clone()),
             noip_password: args.noip_password.clone().or(self.noip_password.clone()),
+            opendns_hostname: args.opendns_hostname.clone().or(self.opendns_hostname.clone()),
+            opendns_username: args.opendns_username.clone().or(self.opendns_username.clone()),
+            opendns_password: args.opendns_password.clone().or(self.opendns_password.clone()),
+            opendns_network: args.opendns_network.clone().or(self.opendns_network.clone()),
         }
     }
 }

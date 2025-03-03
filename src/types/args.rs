@@ -35,4 +35,20 @@ pub struct Args {
     /// No-IP password
     #[arg(long)]
     pub noip_password: Option<String>,
+
+    /// OpenDNS hostname
+    #[arg(long)]
+    pub opendns_hostname: Option<String>,
+
+    /// OpenDNS username
+    #[arg(long)]
+    pub opendns_username: Option<String>,
+
+    /// OpenDNS password
+    #[arg(long)]
+    pub opendns_password: Option<String>,
+
+    /// OpenDNS network label
+    #[arg(long)]
+    pub opendns_network: Option<String>,
 }

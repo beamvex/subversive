@@ -10,9 +10,9 @@ use tracing_subscriber::{self, fmt::format::FmtSpan};
 // Re-export modules
 pub mod api;
 pub mod db;
+pub mod ddns;
 pub mod health;
 pub mod network;
-pub mod noip;
 pub mod peer;
 pub mod processor;
 pub mod server;
@@ -81,18 +81,43 @@ pub async fn main() -> Result<()> {
     let own_address = format!("https://{}:{}", external_ip, port);
     info!("Server listening on internet endpoint: {}", own_address);
 
-    // Start No-IP updater if configured
+    // Start Dynamic DNS updaters if configured
+    let client = reqwest::Client::new();
+
+    // Configure No-IP if all required settings are present
     if let (Some(hostname), Some(username), Some(password)) = (
         config.noip_hostname,
         config.noip_username,
         config.noip_password,
     ) {
         info!("Starting No-IP DNS updater for hostname: {}", hostname);
-        noip::start_noip_updater(
-            hostname,
-            username,
-            password,
-            reqwest::Client::new(),
+        ddns::start_ddns_updater(
+            ddns::DdnsProvider::NoIp {
+                hostname,
+                username,
+                password,
+            },
+            client.clone(),
+        )
+        .await?;
+    }
+
+    // Configure OpenDNS if all required settings are present
+    if let (Some(hostname), Some(username), Some(password), Some(network)) = (
+        config.opendns_hostname,
+        config.opendns_username,
+        config.opendns_password,
+        config.opendns_network,
+    ) {
+        info!("Starting OpenDNS updater for hostname: {}", hostname);
+        ddns::start_ddns_updater(
+            ddns::DdnsProvider::OpenDns {
+                hostname,
+                username,
+                password,
+                network,
+            },
+            client.clone(),
         )
         .await?;
     }
