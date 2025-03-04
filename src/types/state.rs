@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{broadcast, Mutex};
 
-use crate::{db::DbContext, types::{message::Message, health::PeerHealth}, shutdown::ShutdownState};
+use crate::{db::DbContext, types::{message::Message, health::PeerHealth, config::Config}, shutdown::ShutdownState};
 
 /// Shared application state
 pub struct AppState {
@@ -16,4 +16,6 @@ pub struct AppState {
     pub own_address: String,
     /// Shared shutdown state for cleanup
     pub shutdown: Arc<ShutdownState>,
+    /// Configuration
+    pub config: Config,
 }

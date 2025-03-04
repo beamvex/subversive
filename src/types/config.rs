@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 
 /// Configuration for the P2P network application
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Config {
     /// Port to listen on for P2P communication
     pub port: Option<u16>,

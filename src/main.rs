@@ -2,7 +2,7 @@
 use anyhow::Result;
 use clap::Parser;
 use rand::Rng;
-use std::{collections::HashMap, sync::Arc};
+use std::{clone::Clone, collections::HashMap, sync::Arc};
 use tokio::sync::{broadcast, Mutex};
 use tracing::{error, info};
 use tracing_subscriber::{self, fmt::format::FmtSpan};
@@ -69,6 +69,7 @@ pub async fn main() -> Result<()> {
     // Get database name from config
     let database = config
         .database
+        .clone()
         .unwrap_or_else(|| "p2p_network.db".to_string());
 
     info!("Using port: {}", port);
@@ -87,9 +88,9 @@ pub async fn main() -> Result<()> {
 
     // Configure No-IP if all required settings are present
     if let (Some(hostname), Some(username), Some(password)) = (
-        config.noip_hostname,
-        config.noip_username,
-        config.noip_password,
+        config.noip_hostname.clone(),
+        config.noip_username.clone(),
+        config.noip_password.clone(),
     ) {
         info!("Starting No-IP DNS updater for hostname: {}", hostname);
         ddns::start_ddns_updater(
@@ -105,10 +106,10 @@ pub async fn main() -> Result<()> {
 
     // Configure OpenDNS if all required settings are present
     if let (Some(hostname), Some(username), Some(password), Some(network)) = (
-        config.opendns_hostname,
-        config.opendns_username,
-        config.opendns_password,
-        config.opendns_network,
+        config.opendns_hostname.clone(),
+        config.opendns_username.clone(),
+        config.opendns_password.clone(),
+        config.opendns_network.clone(),
     ) {
         info!("Starting OpenDNS updater for hostname: {}", hostname);
         ddns::start_ddns_updater(
@@ -150,28 +151,38 @@ pub async fn main() -> Result<()> {
         db: db.clone(),
         own_address: own_address.clone(),
         shutdown: Arc::new(shutdown_state),
+        config: config.clone(),
     });
     info!("Starting up");
 
     // Connect to initial peer if specified
-    if let Some(peer_addr) = config.peer {
-        peer::connect_to_initial_peer(peer_addr, actual_port, app_state.peers.clone(), external_ip)
-            .await?;
+    if let Some(ref peer_addr) = config.peer.clone() {
+        peer::connect_to_initial_peer(
+            peer_addr.clone(),
+            actual_port,
+            app_state.peers.clone(),
+            external_ip,
+        )
+        .await?;
     }
 
     // Start message processor
+    info!("Starting message processor");
     processor::start_message_processor(rx, db.clone()).await;
 
     // Start peer health checker
+    info!("Starting peer health checker");
     health::start_health_checker(app_state.clone()).await;
 
     // Start survival mode if enabled
     if config.survival_mode.unwrap_or(false) {
+        info!("Starting survival mode");
         survival::start_survival_mode(app_state.clone()).await;
     }
 
     // Start the HTTP server
-    let server_handle = tokio::spawn(server::run_http_server(
+    info!("Starting HTTP server");
+    let _server_handle = tokio::spawn(server::run_http_server(
         actual_port,
         app_state.clone(),
         config.name.unwrap_or_else(|| "p2p_network".to_string()),

@@ -11,6 +11,7 @@ pub async fn start_health_checker(app_state: Arc<AppState>) {
     let peers_clone = app_state.peers.clone();
     let own_address = app_state.own_address.clone();
     let shutdown_state = app_state.shutdown.clone();
+    let survival_mode = app_state.config.survival_mode.unwrap_or(false);
 
     tokio::spawn(async move {
         loop {
@@ -20,8 +21,11 @@ pub async fn start_health_checker(app_state: Arc<AppState>) {
                 info!("Current peer count: {}", peer_count);
 
                 if peer_count == 0 {
-                    warn!("No peers remaining in network, initiating shutdown...");
-                    shutdown_state.shutdown().await;
+                    warn!("No peers remaining in network");
+                    if !survival_mode {
+                        warn!("Not in survival mode - initiating shutdown...");
+                        shutdown_state.shutdown().await;
+                    }
                 }
 
                 let known_peers = peers.keys().cloned().collect::<Vec<_>>();
@@ -45,6 +49,7 @@ pub async fn start_health_checker(app_state: Arc<AppState>) {
                 &own_address,
                 &known_peers,
                 &shutdown_state,
+                survival_mode,
             )
             .await;
             time::sleep(Duration::from_secs(30)).await;
@@ -60,12 +65,14 @@ pub async fn start_health_checker(app_state: Arc<AppState>) {
 /// * `own_address` - Our own address that peers can use to connect to us
 /// * `known_peers` - List of all known peer addresses
 /// * `shutdown_state` - Shared state for handling shutdown
+/// * `survival_mode` - Whether the server is running in survival mode
 async fn check_peer_health(
     peers_state: &Arc<Mutex<HashMap<String, PeerHealth>>>,
     peers: &HashMap<String, reqwest::Client>,
     own_address: &str,
     known_peers: &[String],
     shutdown_state: &Arc<ShutdownState>,
+    survival_mode: bool,
 ) {
     for (addr, client) in peers.iter() {
         // Extract port from address
@@ -107,9 +114,12 @@ async fn check_peer_health(
                         info!("Peers remaining after removal: {}", remaining_peers);
 
                         if remaining_peers == 0 {
-                            warn!("No peers remaining in network, initiating shutdown...");
-                            drop(peers); // Drop the lock before shutdown
-                            shutdown_state.shutdown().await;
+                            warn!("No peers remaining in network");
+                            if !survival_mode {
+                                warn!("Not in survival mode - initiating shutdown...");
+                                drop(peers); // Drop the lock before shutdown
+                                shutdown_state.shutdown().await;
+                            }
                         }
                     } else {
                         warn!(

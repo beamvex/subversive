@@ -18,7 +18,7 @@ const MAX_RECONNECT_ATTEMPTS: u32 = 5;
 /// 1. Periodically check for network connectivity
 /// 2. Attempt to reconnect to known peers if disconnected
 /// 3. Broadcast its presence to any peers it finds
-/// 4. Never shut down unless explicitly commanded to
+/// 4. Never shut down unless explicitly commanded to, even with zero peers
 pub async fn start_survival_mode(app_state: Arc<AppState>) {
     info!("Entering post-apocalyptic survival mode...");
 
@@ -29,6 +29,8 @@ pub async fn start_survival_mode(app_state: Arc<AppState>) {
         loop {
             interval.tick().await;
             check_survival_status(&state).await;
+            // Ensure we keep running even with zero peers
+            tokio::time::sleep(Duration::from_secs(1)).await;
         }
     });
 }
@@ -36,12 +38,15 @@ pub async fn start_survival_mode(app_state: Arc<AppState>) {
 async fn check_survival_status(state: &Arc<AppState>) {
     let peers = state.peers.lock().await;
     let peer_count = peers.len();
+    drop(peers); // Release the lock before potentially long operations
 
     info!("Survival check - Connected peers: {}", peer_count);
 
     if peer_count == 0 {
         warn!("No connected peers - initiating survival protocol");
         attempt_reconnection(state).await;
+        // Even if reconnection fails, we'll keep running
+        info!("Survival mode active - continuing to run with zero peers");
     } else {
         // Broadcast heartbeat to all peers
         let heartbeat_msg = Message::Chat {
