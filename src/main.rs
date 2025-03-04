@@ -1,5 +1,6 @@
 // Import required dependencies and types
 use anyhow::Result;
+
 use clap::Parser;
 use rand::Rng;
 use std::{clone::Clone, collections::HashMap, sync::Arc};
@@ -30,9 +31,8 @@ use types::health::PeerHealth;
 use types::message::HeartbeatMessage;
 use types::state::AppState;
 
-/// Main entry point of the application
-#[tokio::main]
-pub async fn main() -> Result<()> {
+/// Setup tracing subscriber
+fn setup_tracing() {
     // Initialize the tracing subscriber with formatting options
     tracing_subscriber::fmt()
         .with_target(false)
@@ -42,7 +42,10 @@ pub async fn main() -> Result<()> {
         .with_line_number(false)
         .with_span_events(FmtSpan::CLOSE)
         .init();
+}
 
+/// Load configuration from file or default if not specified
+fn load_config() -> Config {
     // Parse command line arguments
     let args = Args::parse();
 
@@ -60,6 +63,60 @@ pub async fn main() -> Result<()> {
     // Merge config with command line arguments
     let config = config.merge_with_args(&args);
 
+    config
+}
+
+async fn config_ddns(config: &Config) -> Result<(), anyhow::Error> {
+    // Start Dynamic DNS updaters if configured
+    let client = reqwest::Client::new();
+
+    // Configure No-IP if all required settings are present
+    if let (Some(hostname), Some(username), Some(password)) = (
+        config.noip_hostname.clone(),
+        config.noip_username.clone(),
+        config.noip_password.clone(),
+    ) {
+        info!("Starting No-IP DNS updater for hostname: {}", hostname);
+        return ddns::start_ddns_updater(
+            ddns::DdnsProvider::NoIp {
+                hostname,
+                username,
+                password,
+            },
+            client.clone(),
+        )
+        .await;
+    }
+
+    // Configure OpenDNS if all required settings are present
+    if let (Some(hostname), Some(username), Some(password), Some(network)) = (
+        config.opendns_hostname.clone(),
+        config.opendns_username.clone(),
+        config.opendns_password.clone(),
+        config.opendns_network.clone(),
+    ) {
+        info!("Starting OpenDNS updater for hostname: {}", hostname);
+        return ddns::start_ddns_updater(
+            ddns::DdnsProvider::OpenDns {
+                hostname,
+                username,
+                password,
+                network,
+            },
+            client.clone(),
+        )
+        .await;
+    }
+
+    Ok(())
+}
+/// Main entry point of the application
+#[tokio::main]
+pub async fn main() -> Result<()> {
+    setup_tracing();
+
+    let config = load_config();
+
     // Generate random port between 10000-65535 if not specified
     let port = config.port.unwrap_or_else(|| {
         let mut rng = rand::thread_rng();
@@ -75,6 +132,8 @@ pub async fn main() -> Result<()> {
     info!("Using port: {}", port);
     info!("Using database: {}", database);
 
+    let _ = config_ddns(&config).await;
+
     // Create a channel for message passing
     let (_tx, rx) = broadcast::channel(32);
 
@@ -82,47 +141,6 @@ pub async fn main() -> Result<()> {
     let external_ip = network::get_external_ip().await?;
     let own_address = format!("https://{}:{}", external_ip, port);
     info!("Server listening on internet endpoint: {}", own_address);
-
-    // Start Dynamic DNS updaters if configured
-    let client = reqwest::Client::new();
-
-    // Configure No-IP if all required settings are present
-    if let (Some(hostname), Some(username), Some(password)) = (
-        config.noip_hostname.clone(),
-        config.noip_username.clone(),
-        config.noip_password.clone(),
-    ) {
-        info!("Starting No-IP DNS updater for hostname: {}", hostname);
-        ddns::start_ddns_updater(
-            ddns::DdnsProvider::NoIp {
-                hostname,
-                username,
-                password,
-            },
-            client.clone(),
-        )
-        .await?;
-    }
-
-    // Configure OpenDNS if all required settings are present
-    if let (Some(hostname), Some(username), Some(password), Some(network)) = (
-        config.opendns_hostname.clone(),
-        config.opendns_username.clone(),
-        config.opendns_password.clone(),
-        config.opendns_network.clone(),
-    ) {
-        info!("Starting OpenDNS updater for hostname: {}", hostname);
-        ddns::start_ddns_updater(
-            ddns::DdnsProvider::OpenDns {
-                hostname,
-                username,
-                password,
-                network,
-            },
-            client.clone(),
-        )
-        .await?;
-    }
 
     // Set up UPnP port mapping
     let (actual_port, gateways) = upnp::setup_upnp(port).await?;
