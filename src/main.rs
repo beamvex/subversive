@@ -125,18 +125,8 @@ pub async fn main() -> Result<()> {
 
     let _ = config_ddns(&config).await;
 
-    // Get external IP and log the full endpoint address
-    let external_ip = network::get_external_ip().await?;
-    let own_address = format!("https://{}:{}", external_ip, port);
-    info!("Server listening on internet endpoint: {}", own_address);
-
-    // Set up UPnP port mapping
-    let (actual_port, gateways) = upnp::setup_upnp(port).await?;
-    info!("Using port {}", actual_port);
-
-    // After UPnP setup
-    let own_address = format!("https://{}:{}", external_ip, actual_port);
-    info!("Own address: {}", own_address);
+    // Set up network connectivity
+    let (actual_port, gateways, own_address) = network::setup_network(port).await?;
 
     // Create shutdown state
     let shutdown_state = shutdown::ShutdownState::new(actual_port, gateways);
@@ -160,7 +150,7 @@ pub async fn main() -> Result<()> {
             peer_addr.clone(),
             actual_port,
             app_state.peers.clone(),
-            external_ip,
+            own_address,
         )
         .await?;
     }
