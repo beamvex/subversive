@@ -1,4 +1,5 @@
 use anyhow::Result;
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::fs;
 
@@ -85,5 +86,20 @@ impl Config {
                 .or(self.opendns_network.clone()),
             survival_mode: args.survival_mode.clone(),
         }
+    }
+
+    /// Get the port number, generating a random one if not specified
+    pub fn get_port(&self) -> u16 {
+        self.port.unwrap_or_else(|| {
+            let mut rng = rand::thread_rng();
+            rng.gen_range(10000..=65535)
+        })
+    }
+
+    /// Get the database name, using default if not specified
+    pub fn get_database(&self) -> String {
+        self.database
+            .clone()
+            .unwrap_or_else(|| "p2p_network.db".to_string())
     }
 }

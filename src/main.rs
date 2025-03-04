@@ -2,7 +2,6 @@
 use anyhow::Result;
 
 use clap::Parser;
-use rand::Rng;
 use std::{clone::Clone, collections::HashMap, sync::Arc};
 use tokio::sync::{broadcast, Mutex};
 use tracing::{error, info};
@@ -110,6 +109,7 @@ async fn config_ddns(config: &Config) -> Result<(), anyhow::Error> {
 
     Ok(())
 }
+
 /// Main entry point of the application
 #[tokio::main]
 pub async fn main() -> Result<()> {
@@ -117,17 +117,9 @@ pub async fn main() -> Result<()> {
 
     let config = load_config();
 
-    // Generate random port between 10000-65535 if not specified
-    let port = config.port.unwrap_or_else(|| {
-        let mut rng = rand::thread_rng();
-        rng.gen_range(10000..=65535)
-    });
-
-    // Get database name from config
-    let database = config
-        .database
-        .clone()
-        .unwrap_or_else(|| "p2p_network.db".to_string());
+    // Get port and database from config
+    let port = config.get_port();
+    let database = config.get_database();
 
     info!("Using port: {}", port);
     info!("Using database: {}", database);
