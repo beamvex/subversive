@@ -135,9 +135,6 @@ pub async fn main() -> Result<()> {
     // Create shutdown state
     let shutdown_state = shutdown::ShutdownState::new(actual_port, gateways);
 
-    // Set up Ctrl+C handler
-    shutdown::handle_shutdown(shutdown_state.clone()).await;
-
     // Initialize database
     let db: Arc<DbContext> = Arc::new(DbContext::new(&database).unwrap());
 
@@ -150,7 +147,7 @@ pub async fn main() -> Result<()> {
         tx: tx.clone(),
         db: db.clone(),
         own_address: own_address.clone(),
-        shutdown: Arc::new(shutdown_state),
+        shutdown: Arc::new(shutdown_state.clone()),
         config: config.clone(),
     });
     info!("Starting up");
@@ -199,6 +196,8 @@ pub async fn main() -> Result<()> {
             }
         }
     }
+
+    shutdown_state.shutdown().await;
 
     info!("Shutdown complete");
     Ok(())

@@ -1,5 +1,4 @@
 use std::sync::Arc;
-use tokio::signal;
 use tracing::{error, info};
 
 use crate::upnp;
@@ -27,22 +26,4 @@ impl ShutdownState {
         }
         std::process::exit(0);
     }
-}
-
-/// Handle shutdown signals (Ctrl+C) and perform cleanup
-///
-/// # Arguments
-/// * `state` - Shared shutdown state containing port and gateway information
-pub async fn handle_shutdown(state: ShutdownState) {
-    tokio::spawn(async move {
-        match signal::ctrl_c().await {
-            Ok(()) => {
-                info!("Received Ctrl+C");
-                state.shutdown().await;
-            }
-            Err(err) => {
-                error!("Error setting up Ctrl+C handler: {}", err);
-            }
-        }
-    });
 }
