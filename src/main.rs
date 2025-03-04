@@ -14,7 +14,6 @@ pub mod ddns;
 pub mod health;
 pub mod network;
 pub mod peer;
-pub mod processor;
 pub mod server;
 pub mod shutdown;
 pub mod survival;
@@ -126,9 +125,6 @@ pub async fn main() -> Result<()> {
 
     let _ = config_ddns(&config).await;
 
-    // Create a channel for message passing
-    let (_tx, rx) = broadcast::channel(32);
-
     // Get external IP and log the full endpoint address
     let external_ip = network::get_external_ip().await?;
     let own_address = format!("https://{}:{}", external_ip, port);
@@ -172,10 +168,6 @@ pub async fn main() -> Result<()> {
         )
         .await?;
     }
-
-    // Start message processor
-    info!("Starting message processor");
-    processor::start_message_processor(rx, db.clone()).await;
 
     // Start peer health checker
     info!("Starting peer health checker");
