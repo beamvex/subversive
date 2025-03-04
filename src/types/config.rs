@@ -62,8 +62,8 @@ impl Config {
         Self {
             port: args.port.or(self.port),
             peer: args.peer.clone().or(self.peer.clone()),
-            database: Some(args.database.clone()),
-            name: Some(args.name.clone()),
+            database: args.database.clone().or(self.database.clone()),
+            name: args.name.clone().or(self.name.clone()),
             noip_hostname: args.noip_hostname.clone().or(self.noip_hostname.clone()),
             noip_username: args.noip_username.clone().or(self.noip_username.clone()),
             noip_password: args.noip_password.clone().or(self.noip_password.clone()),

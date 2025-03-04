@@ -13,12 +13,12 @@ pub struct Args {
     pub peer: Option<String>,
 
     /// Database file name (defaults to p2p_network.db)
-    #[arg(short, long, default_value = "p2p_network.db")]
-    pub database: String,
+    #[arg(short, long)]
+    pub database: Option<String>,
 
     /// Custom name for HTTP access logs
-    #[arg(short, long, default_value = "p2p_network")]
-    pub name: String,
+    #[arg(short, long)]
+    pub name: Option<String>,
 
     /// Path to YAML configuration file
     #[arg(short, long)]
