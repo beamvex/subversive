@@ -203,20 +203,5 @@ pub async fn main() -> Result<()> {
         config.name.clone().unwrap_or("p2pserver".to_string()),
     ));
 
-    // Wait for server or Ctrl+C
-    tokio::select! {
-        _ = tokio::signal::ctrl_c() => {
-            info!("Received Ctrl+C, shutting down...");
-        }
-        result = server_handle => {
-            if let Err(e) = result {
-                error!("Server error: {}", e);
-            }
-        }
-    }
-
-    shutdown_state.shutdown().await;
-
-    info!("Shutdown complete");
-    Ok(())
+    Ok(shutdown_state.wait_shutdown(server_handle).await?)
 }
