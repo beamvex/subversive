@@ -42,11 +42,6 @@ pub async fn send_message(
         content: message.content,
     };
 
-    if let Err(e) = state.tx.send((msg.clone(), "local".to_string())) {
-        error!("Failed to process message locally: {}", e);
-        return Json("Failed to process message locally").into_response();
-    }
-
     if let Err(e) = broadcast_to_peers(msg, "local", &state.peers).await {
         error!("Failed to broadcast message to peers: {}", e);
         return Json("Failed to broadcast message").into_response();
@@ -57,12 +52,8 @@ pub async fn send_message(
 
 /// Receive a message from a peer
 pub async fn receive_message(
-    State(state): State<Arc<AppState>>,
-    Json(message): Json<Message>,
+    State(_state): State<Arc<AppState>>,
+    Json(_essage): Json<Message>,
 ) -> Response {
-    if let Err(e) = state.tx.send((message, "remote".to_string())) {
-        error!("Failed to process received message: {}", e);
-        return Json("Failed to process message").into_response();
-    }
     Json("Message received").into_response()
 }

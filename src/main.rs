@@ -3,7 +3,7 @@ use anyhow::Result;
 
 use clap::Parser;
 use std::{clone::Clone, collections::HashMap, sync::Arc};
-use tokio::sync::{broadcast, Mutex};
+use tokio::sync::Mutex;
 use tracing::{error, info};
 use tracing_subscriber::{self, fmt::format::FmtSpan};
 
@@ -144,13 +144,9 @@ pub async fn main() -> Result<()> {
     // Initialize database
     let db: Arc<DbContext> = Arc::new(DbContext::new(&database).unwrap());
 
-    // Set up broadcast channel for peer messages
-    let (tx, _) = broadcast::channel(100);
-
     // Initialize shared application state
     let app_state = Arc::new(AppState {
         peers: Arc::new(Mutex::new(HashMap::<String, PeerHealth>::new())),
-        tx: tx.clone(),
         db: db.clone(),
         own_address: own_address.clone(),
         shutdown: Arc::new(shutdown_state.clone()),
