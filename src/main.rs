@@ -182,11 +182,24 @@ pub async fn main() -> Result<()> {
 
     // Start the HTTP server
     info!("Starting HTTP server");
-    let _server_handle = tokio::spawn(server::run_http_server(
+    let server_handle = tokio::spawn(server::run_http_server(
         actual_port,
         app_state.clone(),
-        config.name.unwrap_or_else(|| "p2p_network".to_string()),
+        config.name.clone().unwrap_or("p2pserver".to_string()),
     ));
 
+    // Wait for server or Ctrl+C
+    tokio::select! {
+        _ = tokio::signal::ctrl_c() => {
+            info!("Received Ctrl+C, shutting down...");
+        }
+        result = server_handle => {
+            if let Err(e) = result {
+                error!("Server error: {}", e);
+            }
+        }
+    }
+
+    info!("Shutdown complete");
     Ok(())
 }
