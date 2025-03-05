@@ -1,5 +1,4 @@
-use crate::types::health::PeerHealth;
-use crate::types::peer::PeerInfo;
+use crate::types::{health::PeerHealth, peer::PeerInfo, state::AppState};
 use anyhow::Result;
 use reqwest::Client;
 use std::{collections::HashMap, sync::Arc};
@@ -9,37 +8,48 @@ use tracing::{error, info};
 /// Initialize connection to an initial peer
 ///
 /// # Arguments
-/// * `peer_addr` - Address of the peer to connect to
-/// * `actual_port` - The port we're running on
-/// * `peers` - Shared map of peer connections
-/// * `external_ip` - Our external IP address
-pub async fn connect_to_initial_peer(
-    peer_addr: String,
-    actual_port: u16,
-    peers: Arc<Mutex<HashMap<String, PeerHealth>>>,
-    external_ip: String,
-) -> Result<()> {
+/// * `state` - Shared application state
+pub async fn connect_to_initial_peer(state: Arc<AppState>) -> Result<()> {
+    let peer_addr = match &state.config.peer {
+        Some(addr) => addr.clone(),
+        None => return Ok(()),
+    };
+
     info!("Connecting to initial peer: {}", peer_addr);
     let client = Client::builder()
         .danger_accept_invalid_certs(true)
         .build()
         .expect("Failed to create HTTP client");
 
-    let my_addr = format!("https://{}:{}", external_ip, actual_port);
-
     // Acquire the lock to update peers
     {
-        let mut peers = peers.lock().await;
-        peers.insert(peer_addr.clone(), PeerHealth::new(client.clone()));
-    } // Lock is dropped here
+        let mut peers = state.peers.lock().await;
+        let peer_info = PeerInfo {
+            address: peer_addr.clone(),
+            own_address: state.own_address.clone(),
+        };
 
-    if let Err(e) = client
-        .post(format!("{}/peer", peer_addr))
-        .json(&PeerInfo { address: my_addr })
-        .send()
-        .await
-    {
-        error!("Failed to connect to initial peer {}: {}", peer_addr, e);
+        // Send connection request to peer
+        let response = client
+            .post(format!("{}/peer", peer_addr))
+            .json(&peer_info)
+            .send()
+            .await?;
+
+        if response.status().is_success() {
+            info!("Successfully connected to peer: {}", peer_addr);
+            peers.insert(
+                peer_addr.clone(),
+                PeerHealth {
+                    address: peer_addr,
+
+                    client,
+                    failed_checks: 0,
+                },
+            );
+        } else {
+            error!("Failed to connect to peer: {}", response.status());
+        }
     }
 
     Ok(())

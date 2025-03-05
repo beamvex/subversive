@@ -141,18 +141,13 @@ pub async fn main() -> Result<()> {
         own_address: own_address.clone(),
         shutdown: Arc::new(shutdown_state.clone()),
         config: config.clone(),
+        actual_port,
     });
     info!("Starting up");
 
     // Connect to initial peer if specified
-    if let Some(ref peer_addr) = config.peer.clone() {
-        peer::connect_to_initial_peer(
-            peer_addr.clone(),
-            actual_port,
-            app_state.peers.clone(),
-            own_address,
-        )
-        .await?;
+    if config.peer.is_some() {
+        peer::connect_to_initial_peer(app_state.clone()).await?;
     }
 
     // Start peer health checker
@@ -166,12 +161,7 @@ pub async fn main() -> Result<()> {
     }
 
     // Start the HTTP server
-    info!("Starting HTTP server");
-    let server_handle = tokio::spawn(server::run_http_server(
-        actual_port,
-        app_state.clone(),
-        config.name.clone().unwrap_or("p2pserver".to_string()),
-    ));
+    let server_handle = server::spawn_server(app_state.clone());
 
     Ok(shutdown_state.wait_shutdown(server_handle).await?)
 }

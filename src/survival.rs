@@ -97,7 +97,7 @@ async fn attempt_reconnection(state: &Arc<AppState>) {
                 .build()
                 .expect("Failed to create HTTP client");
 
-            let peer_health = PeerHealth::new(client.clone());
+            let peer_health = PeerHealth::new(client.clone(), peer.address.clone());
 
             // Try to connect
             match client.get(&format!("{}/peers", peer.address)).send().await {

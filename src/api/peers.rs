@@ -13,9 +13,10 @@ use crate::types::{message::Message, peer::PeerInfo, state::AppState, PeerHealth
 pub async fn list_peers(State(state): State<Arc<AppState>>) -> Response {
     let peers = state.peers.lock().await;
     let peer_list = peers
-        .keys()
-        .map(|addr| PeerInfo {
-            address: addr.clone(),
+        .values()
+        .map(|peer| PeerInfo {
+            address: peer.address.clone(),
+            own_address: state.own_address.clone(),
         })
         .collect::<Vec<_>>();
 
@@ -41,7 +42,7 @@ pub async fn add_peer(State(state): State<Arc<AppState>>, Json(peer): Json<PeerI
         .build()
         .expect("Failed to create HTTP client");
 
-    let peer_health = PeerHealth::new(client.clone());
+    let peer_health = PeerHealth::new(client.clone(), peer_address.clone());
     state
         .peers
         .lock()

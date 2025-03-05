@@ -7,14 +7,16 @@ pub struct PeerHealth {
     pub client: Client,
     /// Number of consecutive failed health checks
     pub failed_checks: u32,
+    pub(crate) address: String,
 }
 
 impl PeerHealth {
     /// Create a new PeerHealth instance
-    pub fn new(client: Client) -> Self {
+    pub fn new(client: Client, address: String) -> Self {
         Self {
             client,
             failed_checks: 0,
+            address,
         }
     }
 

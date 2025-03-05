@@ -102,4 +102,11 @@ impl Config {
             .clone()
             .unwrap_or_else(|| "p2p_network.db".to_string())
     }
+
+    /// Get the name, using default if not specified
+    pub fn get_name(&self) -> String {
+        self.name
+            .clone()
+            .unwrap_or_else(|| "p2p_network".to_string())
+    }
 }

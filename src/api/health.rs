@@ -43,7 +43,10 @@ pub async fn heartbeat(
                 .danger_accept_invalid_certs(true)
                 .build()
                 .expect("Failed to create HTTP client");
-            peers.insert(peer_address, PeerHealth::new(client));
+            peers.insert(
+                peer_address.clone(),
+                PeerHealth::new(client, peer_address.clone()),
+            );
         }
     }
 

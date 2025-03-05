@@ -20,4 +20,6 @@ pub struct AppState {
     pub shutdown: Arc<ShutdownState>,
     /// Configuration
     pub config: Config,
+    /// Actual port number
+    pub actual_port: u16,
 }

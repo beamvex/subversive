@@ -1,4 +1,3 @@
-use std::fs;
 use crate::{api, tls, types::state::AppState};
 use axum::{
     http::Request,
@@ -7,12 +6,14 @@ use axum::{
     Router,
 };
 use axum_server::tls_rustls::RustlsConfig;
+use std::fs;
 use std::{
     net::SocketAddr,
     path::{Path, PathBuf},
     sync::Arc,
     time::Duration,
 };
+use tokio::task::JoinHandle;
 use tower_http::{
     cors::{Any, CorsLayer},
     services::ServeDir,
@@ -20,17 +21,23 @@ use tower_http::{
 };
 use tracing::{info, Level, Span};
 
-/// Start the HTTP server
+/// Start the HTTP server in a new task
 ///
 /// # Arguments
-/// * `port` - Port to listen on
 /// * `app_state` - Shared application state
-/// * `name` - Custom name for logging
-pub async fn run_http_server(
-    port: u16,
-    app_state: Arc<AppState>,
-    name: String,
-) -> anyhow::Result<()> {
+///
+/// # Returns
+/// A JoinHandle for the server task
+pub fn spawn_server(app_state: Arc<AppState>) -> JoinHandle<anyhow::Result<()>> {
+    info!("Starting HTTP server");
+    tokio::spawn(run_http_server(app_state))
+}
+
+/// Run the HTTP server
+///
+/// # Arguments
+/// * `app_state` - Shared application state
+pub async fn run_http_server(app_state: Arc<AppState>) -> anyhow::Result<()> {
     // Set up CORS
     let cors = CorsLayer::new()
         .allow_origin(Any)
@@ -40,6 +47,8 @@ pub async fn run_http_server(
     // Set up static file serving from public directory
     let public_dir = PathBuf::from("public");
     let static_files_service = ServeDir::new(public_dir);
+    let name = app_state.config.get_name();
+    let port = app_state.config.get_port();
 
     // Set up logging middleware
     let trace_layer = TraceLayer::new_for_http()
