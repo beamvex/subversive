@@ -1,13 +1,16 @@
 // Import required dependencies and types
 use anyhow::Result;
 
-use clap::Parser;
 use std::{clone::Clone, collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
-use tracing::{error, info};
+use tracing::info;
 use tracing_subscriber::{self, fmt::format::FmtSpan};
 
-// Re-export modules
+use crate::types::config::Config;
+use crate::types::health::PeerHealth;
+use crate::types::state::AppState;
+
+// Module declarations
 pub mod api;
 pub mod db;
 pub mod ddns;
@@ -23,48 +26,20 @@ pub mod upnp;
 
 use db::DbContext;
 
-use types::args::Args;
-use types::config::Config;
-use types::health::PeerHealth;
-use types::message::HeartbeatMessage;
-use types::state::AppState;
-
 /// Setup tracing subscriber
 fn setup_tracing() {
     // Initialize the tracing subscriber with formatting options
     tracing_subscriber::fmt()
         .with_target(false)
         .with_thread_ids(false)
-        .with_level(true)
         .with_file(false)
         .with_line_number(false)
         .with_span_events(FmtSpan::CLOSE)
         .init();
 }
 
-/// Load configuration from file or default if not specified
-fn load_config() -> Config {
-    // Parse command line arguments
-    let args = Args::parse();
-
-    // Load configuration
-    let config = if let Some(config_path) = &args.config {
-        info!("Loading configuration from {}", config_path);
-        Config::from_file(config_path).unwrap_or_else(|e| {
-            error!("Failed to load config file: {}", e);
-            Config::default()
-        })
-    } else {
-        Config::default()
-    };
-
-    // Merge config with command line arguments
-    let config = config.merge_with_args(&args);
-
-    config
-}
-
-async fn config_ddns(config: &Config) -> Result<(), anyhow::Error> {
+/// Configure DDNS if settings are present
+async fn config_ddns(config: &Config) -> Result<()> {
     // Start Dynamic DNS updaters if configured
     let client = reqwest::Client::new();
 
@@ -115,7 +90,7 @@ async fn config_ddns(config: &Config) -> Result<(), anyhow::Error> {
 async fn initialize() -> Result<(Arc<AppState>, Arc<shutdown::ShutdownState>)> {
     setup_tracing();
 
-    let config = load_config();
+    let config = Config::load();
 
     // Get port and database from config
     let port = config.get_port();

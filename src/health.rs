@@ -2,7 +2,9 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 use tokio::{sync::Mutex, time};
 use tracing::{info, warn};
 
-use crate::{shutdown::ShutdownState, types::health::PeerHealth, AppState, HeartbeatMessage};
+use crate::{
+    shutdown::ShutdownState, types::health::PeerHealth, types::message::HeartbeatMessage, AppState,
+};
 
 const MAX_FAILED_CHECKS: u32 = 3;
 

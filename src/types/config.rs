@@ -1,7 +1,11 @@
 use anyhow::Result;
+use clap::Parser;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::fs;
+use tracing::{error, info};
+
+use crate::types::args::Args;
 
 /// Configuration for the P2P network application
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -86,6 +90,29 @@ impl Config {
                 .or(self.opendns_network.clone()),
             survival_mode: args.survival_mode.clone(),
         }
+    }
+
+    /// Load configuration from command line arguments and optional config file
+    ///
+    /// If a config file is specified in the arguments, it will be loaded and merged
+    /// with the command line arguments. Command line arguments take precedence.
+    pub fn load() -> Self {
+        // Parse command line arguments
+        let args = Args::parse();
+
+        // Load configuration
+        let config = if let Some(config_path) = &args.config {
+            info!("Loading configuration from {}", config_path);
+            Self::from_file(config_path).unwrap_or_else(|e| {
+                error!("Failed to load config file: {}", e);
+                Self::default()
+            })
+        } else {
+            Self::default()
+        };
+
+        // Merge config with command line arguments
+        config.merge_with_args(&args)
     }
 
     /// Get the port number, generating a random one if not specified
