@@ -109,9 +109,10 @@ async fn config_ddns(config: &Config) -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-/// Main entry point of the application
-#[tokio::main]
-pub async fn main() -> Result<()> {
+/// Initialize the application
+///
+/// Sets up logging, loads config, initializes network and creates application state
+async fn initialize() -> Result<(Arc<AppState>, Arc<shutdown::ShutdownState>)> {
     setup_tracing();
 
     let config = load_config();
@@ -129,7 +130,7 @@ pub async fn main() -> Result<()> {
     let (actual_port, gateways, own_address) = network::setup_network(port).await?;
 
     // Create shutdown state
-    let shutdown_state = shutdown::ShutdownState::new(actual_port, gateways);
+    let shutdown_state = Arc::new(shutdown::ShutdownState::new(actual_port, gateways));
 
     // Initialize database
     let db: Arc<DbContext> = Arc::new(DbContext::new(&database).unwrap());
@@ -139,14 +140,23 @@ pub async fn main() -> Result<()> {
         peers: Arc::new(Mutex::new(HashMap::<String, PeerHealth>::new())),
         db: db.clone(),
         own_address: own_address.clone(),
-        shutdown: Arc::new(shutdown_state.clone()),
+        shutdown: shutdown_state.clone(),
         config: config.clone(),
         actual_port,
     });
+
+    Ok((app_state, shutdown_state))
+}
+
+/// Main entry point of the application
+#[tokio::main]
+pub async fn main() -> Result<()> {
+    let (app_state, shutdown_state) = initialize().await?;
+
     info!("Starting up");
 
     // Connect to initial peer if specified
-    if config.peer.is_some() {
+    if app_state.config.peer.is_some() {
         peer::connect_to_initial_peer(app_state.clone()).await?;
     }
 
@@ -155,7 +165,7 @@ pub async fn main() -> Result<()> {
     health::start_health_checker(app_state.clone()).await;
 
     // Start survival mode if enabled
-    if config.survival_mode.unwrap_or(false) {
+    if app_state.config.survival_mode.unwrap_or(false) {
         info!("Starting survival mode");
         survival::start_survival_mode(app_state.clone()).await;
     }
