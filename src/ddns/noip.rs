@@ -1,0 +1,56 @@
+use anyhow::Result;
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
+use reqwest::Client;
+use tracing::info;
+
+use super::{DdnsProvider, DdnsProviderConfig};
+
+#[derive(Debug, Clone)]
+pub struct NoIpProvider {
+    pub hostname: String,
+    pub username: String,
+    pub password: String,
+}
+
+impl NoIpProvider {
+    pub async fn update_dns(&self, client: &Client) -> Result<String> {
+        let auth = format!("{}:{}", self.username, self.password);
+        let auth_header = format!("Basic {}", BASE64.encode(auth));
+
+        let response = client
+            .get("https://dynupdate.no-ip.com/nic/update")
+            .header("Authorization", auth_header)
+            .query(&[("hostname", &self.hostname)])
+            .send()
+            .await?
+            .error_for_status()?
+            .text()
+            .await?;
+
+        Ok(response)
+    }
+
+    pub fn new(hostname: String, username: String, password: String) -> Self {
+        Self {
+            hostname,
+            username,
+            password,
+        }
+    }
+}
+
+impl DdnsProviderConfig for NoIpProvider {
+    fn try_from_config(config: &crate::Config) -> Option<DdnsProvider> {
+        match (
+            config.noip_hostname.clone(),
+            config.noip_username.clone(),
+            config.noip_password.clone(),
+        ) {
+            (Some(hostname), Some(username), Some(password)) => {
+                info!("Starting No-IP DNS updater for hostname: {}", hostname);
+                Some(DdnsProvider::NoIp(Self::new(hostname, username, password)))
+            }
+            _ => None,
+        }
+    }
+}

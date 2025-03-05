@@ -38,52 +38,6 @@ fn setup_tracing() {
         .init();
 }
 
-/// Configure DDNS if settings are present
-async fn config_ddns(config: &Config) -> Result<()> {
-    // Start Dynamic DNS updaters if configured
-    let client = reqwest::Client::new();
-
-    // Configure No-IP if all required settings are present
-    if let (Some(hostname), Some(username), Some(password)) = (
-        config.noip_hostname.clone(),
-        config.noip_username.clone(),
-        config.noip_password.clone(),
-    ) {
-        info!("Starting No-IP DNS updater for hostname: {}", hostname);
-        return ddns::start_ddns_updater(
-            ddns::DdnsProvider::NoIp {
-                hostname,
-                username,
-                password,
-            },
-            client.clone(),
-        )
-        .await;
-    }
-
-    // Configure OpenDNS if all required settings are present
-    if let (Some(hostname), Some(username), Some(password), Some(network)) = (
-        config.opendns_hostname.clone(),
-        config.opendns_username.clone(),
-        config.opendns_password.clone(),
-        config.opendns_network.clone(),
-    ) {
-        info!("Starting OpenDNS updater for hostname: {}", hostname);
-        return ddns::start_ddns_updater(
-            ddns::DdnsProvider::OpenDns {
-                hostname,
-                username,
-                password,
-                network,
-            },
-            client.clone(),
-        )
-        .await;
-    }
-
-    Ok(())
-}
-
 /// Initialize the application
 ///
 /// Sets up logging, loads config, initializes network and creates application state
@@ -99,7 +53,7 @@ async fn initialize() -> Result<(Arc<AppState>, Arc<shutdown::ShutdownState>)> {
     info!("Using port: {}", port);
     info!("Using database: {}", database);
 
-    let _ = config_ddns(&config).await;
+    ddns::config_ddns(&config).await;
 
     // Set up network connectivity
     let (actual_port, gateways, own_address) = network::setup_network(port).await?;

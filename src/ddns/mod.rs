@@ -1,80 +1,39 @@
 use anyhow::Result;
-use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use reqwest::Client;
 use std::time::Duration;
 use tokio::time;
 use tracing::{info, warn};
 
+mod noip;
+mod opendns;
+
+pub use noip::NoIpProvider;
+pub use opendns::OpenDnsProvider;
+
 const UPDATE_INTERVAL: Duration = Duration::from_secs(300); // 5 minutes
+
+pub trait DdnsProviderConfig {
+    fn try_from_config(config: &crate::Config) -> Option<DdnsProvider>;
+}
 
 #[derive(Debug, Clone)]
 pub enum DdnsProvider {
-    NoIp {
-        hostname: String,
-        username: String,
-        password: String,
-    },
-    OpenDns {
-        hostname: String,
-        username: String,
-        password: String,
-        network: String,
-    },
+    NoIp(NoIpProvider),
+    OpenDns(OpenDnsProvider),
 }
 
 impl DdnsProvider {
     async fn update_dns(&self, client: &Client) -> Result<String> {
         match self {
-            DdnsProvider::NoIp {
-                hostname,
-                username,
-                password,
-            } => {
-                let auth = format!("{}:{}", username, password);
-                let auth_header = format!("Basic {}", BASE64.encode(auth));
-
-                let response = client
-                    .get("https://dynupdate.no-ip.com/nic/update")
-                    .header("Authorization", auth_header)
-                    .query(&[("hostname", hostname)])
-                    .send()
-                    .await?
-                    .error_for_status()?
-                    .text()
-                    .await?;
-
-                Ok(response)
-            }
-            DdnsProvider::OpenDns {
-                hostname,
-                username,
-                password,
-                network,
-            } => {
-                let auth = format!("{}:{}", username, password);
-                let auth_header = format!("Basic {}", BASE64.encode(auth));
-
-                let response = client
-                    .get(&format!(
-                        "https://updates.opendns.com/nic/update?hostname={}&network={}",
-                        hostname, network
-                    ))
-                    .header("Authorization", auth_header)
-                    .send()
-                    .await?
-                    .error_for_status()?
-                    .text()
-                    .await?;
-
-                Ok(response)
-            }
+            DdnsProvider::NoIp(provider) => provider.update_dns(client).await,
+            DdnsProvider::OpenDns(provider) => provider.update_dns(client).await,
         }
     }
 
     fn get_provider_name(&self) -> &'static str {
         match self {
-            DdnsProvider::NoIp { .. } => "No-IP",
-            DdnsProvider::OpenDns { .. } => "OpenDNS",
+            DdnsProvider::NoIp(_) => "No-IP",
+            DdnsProvider::OpenDns(_) => "OpenDNS",
         }
     }
 }
@@ -99,4 +58,18 @@ pub async fn start_ddns_updater(provider: DdnsProvider, client: Client) -> Resul
     });
 
     Ok(())
+}
+
+/// Configure DDNS if settings are present
+pub async fn config_ddns(config: &crate::Config) {
+    info!("Configuring DDNS");
+    let client = reqwest::Client::new();
+    let providers = [
+        NoIpProvider::try_from_config(config),
+        OpenDnsProvider::try_from_config(config),
+    ];
+
+    for provider in providers.into_iter().flatten() {
+        let _ = start_ddns_updater(provider, client.clone()).await;
+    }
 }
