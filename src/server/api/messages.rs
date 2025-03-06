@@ -1,6 +1,8 @@
 use axum::{
     extract::{Json, State},
     response::{IntoResponse, Response},
+    routing::{get, post},
+    Router,
 };
 use chrono::Utc;
 use std::sync::Arc;
@@ -13,6 +15,19 @@ use crate::{
         state::AppState,
     },
 };
+use super::ApiModule;
+
+/// Messages API module
+pub struct Messages;
+
+impl ApiModule for Messages {
+    fn register_routes() -> Router<Arc<AppState>> {
+        Router::new()
+            .route("/message", post(send_message))
+            .route("/message/receive", post(receive_message))
+            .route("/messages/recent", get(get_recent_messages))
+    }
+}
 
 /// Get recent messages
 pub async fn get_recent_messages(State(state): State<Arc<AppState>>) -> Response {
@@ -53,7 +68,7 @@ pub async fn send_message(
 /// Receive a message from a peer
 pub async fn receive_message(
     State(_state): State<Arc<AppState>>,
-    Json(_essage): Json<Message>,
+    Json(_message): Json<Message>,
 ) -> Response {
     Json("Message received").into_response()
 }

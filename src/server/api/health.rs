@@ -2,12 +2,24 @@ use axum::{
     extract::{Json, State},
     http::StatusCode,
     response::{IntoResponse, Response},
+    routing::get,
+    Router,
 };
 use chrono::Utc;
 use std::sync::Arc;
 use tracing::{error, info};
 
 use crate::types::{message::HeartbeatMessage, state::AppState, PeerHealth};
+use super::ApiModule;
+
+/// Health API module
+pub struct Health;
+
+impl ApiModule for Health {
+    fn register_routes() -> Router<Arc<AppState>> {
+        Router::new().route("/health", get(check))
+    }
+}
 
 /// Handle heartbeat from a peer
 pub async fn heartbeat(

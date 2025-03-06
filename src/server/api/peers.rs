@@ -1,6 +1,8 @@
 use axum::{
     extract::{Json, State},
     response::{IntoResponse, Response},
+    routing::{get, post},
+    Router,
 };
 
 use std::sync::Arc;
@@ -8,6 +10,18 @@ use tracing::error;
 
 use crate::peer::broadcast_to_peers;
 use crate::types::{message::Message, peer::PeerInfo, state::AppState, PeerHealth};
+use super::ApiModule;
+
+/// Peers API module
+pub struct Peers;
+
+impl ApiModule for Peers {
+    fn register_routes() -> Router<Arc<AppState>> {
+        Router::new()
+            .route("/peer", post(add_peer))
+            .route("/peers", get(list_peers))
+    }
+}
 
 /// List all connected peers
 pub async fn list_peers(State(state): State<Arc<AppState>>) -> Response {
