@@ -3,7 +3,7 @@ pub mod config;
 pub mod tls;
 
 use crate::types::state::AppState;
-use axum::{extract::connect_info::ConnectInfo, Router};
+use axum::Router;
 use std::{net::SocketAddr, sync::Arc};
 use tokio::task::JoinHandle;
 use tracing::info;
