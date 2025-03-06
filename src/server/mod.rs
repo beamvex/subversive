@@ -1,14 +1,15 @@
 pub mod api;
+pub mod tls;
 
 use crate::types::state::AppState;
 use axum::{
     http::Request,
     Router,
 };
-use axum_server::tls_rustls::RustlsConfig;
+use axum_server::bind_rustls;
 use std::{
     net::SocketAddr,
-    path::{Path, PathBuf},
+    path::PathBuf,
     sync::Arc,
 };
 use tokio::task::JoinHandle;
@@ -67,16 +68,14 @@ pub async fn run_http_server(app_state: Arc<AppState>) -> anyhow::Result<()> {
         .with_state(app_state);
 
     // Set up TLS config
-    let config =
-        RustlsConfig::from_pem_file(Path::new("certs/cert.pem"), Path::new("certs/key.pem"))
-            .await?;
+    let config = tls::configure_tls().await?;
 
     // Create socket address
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
     info!("Listening on {}", addr);
 
     // Start the server
-    axum_server::bind_rustls(addr, config)
+    bind_rustls(addr, config)
         .serve(app.into_make_service_with_connect_info::<SocketAddr>())
         .await?;
 

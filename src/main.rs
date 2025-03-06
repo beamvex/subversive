@@ -19,7 +19,6 @@ pub mod peer;
 pub mod server;
 pub mod shutdown;
 pub mod survival;
-pub mod tls;
 pub mod types;
 pub mod upnp;
 

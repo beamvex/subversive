@@ -2,9 +2,9 @@ pub mod health;
 pub mod messages;
 pub mod peers;
 
-use axum::{routing::{get, post}, Router};
-use std::sync::Arc;
 use crate::types::state::AppState;
+use axum::Router;
+use std::sync::Arc;
 
 /// Trait for API modules that can register their routes
 pub trait ApiModule {
