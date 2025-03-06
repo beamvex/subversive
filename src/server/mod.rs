@@ -6,7 +6,6 @@ use crate::types::state::AppState;
 use axum::{extract::connect_info::ConnectInfo, Router};
 use std::{net::SocketAddr, sync::Arc};
 use tokio::task::JoinHandle;
-use tower::layer::util::Identity;
 use tracing::info;
 
 /// Start the HTTP server in a new task
@@ -31,7 +30,7 @@ pub async fn run_http_server(app_state: Arc<AppState>) -> anyhow::Result<()> {
 
     // Build router with routes and middleware
     let router = Router::new().merge(api::register_routes(Router::new()));
-    let app = components.configure_router(app_state.clone(), router);
+    let app = components.configure_router(router).with_state(app_state);
 
     // Set up TLS config
     let config = tls::configure_tls().await?;
@@ -41,7 +40,9 @@ pub async fn run_http_server(app_state: Arc<AppState>) -> anyhow::Result<()> {
     info!("Listening on {}", addr);
 
     // Start the server with TLS
-    axum_server::bind_rustls(addr, config).serve(app).await?;
+    axum_server::bind_rustls(addr, config)
+        .serve(app.into_make_service())
+        .await?;
 
     Ok(())
 }

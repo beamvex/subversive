@@ -40,15 +40,10 @@ impl ServerComponents {
     }
 
     /// Configure the router with middleware and services
-    pub fn configure_router(
-        self,
-        app_state: Arc<AppState>,
-        router: Router<Arc<AppState>>,
-    ) -> Router<Arc<AppState>> {
+    pub fn configure_router(self, router: Router<Arc<AppState>>) -> Router<Arc<AppState>> {
         router
             .layer(self.cors_layer)
             .layer(self.trace_layer)
             .fallback_service(self.static_files_service)
-            .with_state(app_state)
     }
 }
