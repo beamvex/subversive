@@ -1,24 +1,13 @@
 pub mod api;
+pub mod config;
 pub mod tls;
 
 use crate::types::state::AppState;
-use axum::{
-    http::Request,
-    Router,
-};
-use axum_server::bind_rustls;
-use std::{
-    net::SocketAddr,
-    path::PathBuf,
-    sync::Arc,
-};
+use axum::{extract::connect_info::ConnectInfo, Router};
+use std::{net::SocketAddr, sync::Arc};
 use tokio::task::JoinHandle;
-use tower_http::{
-    cors::{Any, CorsLayer},
-    services::ServeDir,
-    trace::TraceLayer,
-};
-use tracing::{info, Level};
+use tower::layer::util::Identity;
+use tracing::info;
 
 /// Start the HTTP server in a new task
 ///
@@ -37,35 +26,12 @@ pub fn spawn_server(app_state: Arc<AppState>) -> JoinHandle<anyhow::Result<()>> 
 /// # Arguments
 /// * `app_state` - Shared application state
 pub async fn run_http_server(app_state: Arc<AppState>) -> anyhow::Result<()> {
-    // Set up CORS
-    let cors = CorsLayer::new().allow_origin(Any).allow_methods(Any);
-
-    // Set up static file serving from public directory
-    let public_dir = PathBuf::from("public");
-    let static_files_service = ServeDir::new(public_dir);
-    let name = app_state.config.get_name();
+    let components = config::ServerComponents::initialize();
     let port = app_state.actual_port;
 
-    // Set up logging middleware
-    let trace_layer = TraceLayer::new_for_http().make_span_with(move |request: &Request<_>| {
-        let method = request.method();
-        let uri = request.uri();
-        tracing::span!(
-            Level::INFO,
-            "http_request",
-            method = %method,
-            uri = %uri,
-            name = %name,
-        )
-    });
-
     // Build router with routes and middleware
-    let app = Router::new()
-        .merge(api::register_routes(Router::new()))
-        .layer(cors)
-        .layer(trace_layer)
-        .fallback_service(static_files_service)
-        .with_state(app_state);
+    let router = Router::new().merge(api::register_routes(Router::new()));
+    let app = components.configure_router(app_state.clone(), router);
 
     // Set up TLS config
     let config = tls::configure_tls().await?;
@@ -74,10 +40,8 @@ pub async fn run_http_server(app_state: Arc<AppState>) -> anyhow::Result<()> {
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
     info!("Listening on {}", addr);
 
-    // Start the server
-    bind_rustls(addr, config)
-        .serve(app.into_make_service_with_connect_info::<SocketAddr>())
-        .await?;
+    // Start the server with TLS
+    axum_server::bind_rustls(addr, config).serve(app).await?;
 
     Ok(())
 }
