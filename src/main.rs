@@ -11,7 +11,6 @@ use crate::types::health::PeerHealth;
 use crate::types::state::AppState;
 
 // Module declarations
-pub mod api;
 pub mod db;
 pub mod ddns;
 pub mod health;

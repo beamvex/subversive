@@ -52,3 +52,11 @@ pub async fn heartbeat(
 
     (StatusCode::OK, "Heartbeat acknowledged").into_response()
 }
+
+/// Health check endpoint
+pub async fn check(State(state): State<Arc<AppState>>) -> Response {
+    let peers = state.peers.lock().await;
+    let peer_count = peers.len();
+    let response = format!("Healthy with {} peers", peer_count);
+    Json(response).into_response()
+}
