@@ -1,24 +1,10 @@
 use anyhow::Result;
 use polodb_bson::doc;
 use polodb_core::Database;
-use serde::{Deserialize, Serialize};
 use std::{fs, path::Path};
 use std::sync::{Arc, Mutex};
 
-/// Represents a message document in the database.
-#[derive(Debug, Serialize, Deserialize)]
-pub struct MessageDoc {
-    pub content: String,
-    pub source: String,
-    pub timestamp: i64,
-}
-
-/// Represents a peer document in the database.
-#[derive(Debug, Serialize, Deserialize)]
-pub struct PeerDoc {
-    pub address: String,
-    pub last_seen: i64,
-}
+use super::types::{MessageDoc, PeerDoc};
 
 /// Represents a database context.
 pub struct DbContext {
