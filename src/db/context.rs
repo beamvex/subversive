@@ -1,8 +1,8 @@
 use anyhow::Result;
 use polodb_bson::doc;
 use polodb_core::Database;
-use std::{fs, path::Path};
 use std::sync::{Arc, Mutex};
+use std::{fs, path::Path};
 
 use super::types::{MessageDoc, PeerDoc};
 
