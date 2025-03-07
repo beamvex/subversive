@@ -1,5 +1,7 @@
 mod context;
-mod types;
+mod messages;
+mod peers;
 
 pub use context::DbContext;
-pub use types::{MessageDoc, PeerDoc};
+pub use messages::MessageDoc;
+pub use peers::PeerDoc;
