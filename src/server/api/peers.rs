@@ -8,9 +8,9 @@ use axum::{
 use std::sync::Arc;
 use tracing::error;
 
-use crate::peer::broadcast_to_peers;
-use crate::types::{message::Message, peer::PeerInfo, state::AppState, PeerHealth};
 use super::ApiModule;
+use crate::network::broadcast_to_peers;
+use crate::types::{message::Message, peer::PeerInfo, state::AppState, PeerHealth};
 
 /// Peers API module
 pub struct Peers;
@@ -31,7 +31,10 @@ impl Peers {
     }
 
     /// Add a new peer to the network
-    pub async fn add_peer(State(state): State<Arc<AppState>>, Json(peer): Json<PeerInfo>) -> Response {
+    pub async fn add_peer(
+        State(state): State<Arc<AppState>>,
+        Json(peer): Json<PeerInfo>,
+    ) -> Response {
         if peer.address.is_empty() {
             error!("Attempted to add peer with empty address");
             return Json("Peer address cannot be empty").into_response();

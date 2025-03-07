@@ -13,14 +13,13 @@ use crate::types::state::AppState;
 // Module declarations
 pub mod db;
 pub mod ddns;
-pub mod health;
+
 pub mod network;
-pub mod peer;
+
 pub mod server;
 pub mod shutdown;
 pub mod survival;
 pub mod types;
-pub mod upnp;
 
 use db::DbContext;
 
@@ -84,12 +83,12 @@ pub async fn main() -> Result<()> {
 
     // Connect to initial peer if specified
     if app_state.config.peer.is_some() {
-        peer::connect_to_initial_peer(app_state.clone()).await?;
+        network::connect_to_initial_peer(app_state.clone()).await?;
     }
 
     // Start peer health checker
     info!("Starting peer health checker");
-    health::start_health_checker(app_state.clone()).await;
+    network::start_health_checker(app_state.clone()).await;
 
     // Start survival mode if enabled
     if app_state.config.survival_mode.unwrap_or(false) {

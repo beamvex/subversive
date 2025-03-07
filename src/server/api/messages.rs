@@ -8,14 +8,14 @@ use chrono::Utc;
 use std::sync::Arc;
 use tracing::error;
 
+use super::ApiModule;
 use crate::{
-    peer::broadcast_to_peers,
+    network::broadcast_to_peers,
     types::{
         message::{ChatMessage, Message},
         state::AppState,
     },
 };
-use super::ApiModule;
 
 /// Messages API module
 pub struct Messages;

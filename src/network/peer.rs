@@ -42,7 +42,6 @@ pub async fn connect_to_initial_peer(state: Arc<AppState>) -> Result<()> {
                 peer_addr.clone(),
                 PeerHealth {
                     address: peer_addr,
-
                     client,
                     failed_checks: 0,
                 },

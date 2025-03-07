@@ -4,7 +4,7 @@ use tokio::time::{self, Duration};
 use tracing::{error, info, warn};
 
 use crate::{
-    peer::broadcast_to_peers,
+    network::broadcast_to_peers,
     types::{health::PeerHealth, message::Message, state::AppState},
 };
 

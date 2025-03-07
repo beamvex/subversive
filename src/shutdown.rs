@@ -1,8 +1,7 @@
+use crate::network;
 use anyhow::Ok;
 use std::sync::Arc;
 use tracing::{error, info};
-
-use crate::upnp;
 
 /// Shared shutdown state to ensure cleanup happens only once
 #[derive(Clone)]
@@ -22,7 +21,7 @@ impl ShutdownState {
     /// Clean up UPnP mappings and exit
     pub async fn shutdown(&self) {
         info!("Cleaning up UPnP mappings...");
-        if let Err(e) = upnp::cleanup_upnp(self.port, self.gateways.to_vec()).await {
+        if let Err(e) = network::cleanup_upnp(self.port, self.gateways.to_vec()).await {
             error!("Failed to clean up UPnP mappings: {}", e);
         }
         std::process::exit(0);
