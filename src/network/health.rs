@@ -65,10 +65,37 @@ async fn handle_peer_failures(
         warn!("No peers remaining in network");
         if !survival_mode {
             warn!("Not in survival mode - initiating shutdown...");
-
             shutdown_state.shutdown().await;
         }
     }
+}
+
+/// Handle the result of a peer health check
+async fn handle_health_check_result(
+    peers_state: &Arc<Mutex<HashMap<String, PeerHealth>>>,
+    addr: &str,
+    result: Result<reqwest::Response, reqwest::Error>,
+    survival_mode: bool,
+    shutdown_state: &Arc<ShutdownState>,
+) {
+    let mut peers = peers_state.lock().await;
+    if let Some(peer_health) = peers.get_mut(addr) {
+        match result {
+            Ok(_) => {
+                // Reset failure counter on successful health check
+                peer_health.reset_failures();
+            }
+            Err(e) => {
+                let failures = peer_health.record_failure();
+                warn!(
+                    "Failed to send heartbeat to {} (attempt {}): {}",
+                    addr, failures, e
+                );
+            }
+        }
+    }
+
+    handle_peer_failures(&mut peers, survival_mode, shutdown_state).await;
 }
 
 /// Get the current peers and their clients for health checking
@@ -155,23 +182,6 @@ async fn check_peer_health(
             .send()
             .await;
 
-        let mut peers = peers_state.lock().await;
-        if let Some(peer_health) = peers.get_mut(addr) {
-            match result {
-                Ok(_) => {
-                    // Reset failure counter on successful health check
-                    peer_health.reset_failures();
-                }
-                Err(e) => {
-                    let failures = peer_health.record_failure();
-                    warn!(
-                        "Failed to send heartbeat to {} (attempt {}): {}",
-                        addr, failures, e
-                    );
-                }
-            }
-        }
-
-        handle_peer_failures(&mut peers, survival_mode, shutdown_state).await;
+        handle_health_check_result(peers_state, addr, result, survival_mode, shutdown_state).await;
     }
 }
