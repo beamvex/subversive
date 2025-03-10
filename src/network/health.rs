@@ -8,6 +8,90 @@ use crate::{
 
 const MAX_FAILED_CHECKS: u32 = 3;
 
+/// Ensure a URL uses HTTPS
+fn ensure_https_url(url: &str) -> String {
+    if !url.starts_with("https://") {
+        url.replace("http://", "https://")
+    } else {
+        url.to_string()
+    }
+}
+
+/// Handle peer count checking and potential shutdown
+async fn handle_peer_count(
+    peer_count: usize,
+    survival_mode: bool,
+    shutdown_state: &Arc<ShutdownState>,
+) {
+    info!("Current peer count: {}", peer_count);
+
+    if peer_count == 0 {
+        warn!("No peers remaining in network");
+        if !survival_mode {
+            warn!("Not in survival mode - initiating shutdown...");
+            shutdown_state.shutdown().await;
+        }
+    }
+}
+
+/// Handle a peer health check failure
+async fn handle_peer_failures(
+    peers: &mut HashMap<String, PeerHealth>,
+    survival_mode: bool,
+    shutdown_state: &Arc<ShutdownState>,
+) {
+    // Collect peers to remove to avoid borrowing issues
+    let peers_to_remove: Vec<String> = peers
+        .iter()
+        .filter(|(_, health)| health.failed_checks >= MAX_FAILED_CHECKS)
+        .map(|(addr, health)| {
+            warn!(
+                "Removing peer {} after {} failed health checks",
+                addr, health.failed_checks
+            );
+            addr.clone()
+        })
+        .collect();
+
+    // Remove the failed peers
+    for addr in peers_to_remove {
+        peers.remove(&addr);
+    }
+
+    let remaining_peers = peers.len();
+    info!("Peers remaining after removal: {}", remaining_peers);
+
+    if remaining_peers == 0 {
+        warn!("No peers remaining in network");
+        if !survival_mode {
+            warn!("Not in survival mode - initiating shutdown...");
+
+            shutdown_state.shutdown().await;
+        }
+    }
+}
+
+/// Get the current peers and their clients for health checking
+async fn get_peers_for_health_check(
+    peers_state: &Arc<Mutex<HashMap<String, PeerHealth>>>,
+    survival_mode: bool,
+    shutdown_state: &Arc<ShutdownState>,
+) -> (HashMap<String, reqwest::Client>, Vec<String>) {
+    let peers = peers_state.lock().await;
+    let peer_count = peers.len();
+    handle_peer_count(peer_count, survival_mode, shutdown_state).await;
+
+    let known_peers = peers.keys().cloned().collect::<Vec<_>>();
+    let peers_map = peers
+        .iter()
+        .map(|(addr, health)| {
+            let addr = ensure_https_url(addr);
+            (addr, health.client.clone())
+        })
+        .collect::<HashMap<String, reqwest::Client>>();
+    (peers_map, known_peers)
+}
+
 /// Start a background task that periodically checks the health of all peers
 pub async fn start_health_checker(app_state: Arc<AppState>) {
     let peers_clone = app_state.peers.clone();
@@ -17,33 +101,8 @@ pub async fn start_health_checker(app_state: Arc<AppState>) {
 
     tokio::spawn(async move {
         loop {
-            let (peers_to_check, known_peers) = {
-                let peers = peers_clone.lock().await;
-                let peer_count = peers.len();
-                info!("Current peer count: {}", peer_count);
-
-                if peer_count == 0 {
-                    warn!("No peers remaining in network");
-                    if !survival_mode {
-                        warn!("Not in survival mode - initiating shutdown...");
-                        shutdown_state.shutdown().await;
-                    }
-                }
-
-                let known_peers = peers.keys().cloned().collect::<Vec<_>>();
-                let peers_map = peers
-                    .iter()
-                    .map(|(addr, health)| {
-                        let addr = if !addr.starts_with("https://") {
-                            addr.replace("http://", "https://")
-                        } else {
-                            addr.clone()
-                        };
-                        (addr, health.client.clone())
-                    })
-                    .collect::<HashMap<String, reqwest::Client>>();
-                (peers_map, known_peers)
-            }; // Lock is dropped here
+            let (peers_to_check, known_peers) =
+                get_peers_for_health_check(&peers_clone, survival_mode, &shutdown_state).await;
 
             check_peer_health(
                 &peers_clone,
@@ -104,33 +163,15 @@ async fn check_peer_health(
                     peer_health.reset_failures();
                 }
                 Err(e) => {
-                    // Increment failure counter and remove peer if it exceeds max failures
                     let failures = peer_health.record_failure();
-                    if failures >= MAX_FAILED_CHECKS {
-                        warn!(
-                            "Removing peer {} after {} failed health checks",
-                            addr, failures
-                        );
-                        peers.remove(addr);
-                        let remaining_peers = peers.len();
-                        info!("Peers remaining after removal: {}", remaining_peers);
-
-                        if remaining_peers == 0 {
-                            warn!("No peers remaining in network");
-                            if !survival_mode {
-                                warn!("Not in survival mode - initiating shutdown...");
-                                drop(peers); // Drop the lock before shutdown
-                                shutdown_state.shutdown().await;
-                            }
-                        }
-                    } else {
-                        warn!(
-                            "Failed to send heartbeat to {} (attempt {}): {}",
-                            addr, failures, e
-                        );
-                    }
+                    warn!(
+                        "Failed to send heartbeat to {} (attempt {}): {}",
+                        addr, failures, e
+                    );
                 }
             }
         }
+
+        handle_peer_failures(&mut peers, survival_mode, shutdown_state).await;
     }
 }
