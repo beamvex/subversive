@@ -19,8 +19,6 @@ pub struct ChatMessage {
 /// Message for peer heartbeat
 #[derive(Debug, Serialize, Deserialize)]
 pub struct HeartbeatMessage {
-    /// Port number of the peer sending the heartbeat
-    pub port: u16,
     /// Address of the peer sending the heartbeat
     pub address: String,
     /// List of known peer addresses

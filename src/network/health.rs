@@ -163,15 +163,7 @@ async fn check_peer_health(
     survival_mode: bool,
 ) {
     for (addr, client) in peers.iter() {
-        // Extract port from address
-        let port = addr
-            .split(':')
-            .last()
-            .and_then(|s| s.parse::<u16>().ok())
-            .unwrap_or(0);
-
         let heartbeat = HeartbeatMessage {
-            port,
             address: own_address.to_string(),
             known_peers: known_peers.to_vec(),
         };
