@@ -20,6 +20,10 @@ pub struct Args {
     #[arg(short, long)]
     pub name: Option<String>,
 
+    /// Hostname to use for the server (defaults to external IP)
+    #[arg(short('H'), long)]
+    pub hostname: Option<String>,
+
     /// Path to YAML configuration file
     #[arg(short, long)]
     pub config: Option<String>,

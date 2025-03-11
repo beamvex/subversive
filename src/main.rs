@@ -46,6 +46,7 @@ async fn initialize() -> Result<(Arc<AppState>, Arc<shutdown::ShutdownState>)> {
     // Get port and database from config
     let port = config.get_port();
     let database = config.get_database();
+    let hostname = config.get_hostname();
 
     info!("Using port: {}", port);
     info!("Using database: {}", database);
@@ -53,7 +54,7 @@ async fn initialize() -> Result<(Arc<AppState>, Arc<shutdown::ShutdownState>)> {
     ddns::config_ddns(&config).await;
 
     // Set up network connectivity
-    let (actual_port, gateways, own_address) = network::setup_network(port).await?;
+    let (actual_port, gateways, own_address) = network::setup_network(port, hostname).await?;
 
     // Create shutdown state
     let shutdown_state = Arc::new(shutdown::ShutdownState::new(actual_port, gateways));

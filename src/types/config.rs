@@ -18,6 +18,8 @@ pub struct Config {
     pub database: Option<String>,
     /// Custom name for HTTP access logs
     pub name: Option<String>,
+    /// Hostname to use for the server (defaults to external IP)
+    pub hostname: Option<String>,
     /// No-IP hostname (e.g., example.ddns.net)
     pub noip_hostname: Option<String>,
     /// No-IP username
@@ -51,6 +53,7 @@ impl Config {
             peer: None,
             database: Some("p2p_network.db".to_string()),
             name: Some("p2p_network".to_string()),
+            hostname: None,
             noip_hostname: None,
             noip_username: None,
             noip_password: None,
@@ -69,6 +72,7 @@ impl Config {
             peer: args.peer.clone().or(self.peer.clone()),
             database: args.database.clone().or(self.database.clone()),
             name: args.name.clone().or(self.name.clone()),
+            hostname: args.hostname.clone().or(self.hostname.clone()),
             noip_hostname: args.noip_hostname.clone().or(self.noip_hostname.clone()),
             noip_username: args.noip_username.clone().or(self.noip_username.clone()),
             noip_password: args.noip_password.clone().or(self.noip_password.clone()),
@@ -135,5 +139,10 @@ impl Config {
         self.name
             .clone()
             .unwrap_or_else(|| "p2p_network".to_string())
+    }
+
+    /// Get the hostname, using external IP if not specified
+    pub fn get_hostname(&self) -> Option<String> {
+        self.hostname.clone()
     }
 }

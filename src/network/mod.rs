@@ -18,16 +18,18 @@ use tracing::info;
 ///
 /// # Arguments
 /// * `port` - The port to map
+/// * `hostname` - Optional hostname to use instead of external IP
 ///
 /// # Returns
 /// A tuple containing:
 /// * The actual port being used (may be different from requested if UPnP mapping fails)
 /// * The list of discovered UPnP gateways
-/// * The full address string in the format "https://<external_ip>:<actual_port>"
-pub async fn setup_network(port: u16) -> Result<(u16, Vec<Gateway>, String)> {
+/// * The full address string in the format "https://<hostname or external_ip>:<actual_port>"
+pub async fn setup_network(port: u16, hostname: Option<String>) -> Result<(u16, Vec<Gateway>, String)> {
     // Get external IP and log the full endpoint address
     let external_ip = get_external_ip().await?;
-    let own_address = format!("https://{}:{}", external_ip, port);
+    let host = hostname.unwrap_or_else(|| external_ip.to_string());
+    let own_address = format!("https://{}:{}", host, port);
     info!("Server listening on internet endpoint: {}", own_address);
 
     // Set up UPnP port mapping
@@ -35,7 +37,7 @@ pub async fn setup_network(port: u16) -> Result<(u16, Vec<Gateway>, String)> {
     info!("Using port {}", actual_port);
 
     // After UPnP setup
-    let own_address = format!("https://{}:{}", external_ip, actual_port);
+    let own_address = format!("https://{}:{}", host, actual_port);
     info!("Own address: {}", own_address);
 
     Ok((actual_port, gateways, own_address))
