@@ -54,7 +54,7 @@ async fn initialize() -> Result<(Arc<AppState>, Arc<shutdown::ShutdownState>)> {
     ddns::config_ddns(&config).await;
 
     // Set up network connectivity
-    let (actual_port, gateways, own_address) = network::setup_network(port, hostname).await?;
+    let (actual_port, gateways, own_address) = network::setup_network(port, &config).await?;
 
     // Create shutdown state
     let shutdown_state = Arc::new(shutdown::ShutdownState::new(actual_port, gateways));
