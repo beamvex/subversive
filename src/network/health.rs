@@ -81,7 +81,12 @@ async fn handle_health_check_result(
     let mut peers = peers_state.lock().await;
     if let Some(peer_health) = peers.get_mut(addr) {
         match result {
-            Ok(_) => {
+            Ok(response) => {
+                info!(
+                    "Received response from peer {}: {}",
+                    addr,
+                    response.status()
+                );
                 // Reset failure counter on successful health check
                 peer_health.reset_failures();
             }
@@ -175,8 +180,6 @@ async fn check_peer_health(
             .json(&heartbeat)
             .send()
             .await;
-
-        info!("Received response from peer: {}", result.is_ok());
 
         handle_health_check_result(peers_state, addr, result, survival_mode, shutdown_state).await;
     }
