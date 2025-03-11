@@ -2,15 +2,15 @@ use axum::{
     extract::{Json, State},
     http::StatusCode,
     response::{IntoResponse, Response},
-    routing::get,
+    routing::{get, post},
     Router,
 };
 use chrono::Utc;
 use std::sync::Arc;
 use tracing::{error, info};
 
-use crate::types::{message::HeartbeatMessage, state::AppState, PeerHealth};
 use super::ApiModule;
+use crate::types::{message::HeartbeatMessage, state::AppState, PeerHealth};
 
 /// Health API module
 pub struct Health;
@@ -71,6 +71,8 @@ impl Health {
 
 impl ApiModule for Health {
     fn register_routes() -> Router<Arc<AppState>> {
-        Router::new().route("/health", get(Self::check))
+        Router::new()
+            .route("/health", get(Self::check))
+            .route("/heartbeat", post(Self::heartbeat))
     }
 }
