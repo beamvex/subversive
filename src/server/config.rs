@@ -1,5 +1,5 @@
 use crate::types::state::AppState;
-use axum::Router;
+use axum::{Router, routing::get};
 use std::{path::PathBuf, sync::Arc};
 use tower_http::{
     classify::{ServerErrorsAsFailures, SharedClassifier},
@@ -8,6 +8,8 @@ use tower_http::{
     trace::{DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, TraceLayer},
 };
 use tracing::Level;
+
+use super::error::handle_404;
 
 /// Server configuration and middleware components
 pub(crate) struct ServerComponents {
@@ -44,6 +46,6 @@ impl ServerComponents {
         router
             .layer(self.cors_layer)
             .layer(self.trace_layer)
-            .fallback_service(self.static_files_service)
+            .fallback_service(self.static_files_service.fallback(get(handle_404)))
     }
 }
