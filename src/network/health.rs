@@ -168,11 +168,15 @@ async fn check_peer_health(
             known_peers: known_peers.to_vec(),
         };
 
+        info!("Sending heartbeat to peer: {}", addr);
+
         let result = client
             .post(format!("{}/heartbeat", addr))
             .json(&heartbeat)
             .send()
             .await;
+
+        info!("Received response from peer: {}", result.is_ok());
 
         handle_health_check_result(peers_state, addr, result, survival_mode, shutdown_state).await;
     }
