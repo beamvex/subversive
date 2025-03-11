@@ -50,6 +50,7 @@ async fn initialize() -> Result<(Arc<AppState>, Arc<shutdown::ShutdownState>)> {
 
     info!("Using port: {}", port);
     info!("Using database: {}", database);
+    info!("Using hostname: {}", hostname.unwrap_or_default());
 
     ddns::config_ddns(&config).await;
 
