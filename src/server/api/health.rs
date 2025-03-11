@@ -52,7 +52,7 @@ impl Health {
 
         // Add any new peers we don't know about
         for peer_address in heartbeat.known_peers {
-            if peer_address != state.own_address && !peers.contains_key(&peer_address) {
+            if !peers.contains_key(&peer_address) {
                 info!("Discovered new peer from heartbeat: {}", peer_address);
                 let client = reqwest::Client::builder()
                     .danger_accept_invalid_certs(true)

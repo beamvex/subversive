@@ -23,7 +23,6 @@ impl Peers {
             .values()
             .map(|peer| PeerInfo {
                 address: peer.address.clone(),
-                own_address: state.own_address.clone(),
             })
             .collect::<Vec<_>>();
 
