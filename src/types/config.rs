@@ -1,9 +1,10 @@
 use anyhow::Result;
 use clap::Parser;
+use log::debug;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use tracing::{error, info};
+use tracing::{error, field::debug, info};
 
 use crate::types::args::Args;
 
@@ -49,7 +50,10 @@ impl Config {
     /// Create default configuration
     pub fn default() -> Self {
         Self {
-            port: None,
+            port: Some({
+                let mut rng = rand::thread_rng();
+                rng.gen_range(10000..=65535)
+            }),
             peer: None,
             database: Some("p2p_network.db".to_string()),
             name: Some("p2p_network".to_string()),
@@ -63,6 +67,30 @@ impl Config {
             opendns_network: None,
             survival_mode: None,
         }
+    }
+
+    /// Set default hostname
+    pub fn default_hostname(config: &mut Self) {
+        debug!(
+            "no ip hostname {}",
+            config.noip_hostname.clone().unwrap_or("".to_string())
+        ); // Default hostname to external
+
+        debug!(
+            "opendns hostname {}",
+            config.opendns_hostname.clone().unwrap_or("".to_string())
+        );
+
+        config.hostname = Some(
+            config.noip_hostname.clone().unwrap_or(
+                config.opendns_hostname.clone().unwrap_or(
+                    config
+                        .noip_hostname
+                        .clone()
+                        .unwrap_or(config.opendns_hostname.clone().unwrap_or("".to_string())),
+                ),
+            ),
+        );
     }
 
     /// Merge with command line arguments, preferring argument values over config file values
@@ -105,7 +133,7 @@ impl Config {
         let args = Args::parse();
 
         // Load configuration
-        let config = if let Some(config_path) = &args.config {
+        let mut config = if let Some(config_path) = &args.config {
             info!("Loading configuration from {}", config_path);
             Self::from_file(config_path).unwrap_or_else(|e| {
                 error!("Failed to load config file: {}", e);
@@ -115,30 +143,25 @@ impl Config {
             Self::default()
         };
 
+        Self::default_hostname(&mut config);
+
         // Merge config with command line arguments
         config.merge_with_args(&args)
     }
 
     /// Get the port number, generating a random one if not specified
     pub fn get_port(&self) -> u16 {
-        self.port.unwrap_or_else(|| {
-            let mut rng = rand::thread_rng();
-            rng.gen_range(10000..=65535)
-        })
+        self.port.unwrap_or_default()
     }
 
     /// Get the database name, using default if not specified
     pub fn get_database(&self) -> String {
-        self.database
-            .clone()
-            .unwrap_or_else(|| "p2p_network.db".to_string())
+        self.database.clone().unwrap_or_default()
     }
 
     /// Get the name, using default if not specified
     pub fn get_name(&self) -> String {
-        self.name
-            .clone()
-            .unwrap_or_else(|| "p2p_network".to_string())
+        self.name.clone().unwrap_or_default()
     }
 
     /// Get the hostname, using external IP if not specified
