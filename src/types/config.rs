@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use tracing::{debug, error, info};
 
-use crate::types::args::Args;
+use crate::{network, types::args::Args};
 
 /// Configuration for the P2P network application
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -72,29 +72,32 @@ impl Config {
     }
 
     /// Set default hostname
-    pub fn default_hostname(config: &mut Self) {
-        debug!(
-            "no ip hostname {}",
-            config.noip_hostname.clone().unwrap_or("".to_string())
-        );
-
-        debug!(
-            "opendns hostname {}",
-            config.opendns_hostname.clone().unwrap_or("".to_string())
-        );
-
+    pub async fn default_hostname(config: &mut Self) {
         // Only set dynamic DNS hostnames if no static hostname is configured
         if config.hostname.is_none() {
-            config.hostname = Some(
-                config.noip_hostname.clone().unwrap_or(
-                    config.opendns_hostname.clone().unwrap_or(
-                        config
-                            .noip_hostname
-                            .clone()
-                            .unwrap_or(config.opendns_hostname.clone().unwrap_or("".to_string())),
-                    ),
-                ),
+            info!("host name not set: setting default hostname");
+            debug!(
+                "no ip hostname {}",
+                config.noip_hostname.clone().unwrap_or("".to_string())
             );
+
+            debug!(
+                "opendns hostname {}",
+                config.opendns_hostname.clone().unwrap_or("".to_string())
+            );
+
+            if config.noip_hostname.is_some() || config.opendns_hostname.is_some() {
+                config.hostname =
+                    Some(config.noip_hostname.clone().unwrap_or(
+                        config.opendns_hostname.clone().unwrap_or(
+                            config.noip_hostname.clone().unwrap_or(
+                                config.opendns_hostname.clone().unwrap_or("".to_string()),
+                            ),
+                        ),
+                    ));
+            } else {
+                config.hostname = Some(network::get_hostname().await.unwrap());
+            }
         }
     }
 
@@ -134,7 +137,7 @@ impl Config {
     ///
     /// If a config file is specified in the arguments, it will be loaded and merged
     /// with the command line arguments. Command line arguments take precedence.
-    pub fn load() -> Self {
+    pub async fn load() -> Self {
         // Parse command line arguments
         let args = Args::parse();
 
@@ -149,7 +152,7 @@ impl Config {
             Self::default()
         };
 
-        Self::default_hostname(&mut config);
+        Self::default_hostname(&mut config).await;
 
         // Merge config with command line arguments
         config.merge_with_args(&args)

@@ -49,7 +49,7 @@ fn setup_tracing(log_level: &str) {
 ///
 /// Sets up logging, loads config, initializes network and creates application state
 async fn initialize() -> Result<(Arc<AppState>, Arc<shutdown::ShutdownState>)> {
-    let config = Config::load();
+    let config = Config::load().await;
     setup_tracing(&config.get_log_level());
 
     // Get port and database from config

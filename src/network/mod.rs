@@ -6,7 +6,7 @@ mod peer;
 mod upnp;
 
 pub use discovery::get_external_ip;
-pub use dns::resolve_hostname;
+use dns::reverse_lookup;
 pub use health::start_health_checker;
 pub use interfaces::get_network_interfaces;
 pub use peer::{broadcast_to_peers, connect_to_initial_peer};
@@ -31,8 +31,7 @@ use crate::types::config::Config;
 /// * The full address string in the format "https://<hostname>:<actual_port>"
 pub async fn setup_network(port: u16, config: &Config) -> Result<(u16, Vec<Gateway>, String)> {
     // Get external IP and resolve hostname
-    let external_ip = get_external_ip().await?;
-    let host = resolve_hostname(config, &external_ip).await;
+    let host = config.get_hostname().unwrap_or_default();
     let own_address = format!("https://{}:{}", host, port);
     info!("Server listening on internet endpoint: {}", own_address);
 
@@ -45,4 +44,8 @@ pub async fn setup_network(port: u16, config: &Config) -> Result<(u16, Vec<Gatew
     info!("Own address: {}", own_address);
 
     Ok((actual_port, gateways, own_address))
+}
+
+pub async fn get_hostname() -> Result<String> {
+    reverse_lookup(&get_external_ip().await?).await
 }
