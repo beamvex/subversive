@@ -24,7 +24,16 @@ pub mod types;
 use db::DbContext;
 
 /// Setup tracing subscriber
-fn setup_tracing() {
+fn setup_tracing(log_level: &str) {
+    let level = match log_level.to_lowercase().as_str() {
+        "trace" => tracing::Level::TRACE,
+        "debug" => tracing::Level::DEBUG,
+        "info" => tracing::Level::INFO,
+        "warn" => tracing::Level::WARN,
+        "error" => tracing::Level::ERROR,
+        _ => tracing::Level::INFO,
+    };
+
     // Initialize the tracing subscriber with formatting options
     tracing_subscriber::fmt()
         .with_target(false)
@@ -32,6 +41,7 @@ fn setup_tracing() {
         .with_file(false)
         .with_line_number(false)
         .with_span_events(FmtSpan::CLOSE)
+        .with_max_level(level)
         .init();
 }
 
@@ -39,9 +49,8 @@ fn setup_tracing() {
 ///
 /// Sets up logging, loads config, initializes network and creates application state
 async fn initialize() -> Result<(Arc<AppState>, Arc<shutdown::ShutdownState>)> {
-    setup_tracing();
-
     let config = Config::load();
+    setup_tracing(&config.get_log_level());
 
     // Get port and database from config
     let port = config.get_port();
@@ -51,6 +60,7 @@ async fn initialize() -> Result<(Arc<AppState>, Arc<shutdown::ShutdownState>)> {
     info!("Using port: {}", port);
     info!("Using database: {}", database);
     info!("Using hostname: {}", hostname.unwrap_or_default());
+    info!("Using log level: {}", config.get_log_level());
 
     ddns::config_ddns(&config).await;
 

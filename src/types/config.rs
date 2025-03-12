@@ -1,10 +1,9 @@
 use anyhow::Result;
 use clap::Parser;
-use log::debug;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use tracing::{error, field::debug, info};
+use tracing::{debug, error, info};
 
 use crate::types::args::Args;
 
@@ -37,6 +36,8 @@ pub struct Config {
     pub opendns_network: Option<String>,
     /// Enable post-apocalyptic survival mode
     pub survival_mode: Option<bool>,
+    /// Log level (trace, debug, info, warn, error)
+    pub log_level: Option<String>,
 }
 
 impl Config {
@@ -66,6 +67,7 @@ impl Config {
             opendns_password: None,
             opendns_network: None,
             survival_mode: None,
+            log_level: Some("info".to_string()),
         }
     }
 
@@ -74,23 +76,26 @@ impl Config {
         debug!(
             "no ip hostname {}",
             config.noip_hostname.clone().unwrap_or("".to_string())
-        ); // Default hostname to external
+        );
 
         debug!(
             "opendns hostname {}",
             config.opendns_hostname.clone().unwrap_or("".to_string())
         );
 
-        config.hostname = Some(
-            config.noip_hostname.clone().unwrap_or(
-                config.opendns_hostname.clone().unwrap_or(
-                    config
-                        .noip_hostname
-                        .clone()
-                        .unwrap_or(config.opendns_hostname.clone().unwrap_or("".to_string())),
+        // Only set dynamic DNS hostnames if no static hostname is configured
+        if config.hostname.is_none() {
+            config.hostname = Some(
+                config.noip_hostname.clone().unwrap_or(
+                    config.opendns_hostname.clone().unwrap_or(
+                        config
+                            .noip_hostname
+                            .clone()
+                            .unwrap_or(config.opendns_hostname.clone().unwrap_or("".to_string())),
+                    ),
                 ),
-            ),
-        );
+            );
+        }
     }
 
     /// Merge with command line arguments, preferring argument values over config file values
@@ -121,6 +126,7 @@ impl Config {
                 .clone()
                 .or(self.opendns_network.clone()),
             survival_mode: args.survival_mode.clone(),
+            log_level: args.log_level.clone().or(self.log_level.clone()),
         }
     }
 
@@ -147,6 +153,11 @@ impl Config {
 
         // Merge config with command line arguments
         config.merge_with_args(&args)
+    }
+
+    // Add getter method
+    pub fn get_log_level(&self) -> String {
+        self.log_level.clone().unwrap_or_else(|| "info".to_string())
     }
 
     /// Get the port number, generating a random one if not specified

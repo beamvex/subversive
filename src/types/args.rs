@@ -32,6 +32,10 @@ pub struct Args {
     #[arg(long)]
     pub survival_mode: Option<bool>,
 
+    /// Log level (trace, debug, info, warn, error)
+    #[arg(short('l'), long, default_value = "info")]
+    pub log_level: Option<String>,
+
     /// No-IP hostname (e.g., example.ddns.net)
     #[arg(long)]
     pub noip_hostname: Option<String>,
