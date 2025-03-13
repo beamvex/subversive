@@ -5,7 +5,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use chrono::Utc;
+
 use std::sync::Arc;
 use tracing::{error, info};
 
@@ -35,19 +35,6 @@ impl Health {
         if !peers.contains_key(peer_addr) {
             error!("Heartbeat received from unknown peer: {}", peer_addr);
             return (StatusCode::BAD_REQUEST, "Peer not found").into_response();
-        }
-
-        // Update peer's last seen timestamp
-        if let Err(e) = state
-            .db
-            .update_peer_last_seen(peer_addr, Utc::now().timestamp())
-        {
-            error!("Failed to update peer last seen timestamp: {}", e);
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Failed to update peer timestamp",
-            )
-                .into_response();
         }
 
         // Add any new peers we don't know about
