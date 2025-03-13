@@ -45,12 +45,39 @@ fn setup_tracing(log_level: &str) {
         .init();
 }
 
+/// Update the tracing level dynamically
+pub fn update_tracing(log_level: &str) {
+    let level = match log_level.to_lowercase().as_str() {
+        "trace" => tracing::Level::TRACE,
+        "debug" => tracing::Level::DEBUG,
+        "info" => tracing::Level::INFO,
+        "warn" => tracing::Level::WARN,
+        "error" => tracing::Level::ERROR,
+        _ => tracing::Level::INFO,
+    };
+
+    // Reset the tracing subscriber with the new level
+    let _ = tracing::subscriber::set_global_default(
+        tracing_subscriber::fmt()
+            .with_target(false)
+            .with_thread_ids(false)
+            .with_file(false)
+            .with_line_number(false)
+            .with_span_events(FmtSpan::CLOSE)
+            .with_max_level(level)
+            .finish(),
+    );
+
+    info!("Log level updated to: {}", log_level);
+}
+
 /// Initialize the application
 ///
 /// Sets up logging, loads config, initializes network and creates application state
 async fn initialize() -> Result<(Arc<AppState>, Arc<shutdown::ShutdownState>)> {
+    setup_tracing("info");
     let config = Config::load().await;
-    setup_tracing(&config.get_log_level());
+    update_tracing(&config.get_log_level());
 
     // Get port and database from config
     let port = config.get_port();

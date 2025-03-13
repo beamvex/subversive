@@ -182,4 +182,10 @@ impl Config {
     pub fn get_hostname(&self) -> Option<String> {
         self.hostname.clone()
     }
+
+    /// Update the log level
+    pub fn update_log_level(&mut self, log_level: String) {
+        self.log_level = Some(log_level.clone());
+        crate::update_tracing(&log_level);
+    }
 }
