@@ -1,7 +1,7 @@
 use anyhow::Result;
+use dns_lookup::lookup_addr;
 use log::info;
 use std::net::IpAddr;
-use tokio::net::lookup_host;
 use tracing::warn;
 
 /// Attempt to do a reverse DNS lookup of an IP address
@@ -11,16 +11,12 @@ pub(crate) async fn reverse_lookup(ip: &str) -> Result<String> {
 
     info!("Resolving hostname for IP: {}", ip);
 
-    // Attempt reverse lookup
-    let addrs = lookup_host(format!("{}:0", ip_addr)).await?;
-
-    // Look for the first hostname in the results
-    for addr in addrs {
-        if let Some(hostname) = addr.ip().to_string().strip_suffix(".in-addr.arpa") {
-            return Ok(hostname.to_string());
+    // Attempt reverse lookup using dns-lookup
+    match lookup_addr(&ip_addr) {
+        Ok(hostname) => Ok(hostname),
+        Err(e) => {
+            warn!("No hostname found for IP {}: {} - will use IP instead", ip, e);
+            Ok(ip.to_string())
         }
     }
-
-    warn!("No hostname found for IP {}: will use IP instead", ip);
-    Ok(ip.to_string())
 }
