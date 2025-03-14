@@ -1359,41 +1359,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 
 [[package]]
-name = "p2p_network"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "axum",
- "axum-macros",
- "axum-server",
- "base64 0.21.7",
- "chrono",
- "clap",
- "ctrlc",
- "dns-lookup",
- "env_logger",
- "igd",
- "local-ip-address",
- "log",
- "polodb_bson",
- "polodb_core",
- "rand",
- "rcgen",
- "reqwest",
- "rustls 0.22.4",
- "rustls-pemfile 2.2.0",
- "serde",
- "serde_json",
- "serde_yaml",
- "tokio",
- "tokio-rustls 0.25.0",
- "tower 0.4.13",
- "tower-http",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "parking_lot"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1991,6 +1956,41 @@ name = "subtle"
 version = "2.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
+
+[[package]]
+name = "subversive"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "axum-macros",
+ "axum-server",
+ "base64 0.21.7",
+ "chrono",
+ "clap",
+ "ctrlc",
+ "dns-lookup",
+ "env_logger",
+ "igd",
+ "local-ip-address",
+ "log",
+ "polodb_bson",
+ "polodb_core",
+ "rand",
+ "rcgen",
+ "reqwest",
+ "rustls 0.22.4",
+ "rustls-pemfile 2.2.0",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "tokio",
+ "tokio-rustls 0.25.0",
+ "tower 0.4.13",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+]
 
 [[package]]
 name = "syn"
