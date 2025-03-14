@@ -39,14 +39,39 @@ pub async fn connect_to_initial_peer(state: Arc<AppState>) -> Result<()> {
 
         if response.status().is_success() {
             info!("Successfully connected to peer: {}", peer_addr);
+            
+            // Add the initial peer
             peers.insert(
                 peer_addr.clone(),
                 PeerHealth {
-                    address: peer_addr,
-                    client,
+                    address: peer_addr.clone(),
+                    client: client.clone(),
                     failed_checks: 0,
                 },
             );
+
+            // Get and add the peer's known peers
+            if let Ok(known_peers) = response.json::<Vec<PeerInfo>>().await {
+                info!("Received {} known peers from {}", known_peers.len(), peer_addr);
+                
+                for known_peer in known_peers {
+                    if known_peer.address != own_address && !peers.contains_key(&known_peer.address) {
+                        let peer_client = Client::builder()
+                            .danger_accept_invalid_certs(true)
+                            .build()
+                            .expect("Failed to create HTTP client");
+                            
+                        peers.insert(
+                            known_peer.address.clone(),
+                            PeerHealth {
+                                address: known_peer.address,
+                                client: peer_client,
+                                failed_checks: 0,
+                            },
+                        );
+                    }
+                }
+            }
         } else {
             error!("Failed to connect to peer: {}", response.status());
         }
