@@ -68,7 +68,16 @@ impl Peers {
             return Json("Failed to broadcast new peer to network").into_response();
         }
 
-        Json("Peer added successfully").into_response()
+        // Return the updated list of peers
+        let peers = state.peers.lock().await;
+        let peer_list = peers
+            .values()
+            .map(|peer| PeerInfo {
+                address: peer.address.clone(),
+            })
+            .collect::<Vec<_>>();
+
+        Json(peer_list).into_response()
     }
 }
 
