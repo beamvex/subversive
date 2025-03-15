@@ -1,5 +1,6 @@
 use anyhow::Result;
 use std::sync::OnceLock;
+use tracing::info;
 
 static IPIFY_URL: OnceLock<String> = OnceLock::new();
 
@@ -10,7 +11,10 @@ pub fn set_ip_discovery_url(url: &str) {
 }
 
 fn get_ipify_url() -> &'static str {
-    IPIFY_URL.get().map(|s| s.as_str()).unwrap_or("https://api.ipify.org")
+    IPIFY_URL
+        .get()
+        .map(|s| s.as_str())
+        .unwrap_or("https://api.ipify.org")
 }
 
 /// Get the external IP address of the machine
@@ -18,6 +22,8 @@ fn get_ipify_url() -> &'static str {
 /// # Returns
 /// The external IP address as a string
 pub async fn get_external_ip() -> Result<String> {
-    let response = reqwest::get(get_ipify_url()).await?.text().await?;
+    let url = get_ipify_url();
+    info!("Getting external IP from {}", url);
+    let response = reqwest::get(url).await?.text().await?;
     Ok(response)
 }
