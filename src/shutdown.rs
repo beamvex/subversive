@@ -8,6 +8,8 @@ use tracing::{error, info};
 pub struct ShutdownState {
     port: u16,
     gateways: Arc<Vec<igd::aio::Gateway>>,
+    #[cfg(test)]
+    test_mode: bool,
 }
 
 impl ShutdownState {
@@ -15,6 +17,17 @@ impl ShutdownState {
         Self {
             port,
             gateways: Arc::new(gateways),
+            #[cfg(test)]
+            test_mode: false,
+        }
+    }
+
+    #[cfg(test)]
+    pub fn new_test_mode(port: u16, gateways: Vec<igd::aio::Gateway>) -> Self {
+        Self {
+            port,
+            gateways: Arc::new(gateways),
+            test_mode: true,
         }
     }
 
@@ -24,6 +37,7 @@ impl ShutdownState {
         if let Err(e) = network::cleanup_upnp(self.port, self.gateways.to_vec()).await {
             error!("Failed to clean up UPnP mappings: {}", e);
         }
+        #[cfg(not(test))]
         std::process::exit(0);
     }
 
@@ -31,9 +45,18 @@ impl ShutdownState {
         &self,
         server_handle: tokio::task::JoinHandle<Result<(), anyhow::Error>>,
     ) -> Result<(), anyhow::Error> {
+        #[cfg(test)]
+        let ctrl_c = async {
+            tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+            Ok(())
+        };
+
+        #[cfg(not(test))]
+        let ctrl_c = tokio::signal::ctrl_c();
+
         // Wait for server or Ctrl+C
         tokio::select! {
-            _ = tokio::signal::ctrl_c() => {
+            _ = ctrl_c => {
                 info!("Received Ctrl+C, shutting down...");
             }
             result = server_handle => {

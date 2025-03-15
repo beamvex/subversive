@@ -15,9 +15,10 @@ pub mod db;
 pub mod ddns;
 
 pub mod network;
-
 pub mod server;
 pub mod shutdown;
+#[cfg(test)]
+mod shutdown_test;
 pub mod survival;
 pub mod types;
 
