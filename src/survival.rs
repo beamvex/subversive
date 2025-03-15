@@ -35,6 +35,32 @@ pub async fn start_survival_mode(app_state: Arc<AppState>) {
     });
 }
 
+#[cfg(test)]
+pub async fn check_survival_status(state: &Arc<AppState>) {
+    let peers = state.peers.lock().await;
+    let peer_count = peers.len();
+    drop(peers); // Release the lock before potentially long operations
+
+    info!("Survival check - Connected peers: {}", peer_count);
+
+    if peer_count == 0 {
+        warn!("No connected peers - initiating survival protocol");
+        attempt_reconnection(state).await;
+        // Even if reconnection fails, we'll keep running
+        info!("Survival mode active - continuing to run with zero peers");
+    } else {
+        // Broadcast heartbeat to all peers
+        let heartbeat_msg = Message::Chat {
+            content: "Still alive...".to_string(),
+        };
+
+        if let Err(e) = broadcast_to_peers(heartbeat_msg, "survival", &state.peers).await {
+            error!("Failed to broadcast survival message: {}", e);
+        }
+    }
+}
+
+#[cfg(not(test))]
 async fn check_survival_status(state: &Arc<AppState>) {
     let peers = state.peers.lock().await;
     let peer_count = peers.len();

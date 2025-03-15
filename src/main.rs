@@ -20,6 +20,8 @@ pub mod shutdown;
 #[cfg(test)]
 mod shutdown_test;
 pub mod survival;
+#[cfg(test)]
+mod survival_test;
 pub mod types;
 
 use db::DbContext;
