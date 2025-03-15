@@ -1,4 +1,5 @@
-use super::*;
+use super::config::Config;
+use crate::types::args::Args;
 use std::fs;
 use tempfile::NamedTempFile;
 
@@ -8,7 +9,7 @@ fn test_default_config() {
     
     // Check default values
     assert!(config.port.is_some());
-    assert!(config.port.unwrap() >= 10000 && config.port.unwrap() <= 65535);
+    assert!(config.port.unwrap() >= 10000, "Port should be >= 10000");
     assert_eq!(config.peer, None);
     assert_eq!(config.database, Some("p2p_network.db".to_string()));
     assert_eq!(config.name, Some("p2p_network".to_string()));
@@ -25,7 +26,7 @@ fn test_default_config() {
 }
 
 #[test]
-fn test_from_file() -> Result<()> {
+fn test_from_file() -> anyhow::Result<()> {
     // Create a temporary config file
     let config_file = NamedTempFile::new()?;
     let config_content = r#"
@@ -118,7 +119,7 @@ fn test_getters() {
     assert_eq!(config.get_log_level(), "debug");
 
     // Test defaults when values are None
-    let empty_config = Config::default();
+    let mut empty_config = Config::default();
     empty_config.port = None;
     empty_config.database = None;
     empty_config.name = None;

@@ -1,5 +1,7 @@
 pub mod args;
 pub mod config;
+#[cfg(test)]
+mod config_test;
 pub mod health;
 pub mod message;
 pub mod peer;
