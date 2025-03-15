@@ -1,20 +1,20 @@
 use anyhow::Result;
-use std::sync::OnceLock;
+use tokio::sync::Mutex;
 use tracing::info;
+use std::sync::OnceLock;
 
-static IPIFY_URL: OnceLock<String> = OnceLock::new();
+static IPIFY_URL: OnceLock<Mutex<String>> = OnceLock::new();
+
+/// Initialize the IPIFY_URL Mutex with the default URL
+fn init_ipify_url() -> &'static Mutex<String> {
+    IPIFY_URL.get_or_init(|| Mutex::new("https://api.ipify.org".to_string()))
+}
 
 /// Set a custom URL for IP discovery (used for testing)
 #[cfg(test)]
-pub fn set_ip_discovery_url(url: &str) {
-    let _ = IPIFY_URL.set(url.to_string());
-}
-
-fn get_ipify_url() -> &'static str {
-    IPIFY_URL
-        .get()
-        .map(|s| s.as_str())
-        .unwrap_or("https://api.ipify.org")
+pub async fn set_ip_discovery_url(url: &str) {
+    let mut guard = init_ipify_url().lock().await;
+    *guard = url.to_string();
 }
 
 /// Get the external IP address of the machine
@@ -22,8 +22,8 @@ fn get_ipify_url() -> &'static str {
 /// # Returns
 /// The external IP address as a string
 pub async fn get_external_ip() -> Result<String> {
-    let url = get_ipify_url();
+    let url = init_ipify_url().lock().await.clone();
     info!("Getting external IP from {}", url);
-    let response = reqwest::get(url).await?.text().await?;
+    let response = reqwest::get(&url).await?.error_for_status()?.text().await?;
     Ok(response)
 }

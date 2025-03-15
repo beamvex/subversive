@@ -42,3 +42,4 @@ mockito = "1.2"
 tempfile = "3.2"
 tower = { version = "0.4", features = ["util"] }
 hyper = { version = "0.14", features = ["full"] }
+test-log = "0.2.17"
