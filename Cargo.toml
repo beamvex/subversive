@@ -35,3 +35,8 @@ tokio-rustls = "0.25"
 rcgen = "0.12"  # For generating self-signed certificates
 base64 = "0.21"  # For No-IP authentication
 dns-lookup = "2.0.4"
+
+[dev-dependencies]
+mockito = "1.2"
+tower = { version = "0.4", features = ["util"] }
+hyper = { version = "0.14", features = ["full"] }

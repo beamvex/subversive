@@ -1,6 +1,8 @@
 pub mod health;
 pub mod messages;
 pub mod peers;
+#[cfg(test)]
+mod peers_test;
 
 use crate::types::state::AppState;
 use axum::Router;

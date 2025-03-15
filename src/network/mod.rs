@@ -3,6 +3,8 @@ mod dns;
 mod health;
 mod interfaces;
 mod peer;
+#[cfg(test)]
+mod peer_test;
 mod upnp;
 
 pub use discovery::get_external_ip;

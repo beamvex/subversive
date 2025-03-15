@@ -27,7 +27,7 @@ pub async fn connect_to_initial_peer(state: Arc<AppState>) -> Result<()> {
     {
         let mut peers = state.peers.lock().await;
         let peer_info = PeerInfo {
-            address: own_address,
+            address: own_address.clone(),
         };
 
         // Send connection request to peer
@@ -55,7 +55,7 @@ pub async fn connect_to_initial_peer(state: Arc<AppState>) -> Result<()> {
                 info!("Received {} known peers from {}", known_peers.len(), peer_addr);
                 
                 for known_peer in known_peers {
-                    if known_peer.address != own_address && !peers.contains_key(&known_peer.address) {
+                    if known_peer.address != own_address.clone() && !peers.contains_key(&known_peer.address) {
                         let peer_client = Client::builder()
                             .danger_accept_invalid_certs(true)
                             .build()
