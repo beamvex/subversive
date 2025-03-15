@@ -1,13 +1,16 @@
-mod discovery;
-mod dns;
+pub mod discovery;
+pub mod peer;
+pub mod dns;
 mod health;
 mod interfaces;
-mod peer;
+mod upnp;
+
+#[cfg(test)]
+mod discovery_test;
 #[cfg(test)]
 mod peer_test;
 #[cfg(test)]
-mod discovery_test;
-mod upnp;
+mod dns_test;
 
 pub use discovery::get_external_ip;
 use dns::reverse_lookup;
