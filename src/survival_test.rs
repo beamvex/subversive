@@ -5,13 +5,9 @@ use tokio::sync::Mutex;
 
 use crate::{
     db::DbContext,
-    survival::{check_survival_status, start_survival_mode},
-    types::{
-        config::Config,
-        health::PeerHealth,
-        state::AppState,
-    },
     shutdown::ShutdownState,
+    survival::{check_survival_status, start_survival_mode},
+    types::{config::Config, health::PeerHealth, state::AppState},
 };
 
 #[tokio::test]
@@ -19,7 +15,7 @@ async fn test_survival_mode_start() {
     let config = Config::default();
     let peers = Arc::new(Mutex::new(HashMap::new()));
     let gateways = Vec::new();
-    let shutdown = Arc::new(ShutdownState::new_test_mode(12345, gateways));
+    let shutdown = Arc::new(ShutdownState::new(12345, gateways));
     let temp_dir = tempdir().unwrap();
     let db_path = temp_dir.path().join("test.db");
     let db = Arc::new(DbContext::new(&db_path).unwrap());
@@ -55,7 +51,7 @@ async fn test_survival_mode_no_peers() {
     let config = Config::default();
     let peers = Arc::new(Mutex::new(HashMap::new()));
     let gateways = Vec::new();
-    let shutdown = Arc::new(ShutdownState::new_test_mode(12345, gateways));
+    let shutdown = Arc::new(ShutdownState::new(12345, gateways));
     let temp_dir = tempdir().unwrap();
     let db_path = temp_dir.path().join("test.db");
     let db = Arc::new(DbContext::new(&db_path).unwrap());
@@ -89,7 +85,7 @@ async fn test_survival_mode_with_peers() {
     );
     let peers = Arc::new(Mutex::new(peers_map));
     let gateways = Vec::new();
-    let shutdown = Arc::new(ShutdownState::new_test_mode(12345, gateways));
+    let shutdown = Arc::new(ShutdownState::new(12345, gateways));
     let temp_dir = tempdir().unwrap();
     let db_path = temp_dir.path().join("test.db");
     let db = Arc::new(DbContext::new(&db_path).unwrap());
@@ -119,7 +115,7 @@ async fn test_survival_mode_peer_reconnection() {
     peers_map.insert("http://localhost:8080".to_string(), peer);
     let peers = Arc::new(Mutex::new(peers_map));
     let gateways = Vec::new();
-    let shutdown = Arc::new(ShutdownState::new_test_mode(12345, gateways));
+    let shutdown = Arc::new(ShutdownState::new(12345, gateways));
     let temp_dir = tempdir().unwrap();
     let db_path = temp_dir.path().join("test.db");
     let db = Arc::new(DbContext::new(&db_path).unwrap());

@@ -8,8 +8,6 @@ use tracing::{error, info};
 pub struct ShutdownState {
     port: u16,
     gateways: Arc<Vec<igd::aio::Gateway>>,
-    #[cfg(test)]
-    test_mode: bool,
 }
 
 impl ShutdownState {
@@ -17,17 +15,6 @@ impl ShutdownState {
         Self {
             port,
             gateways: Arc::new(gateways),
-            #[cfg(test)]
-            test_mode: false,
-        }
-    }
-
-    #[cfg(test)]
-    pub fn new_test_mode(port: u16, gateways: Vec<igd::aio::Gateway>) -> Self {
-        Self {
-            port,
-            gateways: Arc::new(gateways),
-            test_mode: true,
         }
     }
 

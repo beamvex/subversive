@@ -5,6 +5,8 @@ mod interfaces;
 mod peer;
 #[cfg(test)]
 mod peer_test;
+#[cfg(test)]
+mod discovery_test;
 mod upnp;
 
 pub use discovery::get_external_ip;

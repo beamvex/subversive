@@ -7,7 +7,7 @@ use crate::shutdown::ShutdownState;
 async fn test_new_shutdown_state() {
     let port = 12345;
     let gateways = Vec::new();
-    let _shutdown = ShutdownState::new_test_mode(port, gateways);
+    let _shutdown = ShutdownState::new(port, gateways);
     // Can't test private fields directly, but we can test functionality
 }
 
@@ -15,8 +15,8 @@ async fn test_new_shutdown_state() {
 async fn test_wait_shutdown_server_error() {
     let port = 12345;
     let gateways = Vec::new();
-    let shutdown = Arc::new(ShutdownState::new_test_mode(port, gateways));
-    
+    let shutdown = Arc::new(ShutdownState::new(port, gateways));
+
     // Create a server handle that will return an error
     let (tx, rx) = oneshot::channel();
     let server_handle = tokio::spawn(async move {
@@ -39,8 +39,8 @@ async fn test_wait_shutdown_server_error() {
 async fn test_wait_shutdown_ctrl_c() {
     let port = 12345;
     let gateways = Vec::new();
-    let shutdown = Arc::new(ShutdownState::new_test_mode(port, gateways));
-    
+    let shutdown = Arc::new(ShutdownState::new(port, gateways));
+
     // Create a server handle that will never complete
     let (_tx, rx) = oneshot::channel::<()>();
     let server_handle = tokio::spawn(async move {
@@ -57,8 +57,8 @@ async fn test_wait_shutdown_ctrl_c() {
 async fn test_shutdown() {
     let port = 12345;
     let gateways = Vec::new();
-    let shutdown = ShutdownState::new_test_mode(port, gateways);
-    
+    let shutdown = ShutdownState::new(port, gateways);
+
     // In test mode, shutdown() should clean up UPnP but not exit
     shutdown.shutdown().await;
 }
