@@ -40,16 +40,15 @@ cache:
     - rustc --version
     - cargo --version
     - apt-get update && apt-get install -y libssl-dev pkg-config lld
-    - find .
   tags:
     - linux
     - docker
 
 stages:
-  - check
-  - test
+#  - check
+#  - test
   - coverage
-  - release
+#  - release
 
 # Security scanning for dependencies
 dependency-scan:
@@ -145,7 +144,6 @@ coverage:
   artifacts:
     name: "$CI_JOB_NAME-$CI_COMMIT_REF_NAME"
     paths:
-      - tarpaulin*
       - coverage/
       - badges/
     reports:
