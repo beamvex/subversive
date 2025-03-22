@@ -1,0 +1,189 @@
+image: rust:1.75-slim
+
+variables:
+  CARGO_HOME: $CI_PROJECT_DIR/.cargo
+  RUST_BACKTRACE: "1"
+  RUSTFLAGS: "-D warnings"
+  CARGO_TERM_COLOR: always
+  RUST_LOG: info
+  # Optimize CI times by limiting parallel jobs
+  CARGO_BUILD_JOBS: 2
+  # Use sparse index for faster dependency resolution
+  CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
+  # Optimize linking
+  RUSTFLAGS: "${RUSTFLAGS} -C target-cpu=native -C link-arg=-fuse-ld=lld"
+  # Incremental compilation in CI
+  CARGO_INCREMENTAL: 1
+  # Caching of build artifacts
+  CARGO_TARGET_DIR: $CI_PROJECT_DIR/target
+
+workflow:
+  rules:
+    - if: $CI_COMMIT_MESSAGE =~ /\[skip ci\]/
+      when: never
+    - when: always
+
+# Cache dependencies between jobs
+cache:
+  key:
+    files:
+      - Cargo.lock
+      - rust-toolchain.toml
+  paths:
+    - .cargo/
+    - target/
+    - coverage/
+  policy: pull-push
+
+.rust-base:
+  interruptible: true
+  before_script:
+    - rustc --version
+    - cargo --version
+    - apt-get update && apt-get install -y libssl-dev pkg-config lld
+  tags:
+    - linux
+    - docker
+
+stages:
+  - check
+  - test
+  - coverage
+  - release
+
+# Security scanning for dependencies
+dependency-scan:
+  stage: check
+  extends: .rust-base
+  script:
+    - cargo install cargo-audit
+    - cargo audit
+  allow_failure: true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - Cargo.lock
+        - Cargo.toml
+
+format:
+  stage: check
+  extends: .rust-base
+  script:
+    - rustup component add rustfmt
+    - cargo fmt --all -- --check
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+lint:
+  stage: check
+  extends: .rust-base
+  script:
+    - rustup component add clippy
+    - cargo clippy --all-targets --all-features -- -D warnings
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+test:debug:
+  stage: test
+  extends: .rust-base
+  parallel: 2
+  script:
+    - cargo test --workspace --verbose -- --test-threads=2 --nocapture
+  artifacts:
+    when: always
+    reports:
+      junit: target/debug/test-results.xml
+    paths:
+      - target/debug/test-results.xml
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+  timeout: 10m
+
+test:release:
+  stage: test
+  extends: .rust-base
+  script:
+    - cargo test --workspace --release --verbose -- --test-threads=2 --nocapture
+  rules:
+    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  timeout: 10m
+
+coverage:
+  stage: coverage
+  extends: .rust-base
+  script:
+    # Install tarpaulin with specific version for stability
+    - cargo install --version 0.32.3 cargo-tarpaulin
+    # Run tarpaulin with better configuration
+    - >
+      cargo tarpaulin
+      --verbose
+      --all-features
+      --workspace
+      --timeout 120
+      --out Html
+      --out Xml
+      --out Json
+      --output-dir coverage
+      --fail-under 70
+      --exclude-files 'tests/*'
+      --exclude-files 'examples/*'
+      --engine llvm
+    # Generate coverage badge
+    - |
+      coverage_pct=$(jq '.files | add | .covered / .lines * 100' coverage/tarpaulin-report.json)
+      echo "Coverage: ${coverage_pct}%"
+      mkdir -p badges
+      echo "{\"schemaVersion\":1,\"label\":\"coverage\",\"message\":\"${coverage_pct}%\",\"color\":\"green\"}" > badges/coverage.json
+  coverage: '/Coverage: (\d+.\d+)%/'
+  artifacts:
+    name: "$CI_JOB_NAME-$CI_COMMIT_REF_NAME"
+    paths:
+      - coverage/
+      - badges/
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage/cobertura.xml
+    expire_in: 30 days
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  timeout: 20m
+  allow_failure: true  # Don't fail pipeline if coverage is below threshold
+
+pages:
+  stage: coverage
+  dependencies:
+    - coverage
+  script:
+    - mkdir -p public
+    - cp coverage/tarpaulin-report.html public/index.html
+    - cp -r badges public/
+  artifacts:
+    paths:
+      - public
+    expire_in: 30 days
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# Release build check
+release-build:
+  stage: release
+  extends: .rust-base
+  script:
+    - cargo build --release --verbose
+  rules:
+    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  artifacts:
+    paths:
+      - target/release/subversive
+    expire_in: 1 week
