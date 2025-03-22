@@ -41,7 +41,9 @@ cache:
     - rustc --version
     - cargo --version
     - apt-get update && apt-get install -y libssl-dev pkg-config lld
-  
+  tags:
+    - linux
+    - docker
 
 stages:
   - check
