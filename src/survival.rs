@@ -126,7 +126,7 @@ async fn attempt_reconnection(state: &Arc<AppState>) {
             let peer_health = PeerHealth::new(client.clone(), peer.address.clone());
 
             // Try to connect
-            match client.get(&format!("{}/peers", peer.address)).send().await {
+            match client.get(format!("{}/peers", peer.address)).send().await {
                 Ok(_) => {
                     info!("Successfully reconnected to peer: {}", peer.address);
                     let mut peers = state.peers.lock().await;

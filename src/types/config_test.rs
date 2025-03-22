@@ -5,7 +5,7 @@ use tempfile::NamedTempFile;
 
 #[test]
 fn test_default_config() {
-    let config = Config::default();
+    let config = Config::default_config();
 
     // Check default values
     assert!(config.port.is_some());
@@ -105,7 +105,7 @@ fn test_merge_with_args() {
 
 #[test]
 fn test_getters() {
-    let mut config = Config::default();
+    let mut config = Config::default_config();
     config.port = Some(8080);
     config.database = Some("test.db".to_string());
     config.name = Some("test_node".to_string());
@@ -119,7 +119,7 @@ fn test_getters() {
     assert_eq!(config.get_log_level(), "debug");
 
     // Test defaults when values are None
-    let mut empty_config = Config::default();
+    let mut empty_config = Config::default_config();
     empty_config.port = None;
     empty_config.database = None;
     empty_config.name = None;
@@ -135,7 +135,7 @@ fn test_getters() {
 
 #[test]
 fn test_update_log_level() {
-    let mut config = Config::default();
+    let mut config = Config::default_config();
     assert_eq!(config.get_log_level(), "info");
 
     config.update_log_level("debug".to_string());

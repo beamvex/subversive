@@ -8,7 +8,7 @@ use tokio::sync::Mutex;
 use uuid::Uuid;
 
 fn setup_test_state(own_address: &str) -> Arc<AppState> {
-    let mut config = Config::default();
+    let mut config = Config::default_config();
     config.hostname = Some(own_address.to_string());
 
     let port = 8080;
@@ -19,7 +19,7 @@ fn setup_test_state(own_address: &str) -> Arc<AppState> {
         config,
         own_address: own_address.to_string(),
         peers: Arc::new(Mutex::new(HashMap::new())),
-        db: Arc::new(DbContext::new(&format!("test_{}", Uuid::new_v4())).unwrap()),
+        db: Arc::new(DbContext::new(format!("test_{}", Uuid::new_v4())).unwrap()),
         actual_port: port,
         shutdown,
     })
@@ -35,7 +35,7 @@ async fn test_connect_to_initial_peer_no_peer_configured() {
 #[tokio::test]
 async fn test_connect_to_initial_peer_success() {
     let mut mock_server = Server::new_async().await;
-    let peer_addr = format!("{}", mock_server.url());
+    let peer_addr = mock_server.url();
     let own_addr = "https://localhost:8080".to_string();
 
     // Mock the peer response with a list of known peers
@@ -56,7 +56,7 @@ async fn test_connect_to_initial_peer_success() {
         .create_async()
         .await;
 
-    let mut config = Config::default();
+    let mut config = Config::default_config();
     config.peer = Some(peer_addr.clone());
 
     let port = 8080;
@@ -67,7 +67,7 @@ async fn test_connect_to_initial_peer_success() {
         config,
         own_address: own_addr.clone(),
         peers: Arc::new(Mutex::new(HashMap::new())),
-        db: Arc::new(DbContext::new(&format!("test_{}", Uuid::new_v4())).unwrap()),
+        db: Arc::new(DbContext::new(format!("test_{}", Uuid::new_v4())).unwrap()),
         actual_port: 8080,
         shutdown,
     });
@@ -85,7 +85,7 @@ async fn test_connect_to_initial_peer_success() {
 #[tokio::test]
 async fn test_connect_to_initial_peer_failure() {
     let mut mock_server = Server::new_async().await;
-    let peer_addr = format!("{}", mock_server.url());
+    let peer_addr = mock_server.url();
 
     let _m = mock_server
         .mock("POST", "/peer")
@@ -93,7 +93,7 @@ async fn test_connect_to_initial_peer_failure() {
         .create_async()
         .await;
 
-    let mut config = Config::default();
+    let mut config = Config::default_config();
     config.peer = Some(peer_addr);
 
     let port = 8080;
@@ -104,7 +104,7 @@ async fn test_connect_to_initial_peer_failure() {
         config,
         own_address: "https://localhost:8080".to_string(),
         peers: Arc::new(Mutex::new(HashMap::new())),
-        db: Arc::new(DbContext::new(&format!("test_{}", Uuid::new_v4())).unwrap()),
+        db: Arc::new(DbContext::new(format!("test_{}", Uuid::new_v4())).unwrap()),
         actual_port: 8080,
         shutdown,
     });
@@ -119,7 +119,7 @@ async fn test_connect_to_initial_peer_failure() {
 #[tokio::test]
 async fn test_connect_to_initial_peer_skip_own_address() {
     let mut mock_server = Server::new_async().await;
-    let peer_addr = format!("{}", mock_server.url());
+    let peer_addr = mock_server.url();
     let own_addr = "https://localhost:8080".to_string();
 
     // Mock response includes our own address
@@ -140,7 +140,7 @@ async fn test_connect_to_initial_peer_skip_own_address() {
         .create_async()
         .await;
 
-    let mut config = Config::default();
+    let mut config = Config::default_config();
     config.peer = Some(peer_addr.clone());
 
     let port = 8080;
@@ -151,7 +151,7 @@ async fn test_connect_to_initial_peer_skip_own_address() {
         config,
         own_address: own_addr.clone(),
         peers: Arc::new(Mutex::new(HashMap::new())),
-        db: Arc::new(DbContext::new(&format!("test_{}", Uuid::new_v4())).unwrap()),
+        db: Arc::new(DbContext::new(format!("test_{}", Uuid::new_v4())).unwrap()),
         actual_port: 8080,
         shutdown,
     });

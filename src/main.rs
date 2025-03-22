@@ -141,5 +141,6 @@ pub async fn main() -> Result<()> {
     // Start the HTTP server
     let server_handle = server::spawn_server(app_state.clone());
 
-    Ok(shutdown_state.wait_shutdown(server_handle).await?)
+    let _ = shutdown_state.wait_shutdown(server_handle).await;
+    Ok(())
 }

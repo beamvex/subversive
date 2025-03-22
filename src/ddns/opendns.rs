@@ -19,7 +19,7 @@ impl OpenDnsProvider {
         let auth_header = format!("Basic {}", BASE64.encode(auth));
 
         let response = client
-            .get(&format!(
+            .get(format!(
                 "https://updates.opendns.com/nic/update?hostname={}&network={}",
                 self.hostname, self.network
             ))

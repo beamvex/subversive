@@ -12,7 +12,7 @@ use tokio::sync::Mutex;
 use uuid::Uuid;
 
 fn setup_test_state() -> Arc<AppState> {
-    let config = Config::default();
+    let config = Config::default_config();
     let port = 8080;
     let gateways = Vec::new();
     let shutdown = Arc::new(ShutdownState::new(port, gateways));
@@ -21,7 +21,7 @@ fn setup_test_state() -> Arc<AppState> {
         config,
         own_address: "https://localhost:8080".to_string(),
         peers: Arc::new(Mutex::new(HashMap::new())),
-        db: Arc::new(DbContext::new(&format!("test_{}", Uuid::new_v4())).unwrap()),
+        db: Arc::new(DbContext::new(format!("test_{}", Uuid::new_v4())).unwrap()),
         actual_port: port,
         shutdown,
     })

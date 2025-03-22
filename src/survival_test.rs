@@ -12,7 +12,7 @@ use crate::{
 
 #[tokio::test]
 async fn test_survival_mode_start() {
-    let config = Config::default();
+    let config = Config::default_config();
     let peers = Arc::new(Mutex::new(HashMap::new()));
     let gateways = Vec::new();
     let shutdown = Arc::new(ShutdownState::new(12345, gateways));
@@ -48,7 +48,7 @@ async fn test_survival_mode_start() {
 
 #[tokio::test]
 async fn test_survival_mode_no_peers() {
-    let config = Config::default();
+    let config = Config::default_config();
     let peers = Arc::new(Mutex::new(HashMap::new()));
     let gateways = Vec::new();
     let shutdown = Arc::new(ShutdownState::new(12345, gateways));
@@ -73,7 +73,7 @@ async fn test_survival_mode_no_peers() {
 
 #[tokio::test]
 async fn test_survival_mode_with_peers() {
-    let config = Config::default();
+    let config = Config::default_config();
     let mut peers_map = HashMap::new();
     peers_map.insert(
         "http://localhost:8080".to_string(),
@@ -107,7 +107,7 @@ async fn test_survival_mode_with_peers() {
 
 #[tokio::test]
 async fn test_survival_mode_peer_reconnection() {
-    let config = Config::default();
+    let config = Config::default_config();
     let mut peers_map = HashMap::new();
     let mut peer = PeerHealth::new(reqwest::Client::new(), "http://localhost:8080".to_string());
     // Mark peer as unhealthy

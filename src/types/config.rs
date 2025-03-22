@@ -49,7 +49,7 @@ impl Config {
     }
 
     /// Create default configuration
-    pub fn default() -> Self {
+    pub fn default_config() -> Self {
         Self {
             port: Some({
                 let mut rng = rand::thread_rng();
@@ -128,7 +128,7 @@ impl Config {
                 .opendns_network
                 .clone()
                 .or(self.opendns_network.clone()),
-            survival_mode: args.survival_mode.clone(),
+            survival_mode: args.survival_mode,
             log_level: args.log_level.clone().or(self.log_level.clone()),
         }
     }
@@ -146,10 +146,10 @@ impl Config {
             info!("Loading configuration from {}", config_path);
             Self::from_file(config_path).unwrap_or_else(|e| {
                 error!("Failed to load config file: {}", e);
-                Self::default()
+                Self::default_config()
             })
         } else {
-            Self::default()
+            Self::default_config()
         };
 
         Self::default_hostname(&mut config).await;
