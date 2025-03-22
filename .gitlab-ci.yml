@@ -82,6 +82,7 @@ lint:
   extends: .rust-base
   script:
     - rustup component add clippy
+    - pwd
     - cargo clippy --all-targets --all-features 
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
