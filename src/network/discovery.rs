@@ -1,7 +1,7 @@
 use anyhow::Result;
+use std::sync::OnceLock;
 use tokio::sync::Mutex;
 use tracing::info;
-use std::sync::OnceLock;
 
 static IPIFY_URL: OnceLock<Mutex<String>> = OnceLock::new();
 

@@ -7,9 +7,9 @@ use std::path::Path;
 
 pub async fn try_setup_upnp(port: u16) -> Result<Vec<Gateway>> {
     let gateway = igd::aio::search_gateway(Default::default()).await?;
-    
+
     info!("found gateway: {}", gateway);
-    
+
     let local_ip = local_ip().map_err(|e| anyhow::anyhow!("Failed to get local IP: {}", e))?;
     let local_ipv4 = match local_ip {
         std::net::IpAddr::V4(ip) => ip,
@@ -17,7 +17,7 @@ pub async fn try_setup_upnp(port: u16) -> Result<Vec<Gateway>> {
     };
 
     info!("Found local IP: {}", local_ipv4);
-    
+
     match gateway
         .add_port(
             igd::PortMappingProtocol::TCP,
@@ -29,7 +29,10 @@ pub async fn try_setup_upnp(port: u16) -> Result<Vec<Gateway>> {
         .await
     {
         Ok(()) => {
-            info!("Successfully added port mapping for port {} using IP {}", port, local_ipv4);
+            info!(
+                "Successfully added port mapping for port {} using IP {}",
+                port, local_ipv4
+            );
             Ok(vec![gateway])
         }
         Err(e) => {
@@ -70,12 +73,17 @@ pub async fn setup_upnp(mut port: u16) -> Result<(u16, Vec<Gateway>)> {
         }
     }
 
-    Err(anyhow::anyhow!("Failed to set up UPnP after multiple attempts"))
+    Err(anyhow::anyhow!(
+        "Failed to set up UPnP after multiple attempts"
+    ))
 }
 
 pub async fn cleanup_upnp(port: u16, gateways: Vec<Gateway>) -> Result<()> {
     for gateway in gateways {
-        if let Err(e) = gateway.remove_port(igd::PortMappingProtocol::TCP, port).await {
+        if let Err(e) = gateway
+            .remove_port(igd::PortMappingProtocol::TCP, port)
+            .await
+        {
             error!("Error removing port mapping: {}", e);
         }
     }

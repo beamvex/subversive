@@ -15,7 +15,10 @@ pub(crate) async fn reverse_lookup(ip: &str) -> Result<String> {
     match lookup_addr(&ip_addr) {
         Ok(hostname) => Ok(hostname),
         Err(e) => {
-            warn!("No hostname found for IP {}: {} - will use IP instead", ip, e);
+            warn!(
+                "No hostname found for IP {}: {} - will use IP instead",
+                ip, e
+            );
             Ok(ip.to_string())
         }
     }

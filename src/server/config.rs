@@ -1,5 +1,5 @@
 use crate::types::state::AppState;
-use axum::{Router, routing::get};
+use axum::{routing::get, Router};
 use std::{path::PathBuf, sync::Arc};
 use tower_http::{
     classify::{ServerErrorsAsFailures, SharedClassifier},

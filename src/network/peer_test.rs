@@ -10,11 +10,11 @@ use uuid::Uuid;
 fn setup_test_state(own_address: &str) -> Arc<AppState> {
     let mut config = Config::default();
     config.hostname = Some(own_address.to_string());
-    
+
     let port = 8080;
     let gateways = Vec::new();
     let shutdown = Arc::new(ShutdownState::new(port, gateways));
-    
+
     Arc::new(AppState {
         config,
         own_address: own_address.to_string(),

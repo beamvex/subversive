@@ -6,7 +6,7 @@ use tempfile::NamedTempFile;
 #[test]
 fn test_default_config() {
     let config = Config::default();
-    
+
     // Check default values
     assert!(config.port.is_some());
     assert!(config.port.unwrap() >= 10000, "Port should be >= 10000");
