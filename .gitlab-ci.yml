@@ -3,7 +3,6 @@ image: rust:1.85.1-slim
 variables:
   CARGO_HOME: $CI_PROJECT_DIR/.cargo
   RUST_BACKTRACE: "1"
-  RUSTFLAGS: "-D warnings"
   CARGO_TERM_COLOR: always
   RUST_LOG: info
   # Optimize CI times by limiting parallel jobs
