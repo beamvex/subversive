@@ -135,21 +135,21 @@ coverage:
       --exclude-files '**/*_test.rs'
       --engine llvm || FAILED=true
     # Generate coverage badge
-    - |
-      coverage_pct=$(jq '.files | add | .covered / .lines * 100' coverage/tarpaulin-report.json)
-      echo "Coverage: ${coverage_pct}%"
-      mkdir -p badges
-      echo "{\"schemaVersion\":1,\"label\":\"coverage\",\"message\":\"${coverage_pct}%\",\"color\":\"green\"}" > badges/coverage.json
+    # - |
+    #   coverage_pct=$(jq '.files | add | .covered / .lines * 100' coverage/tarpaulin-report.json)
+    #   echo "Coverage: ${coverage_pct}%"
+    #   mkdir -p badges
+    #   echo "{\"schemaVersion\":1,\"label\":\"coverage\",\"message\":\"${coverage_pct}%\",\"color\":\"green\"}" > badges/coverage.json
   coverage: '/Coverage: (\d+.\d+)%/'
   artifacts:
     name: "$CI_JOB_NAME-$CI_COMMIT_REF_NAME"
     paths:
       - coverage/
       - badges/
-    reports:
-      coverage_report:
-        coverage_format: cobertura
-        path: coverage/cobertura.xml
+    # reports:
+    #   coverage_report:
+    #     coverage_format: cobertura
+    #     path: coverage/cobertura.xml
     expire_in: 30 days
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
