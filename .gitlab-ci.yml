@@ -1,4 +1,4 @@
-image: rust:1.75-slim
+image: rust:1.85.1-slim
 
 variables:
   CARGO_HOME: $CI_PROJECT_DIR/.cargo
