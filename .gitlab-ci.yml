@@ -41,7 +41,6 @@ cache:
     - cargo --version
     - apt-get update && apt-get install -y libssl-dev pkg-config lld
     - find .
-    - false
   tags:
     - linux
     - docker
