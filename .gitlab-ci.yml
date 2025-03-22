@@ -16,6 +16,8 @@ variables:
   CARGO_INCREMENTAL: 1
   # Caching of build artifacts
   CARGO_TARGET_DIR: $CI_PROJECT_DIR/target
+  # Path for cloned repository
+  GIT_CLONE_PATH: '$CI_BUILDS_DIR/$CI_PROJECT_NAME/job_$CI_JOB_ID'
 
 workflow:
   rules:
