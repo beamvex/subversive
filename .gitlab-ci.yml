@@ -45,8 +45,8 @@ cache:
     - docker
 
 stages:
-#  - check
-#  - test
+  #  - check
+  #  - test
   - coverage
 #  - release
 
