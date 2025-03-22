@@ -9,8 +9,6 @@ variables:
   CARGO_BUILD_JOBS: 2
   # Use sparse index for faster dependency resolution
   CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
-  # Optimize linking
-  RUSTFLAGS: "${RUSTFLAGS} -C target-cpu=native -C link-arg=-fuse-ld=lld"
   # Incremental compilation in CI
   CARGO_INCREMENTAL: 1
   # Caching of build artifacts
@@ -82,7 +80,7 @@ lint:
   extends: .rust-base
   script:
     - rustup component add clippy
-    - RUSTFLAGS="" cargo clippy --all-targets --all-features -- -D warnings
+    - cargo clippy --all-targets --all-features -- -D warnings
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
