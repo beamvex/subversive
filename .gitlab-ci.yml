@@ -122,7 +122,6 @@ coverage:
     # Run tarpaulin with better configuration
     - >
       cargo tarpaulin
-      --verbose
       --all-features
       --workspace
       --timeout 120
@@ -133,6 +132,7 @@ coverage:
       --fail-under 70
       --exclude-files 'tests/*'
       --exclude-files 'examples/*'
+      --exclude-files '**/*_test.rs'
       --engine llvm || FAILED=true
     # Generate coverage badge
     - |
