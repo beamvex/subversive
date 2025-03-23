@@ -1,8 +1,8 @@
 use anyhow::Result;
+use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use surrealdb::Surreal;
-use surrealdb::engine::any::Any;
+use tokio::sync::Mutex;
 
 /// Represents a peer document in the database.
 #[derive(Debug, Serialize, Deserialize)]
@@ -13,41 +13,49 @@ pub struct PeerDoc {
 
 /// Peer-related database operations
 pub struct PeerStore {
-    db: Arc<Surreal<Any>>,
+    conn: Arc<Mutex<Connection>>,
 }
 
 impl PeerStore {
-    pub(crate) fn new(db: Arc<Surreal<Any>>) -> Self {
-        Self { db }
+    pub(crate) fn new(conn: Arc<Mutex<Connection>>) -> Self {
+        Self { conn }
     }
 
     /// Saves a peer to the database.
     pub async fn save_peer(&self, address: &str, last_seen: i64) -> Result<()> {
-        let peer = PeerDoc {
-            address: address.to_string(),
-            last_seen,
-        };
-        self.db.create(("peers", address)).content(peer).await?;
+        let conn = self.conn.lock().await;
+        conn.execute(
+            "INSERT INTO peers (address, last_seen) VALUES (?1, ?2)
+             ON CONFLICT(address) DO UPDATE SET last_seen = ?2",
+            [address, &last_seen.to_string()],
+        )?;
         Ok(())
     }
 
     /// Gets active peers from the database.
     pub async fn get_active_peers(&self, since: i64) -> Result<Vec<PeerDoc>> {
-        let peers: Vec<PeerDoc> = self.db
-            .query("SELECT * FROM peers WHERE last_seen > $since")
-            .bind(("since", since))
-            .await?
-            .take(0)?;
+        let conn = self.conn.lock().await;
+        let mut stmt = conn.prepare(
+            "SELECT address, last_seen FROM peers WHERE last_seen > ?1 ORDER BY last_seen DESC",
+        )?;
+        let peers = stmt
+            .query_map([since], |row| {
+                Ok(PeerDoc {
+                    address: row.get(0)?,
+                    last_seen: row.get(1)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
         Ok(peers)
     }
 
     /// Updates the last seen timestamp of a peer.
     pub async fn update_peer_last_seen(&self, address: &str, timestamp: i64) -> Result<()> {
-        self.db
-            .query("UPDATE peers SET last_seen = $timestamp WHERE address = $address")
-            .bind(("timestamp", timestamp))
-            .bind(("address", address))
-            .await?;
+        let conn = self.conn.lock().await;
+        conn.execute(
+            "UPDATE peers SET last_seen = ?1 WHERE address = ?2",
+            [&timestamp.to_string(), address],
+        )?;
         Ok(())
     }
 }

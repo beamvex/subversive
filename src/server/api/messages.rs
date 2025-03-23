@@ -1,76 +1,93 @@
 use axum::{
-    extract::{Json, State},
-    response::{IntoResponse, Response},
+    extract::{Json, Query, State},
+    response::IntoResponse,
     routing::{get, post},
     Router,
 };
-use chrono::Utc;
-use std::sync::Arc;
-use tracing::error;
+use serde::Deserialize;
+use std::{sync::Arc, time::SystemTime};
 
-use super::ApiModule;
-use crate::{
-    network::broadcast_to_peers,
-    types::{
-        message::{ChatMessage, Message},
-        state::AppState,
-    },
-};
+use crate::network::broadcast_to_peers;
+use crate::types::{message::Message, state::AppState};
 
 /// Messages API module
 pub struct Messages;
 
+#[derive(Debug, Deserialize)]
+pub struct GetMessagesQuery {
+    since: Option<i64>,
+}
+
 impl Messages {
     /// Get recent messages
-    pub async fn get_recent_messages(State(state): State<Arc<AppState>>) -> Response {
-        match state.db.get_recent_messages(100).await {
-            Ok(messages) => Json(messages).into_response(),
-            Err(e) => {
-                error!("Failed to get recent messages: {}", e);
-                Json(Vec::<ChatMessage>::new()).into_response()
-            }
-        }
+    pub async fn get_recent_messages(
+        State(state): State<Arc<AppState>>,
+        Query(query): Query<GetMessagesQuery>,
+    ) -> impl IntoResponse {
+        let since = query.since.unwrap_or_else(|| {
+            SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .unwrap()
+                .as_secs() as i64
+                - 3600 // Default to last hour
+        });
+
+        let messages = state
+            .db
+            .messages
+            .get_messages_since(since)
+            .await
+            .unwrap_or_default();
+
+        let chat_messages: Vec<Message> = messages
+            .into_iter()
+            .map(|m| Message::Chat {
+                content: m.content,
+            })
+            .collect();
+
+        Json(chat_messages)
     }
 
-    /// Send a message to all peers
+    /// Send a new message
     pub async fn send_message(
         State(state): State<Arc<AppState>>,
-        Json(message): Json<ChatMessage>,
-    ) -> Response {
-        // Save message to database
-        let timestamp = Utc::now().timestamp();
-        if let Err(e) = state.db.save_message(&message.content, "local", timestamp).await {
-            error!("Failed to save message to database: {}", e);
-            return Json("Failed to save message").into_response();
-        }
+        Json(message): Json<Message>,
+    ) -> impl IntoResponse {
+        let timestamp = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64;
 
-        // Broadcast message to all peers
-        let msg = Message::Chat {
-            content: message.content,
+        // Save message to database
+        let content = match &message {
+            Message::Chat { content } => content,
+            _ => return Json(()),
         };
 
-        if let Err(e) = broadcast_to_peers(msg, "local", &state.peers).await {
-            error!("Failed to broadcast message to peers: {}", e);
-            return Json("Failed to broadcast message").into_response();
+        if let Err(e) = state
+            .db
+            .messages
+            .save_message(content, "local", timestamp)
+            .await
+        {
+            tracing::error!("Failed to save message to database: {}", e);
+            return Json(());
         }
 
-        Json("Message sent").into_response()
-    }
+        // Broadcast message to peers
+        if let Err(e) = broadcast_to_peers(message, "local", &state.peers).await {
+            tracing::error!("Failed to broadcast message: {}", e);
+        }
 
-    /// Receive a message from a peer
-    pub async fn receive_message(
-        State(_state): State<Arc<AppState>>,
-        Json(_message): Json<Message>,
-    ) -> Response {
-        Json("Message received").into_response()
+        Json(())
     }
 }
 
-impl ApiModule for Messages {
+impl super::ApiModule for Messages {
     fn register_routes() -> Router<Arc<AppState>> {
         Router::new()
+            .route("/messages", get(Self::get_recent_messages))
             .route("/message", post(Self::send_message))
-            .route("/message/receive", post(Self::receive_message))
-            .route("/messages/recent", get(Self::get_recent_messages))
     }
 }

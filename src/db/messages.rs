@@ -1,8 +1,8 @@
 use anyhow::Result;
+use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use surrealdb::Surreal;
-use surrealdb::engine::any::Any;
+use tokio::sync::Mutex;
 
 /// Represents a message document in the database.
 #[derive(Debug, Serialize, Deserialize)]
@@ -12,34 +12,41 @@ pub struct MessageDoc {
     pub timestamp: i64,
 }
 
-/// Message-related database operations
+/// Store for managing messages in the database
 pub struct MessageStore {
-    db: Arc<Surreal<Any>>,
+    conn: Arc<Mutex<Connection>>,
 }
 
 impl MessageStore {
-    pub(crate) fn new(db: Arc<Surreal<Any>>) -> Self {
-        Self { db }
+    pub fn new(conn: Arc<Mutex<Connection>>) -> Self {
+        Self { conn }
     }
 
-    /// Saves a message to the database.
+    /// Save a message to the database
     pub async fn save_message(&self, content: &str, source: &str, timestamp: i64) -> Result<()> {
-        let message = MessageDoc {
-            content: content.to_string(),
-            source: source.to_string(),
-            timestamp,
-        };
-        self.db.create(("messages", timestamp.to_string())).content(message).await?;
+        let conn = self.conn.lock().await;
+        conn.execute(
+            "INSERT INTO messages (content, source, timestamp) VALUES (?1, ?2, ?3)",
+            [content, source, &timestamp.to_string()],
+        )?;
         Ok(())
     }
 
-    /// Gets recent messages from the database.
-    pub async fn get_recent_messages(&self, limit: i64) -> Result<Vec<MessageDoc>> {
-        let mut messages: Vec<MessageDoc> = self.db
-            .query("SELECT * FROM messages ORDER BY timestamp DESC LIMIT $limit")
-            .bind(("limit", limit))
-            .await?
-            .take(0)?;
+    /// Get messages since a given timestamp
+    pub async fn get_messages_since(&self, since: i64) -> Result<Vec<MessageDoc>> {
+        let conn = self.conn.lock().await;
+        let mut stmt = conn.prepare(
+            "SELECT content, source, timestamp FROM messages WHERE timestamp > ?1 ORDER BY timestamp DESC",
+        )?;
+        let messages = stmt
+            .query_map([since], |row| {
+                Ok(MessageDoc {
+                    content: row.get(0)?,
+                    source: row.get(1)?,
+                    timestamp: row.get(2)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
         Ok(messages)
     }
 }

@@ -9,9 +9,8 @@ use axum::{
 };
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
-use uuid::Uuid;
 
-fn setup_test_state() -> Arc<AppState> {
+async fn setup_test_state() -> Arc<AppState> {
     let config = Config::default_config();
     let port = 8080;
     let gateways = Vec::new();
@@ -21,7 +20,7 @@ fn setup_test_state() -> Arc<AppState> {
         config,
         own_address: "https://localhost:8080".to_string(),
         peers: Arc::new(Mutex::new(HashMap::new())),
-        db: Arc::new(DbContext::new(format!("test_{}", Uuid::new_v4())).unwrap()),
+        db: Arc::new(DbContext::new_memory().await.unwrap()),
         actual_port: port,
         shutdown,
     })
@@ -29,7 +28,7 @@ fn setup_test_state() -> Arc<AppState> {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn test_list_peers_empty() {
-    let state = setup_test_state();
+    let state = setup_test_state().await;
     let response = Peers::list_peers(State(state)).await;
     let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
     let peers: Vec<PeerInfo> = serde_json::from_slice(&body).unwrap();
@@ -38,7 +37,7 @@ async fn test_list_peers_empty() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn test_list_peers_with_peers() {
-    let state = setup_test_state();
+    let state = setup_test_state().await;
     let peer_addr = "https://peer1:8080".to_string();
 
     // Add a test peer
@@ -62,7 +61,7 @@ async fn test_list_peers_with_peers() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn test_add_peer_empty_address() {
-    let state = setup_test_state();
+    let state = setup_test_state().await;
     let peer = PeerInfo {
         address: "".to_string(),
     };
@@ -77,7 +76,7 @@ async fn test_add_peer_empty_address() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn test_add_peer_success() {
-    let state = setup_test_state();
+    let state = setup_test_state().await;
     let peer_addr = "http://peer1:8080".to_string();
     let peer = PeerInfo {
         address: peer_addr.clone(),
@@ -104,7 +103,7 @@ async fn test_add_peer_success() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn test_add_peer_already_https() {
-    let state = setup_test_state();
+    let state = setup_test_state().await;
     let peer_addr = "https://peer1:8080".to_string();
     let peer = PeerInfo {
         address: peer_addr.clone(),
@@ -123,4 +122,49 @@ async fn test_add_peer_already_https() {
     let peer_list: Vec<PeerInfo> = serde_json::from_slice(&body).unwrap();
     assert_eq!(peer_list.len(), 1);
     assert_eq!(peer_list[0].address, peer_addr);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn test_get_active_peers() {
+    let state = setup_test_state().await;
+    let peer_addr = "https://peer1:8080".to_string();
+
+    // Add a peer to the database
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::SystemTime::UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64;
+    state.db.peers.save_peer(&peer_addr, timestamp).await.unwrap();
+
+    let response = Peers::get_peers(State(state)).await;
+    let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let peers: Vec<PeerInfo> = serde_json::from_slice(&body).unwrap();
+
+    assert_eq!(peers.len(), 1);
+    assert_eq!(peers[0].address, peer_addr);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn test_register_peer() {
+    let state = setup_test_state().await;
+    let peer_addr = "https://peer1:8080".to_string();
+    let peer = PeerInfo {
+        address: peer_addr.clone(),
+    };
+
+    let response = Peers::register_peer(State(state.clone()), Json(peer)).await;
+    let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let peers: Vec<PeerInfo> = serde_json::from_slice(&body).unwrap();
+
+    assert_eq!(peers.len(), 1);
+    assert_eq!(peers[0].address, peer_addr);
+
+    // Verify peer was saved in the database
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::SystemTime::UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64;
+    let db_peers = state.db.peers.get_active_peers(timestamp - 3600).await.unwrap();
+    assert_eq!(db_peers.len(), 1);
+    assert_eq!(db_peers[0].address, peer_addr);
 }

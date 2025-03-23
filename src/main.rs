@@ -101,7 +101,7 @@ async fn initialize() -> Result<(Arc<AppState>, Arc<shutdown::ShutdownState>)> {
     let shutdown_state = Arc::new(shutdown::ShutdownState::new(actual_port, gateways));
 
     // Initialize database
-    let db: Arc<DbContext> = Arc::new(DbContext::new(&database).unwrap());
+    let db: Arc<DbContext> = Arc::new(DbContext::new(&database).await?);
 
     // Initialize shared application state
     let app_state = Arc::new(AppState {
@@ -119,28 +119,35 @@ async fn initialize() -> Result<(Arc<AppState>, Arc<shutdown::ShutdownState>)> {
 /// Main entry point of the application
 #[tokio::main]
 pub async fn main() -> Result<()> {
+    // Initialize logging
+    tracing_subscriber::fmt::init();
+
+    // Load config
+    let config = types::config::Config::load().await?;
+    info!("Loaded config: {:?}", config);
+
+    // Initialize database
+    let db = Arc::new(DbContext::new(&config.get_database()).await?);
+
+    // Initialize app state
     let (app_state, shutdown_state) = initialize().await?;
 
-    info!("Starting up");
+    // Start server
+    let server_handle = tokio::spawn(server::spawn_server(app_state.clone()));
 
-    // Connect to initial peer if specified
-    if app_state.config.peer.is_some() {
-        network::connect_to_initial_peer(app_state.clone()).await?;
+    // Connect to initial peer if configured
+    if let Some(peer) = &config.peer {
+        info!("Connecting to initial peer: {}", peer);
+        if let Err(e) = network::connect_to_initial_peer(app_state.clone()).await {
+            tracing::error!("Failed to connect to initial peer: {}", e);
+        }
     }
 
-    // Start peer health checker
-    info!("Starting peer health checker");
-    network::start_health_checker(app_state.clone()).await;
+    // Start survival mode
+    survival::start_survival_mode(app_state.clone()).await;
 
-    // Start survival mode if enabled
-    if app_state.config.survival_mode.unwrap_or(false) {
-        info!("Starting survival mode");
-        survival::start_survival_mode(app_state.clone()).await;
-    }
+    // Wait for server to finish
+    server_handle.await??;
 
-    // Start the HTTP server
-    let server_handle = server::spawn_server(app_state.clone());
-
-    let _ = shutdown_state.wait_shutdown(server_handle).await;
     Ok(())
 }

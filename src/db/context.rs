@@ -1,8 +1,8 @@
 use anyhow::Result;
-use surrealdb::engine::any::Any;
-use surrealdb::Surreal;
+use rusqlite::{Connection, OpenFlags};
 use std::sync::Arc;
 use std::{fs, path::Path};
+use tokio::sync::Mutex;
 
 use super::messages::MessageStore;
 use super::peers::PeerStore;
@@ -17,7 +17,7 @@ pub struct DbContext {
 impl DbContext {
     /// Creates a new database context from a file path.
     pub async fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
-        // Ensure db directory exists
+        // Create db directory if it doesn't exist
         let db_dir = Path::new("db");
         if !db_dir.exists() {
             fs::create_dir_all(db_dir)?;
@@ -25,23 +25,70 @@ impl DbContext {
 
         // Create full path in db directory
         let db_path = db_dir.join(path.as_ref());
-        let db: Arc<Surreal<Any>> = Arc::new(Surreal::new::<Any>(db_path).await?);
-        db.use_ns("subversive").use_db("subversive").await?;
+        let conn = Arc::new(Mutex::new(Connection::open_with_flags(
+            db_path,
+            OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_CREATE,
+        )?));
+
+        // Initialize tables
+        {
+            let conn = conn.lock().await;
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS messages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    content TEXT NOT NULL,
+                    source TEXT NOT NULL,
+                    timestamp INTEGER NOT NULL
+                )",
+                [],
+            )?;
+
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS peers (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    address TEXT NOT NULL UNIQUE,
+                    last_seen INTEGER NOT NULL
+                )",
+                [],
+            )?;
+        }
 
         Ok(Self {
-            messages: MessageStore::new(db.clone()),
-            peers: PeerStore::new(db.clone()),
+            messages: MessageStore::new(conn.clone()),
+            peers: PeerStore::new(conn),
         })
     }
 
     /// Creates a new database context in memory
     pub async fn new_memory() -> Result<Self> {
-        let db: Arc<Surreal<Any>> = Arc::new(Surreal::new::<Any>(()).await?);
-        db.use_ns("subversive").use_db("subversive").await?;
+        let conn = Arc::new(Mutex::new(Connection::open_in_memory()?));
+
+        // Initialize tables
+        {
+            let conn = conn.lock().await;
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS messages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    content TEXT NOT NULL,
+                    source TEXT NOT NULL,
+                    timestamp INTEGER NOT NULL
+                )",
+                [],
+            )?;
+
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS peers (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    address TEXT NOT NULL UNIQUE,
+                    last_seen INTEGER NOT NULL
+                )",
+                [],
+            )?;
+        }
 
         Ok(Self {
-            messages: MessageStore::new(db.clone()),
-            peers: PeerStore::new(db.clone()),
+            messages: MessageStore::new(conn.clone()),
+            peers: PeerStore::new(conn),
         })
     }
 

@@ -1,90 +1,140 @@
 use axum::{
     extract::{Json, State},
-    response::{IntoResponse, Response},
+    response::IntoResponse,
     routing::{get, post},
     Router,
 };
-
 use std::sync::Arc;
-use tracing::error;
+use std::time::SystemTime;
 
-use super::ApiModule;
 use crate::network::broadcast_to_peers;
-use crate::types::{message::Message, peer::PeerInfo, state::AppState, PeerHealth};
+use crate::types::{health::PeerHealth, message::Message, peer::PeerInfo, state::AppState};
 
 /// Peers API module
 pub struct Peers;
 
 impl Peers {
-    /// List all connected peers
-    pub async fn list_peers(State(state): State<Arc<AppState>>) -> Response {
-        let peers = state.peers.lock().await;
-        let peer_list = peers
-            .values()
-            .map(|peer| PeerInfo {
-                address: peer.address.clone(),
-            })
-            .collect::<Vec<_>>();
-
-        Json(peer_list).into_response()
-    }
-
-    /// Add a new peer to the network
+    /// Add a new peer
     pub async fn add_peer(
         State(state): State<Arc<AppState>>,
         Json(peer): Json<PeerInfo>,
-    ) -> Response {
+    ) -> impl IntoResponse {
         if peer.address.is_empty() {
-            error!("Attempted to add peer with empty address");
-            return Json("Peer address cannot be empty").into_response();
+            return "Peer address cannot be empty".into_response();
         }
 
-        // Ensure we're using HTTPS
-        let peer_address = if !peer.address.starts_with("https://") {
+        // Enforce HTTPS
+        let peer_addr = if peer.address.starts_with("http://") {
             peer.address.replace("http://", "https://")
         } else {
             peer.address
         };
 
+        // Add peer to in-memory state
         let client = reqwest::Client::builder()
             .danger_accept_invalid_certs(true)
             .build()
-            .expect("Failed to create HTTP client");
+            .unwrap();
 
-        let peer_health = PeerHealth::new(client.clone(), peer_address.clone());
-        state
-            .peers
-            .lock()
-            .await
-            .insert(peer_address.clone(), peer_health);
+        let peer_health = PeerHealth::new(client, peer_addr.clone());
+        state.peers.lock().await.insert(peer_addr.clone(), peer_health);
 
-        // Create a message to broadcast the new peer
-        let msg = Message::NewPeer {
-            addr: peer_address.clone(),
-        };
-
-        if let Err(e) = broadcast_to_peers(msg, "local", &state.peers).await {
-            error!("Failed to broadcast new peer to network: {}", e);
-            return Json("Failed to broadcast new peer to network").into_response();
+        // Save peer to database
+        let timestamp = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64;
+        if let Err(e) = state.db.peers.save_peer(&peer_addr, timestamp).await {
+            tracing::error!("Failed to save peer to database: {}", e);
         }
 
-        // Return the updated list of peers
+        // Broadcast to other peers
+        let msg = Message::NewPeer {
+            addr: peer_addr.clone(),
+        };
+        if let Err(e) = broadcast_to_peers(msg, "local", &state.peers).await {
+            tracing::error!("Failed to broadcast new peer: {}", e);
+        }
+
+        // Return list of known peers
         let peers = state.peers.lock().await;
-        let peer_list = peers
-            .values()
-            .map(|peer| PeerInfo {
-                address: peer.address.clone(),
+        let peer_list: Vec<PeerInfo> = peers
+            .keys()
+            .map(|addr| PeerInfo {
+                address: addr.clone(),
             })
-            .collect::<Vec<_>>();
+            .collect();
 
         Json(peer_list).into_response()
     }
+
+    /// List all known peers
+    pub async fn list_peers(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+        let peers = state.peers.lock().await;
+        let peer_list: Vec<PeerInfo> = peers
+            .keys()
+            .map(|addr| PeerInfo {
+                address: addr.clone(),
+            })
+            .collect();
+
+        Json(peer_list).into_response()
+    }
+
+    /// Get active peers
+    pub async fn get_peers(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+        let since = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64
+            - 3600; // Active in the last hour
+
+        let peers = state.db.peers.get_active_peers(since).await.unwrap_or_default();
+        let peer_info: Vec<PeerInfo> = peers
+            .into_iter()
+            .map(|p| PeerInfo {
+                address: p.address,
+            })
+            .collect();
+
+        Json(peer_info)
+    }
+
+    /// Register a new peer
+    pub async fn register_peer(
+        State(state): State<Arc<AppState>>,
+        Json(peer): Json<PeerInfo>,
+    ) -> impl IntoResponse {
+        let timestamp = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64;
+
+        // Save peer to database
+        if let Err(e) = state.db.peers.save_peer(&peer.address, timestamp).await {
+            tracing::error!("Failed to save peer to database: {}", e);
+            return Json(vec![]);
+        }
+
+        // Return list of known peers
+        let peers = state.db.peers.get_active_peers(timestamp - 3600).await.unwrap_or_default();
+        let peer_info: Vec<PeerInfo> = peers
+            .into_iter()
+            .map(|p| PeerInfo {
+                address: p.address,
+            })
+            .collect();
+
+        Json(peer_info)
+    }
 }
 
-impl ApiModule for Peers {
+impl super::ApiModule for Peers {
     fn register_routes() -> Router<Arc<AppState>> {
         Router::new()
             .route("/peer", post(Self::add_peer))
             .route("/peers", get(Self::list_peers))
+            .route("/active_peers", get(Self::get_peers))
+            .route("/register_peer", post(Self::register_peer))
     }
 }
