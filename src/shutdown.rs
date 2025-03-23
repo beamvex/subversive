@@ -1,21 +1,48 @@
 use crate::network;
-use anyhow::Ok;
+use anyhow::Result;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use tokio::task::JoinHandle;
 use tracing::{error, info};
 
-/// Shared shutdown state to ensure cleanup happens only once
-#[derive(Clone)]
+/// Represents the shutdown state of the server
 pub struct ShutdownState {
+    /// Port that the server is listening on
     port: u16,
+    /// Gateway addresses
     gateways: Arc<Vec<igd::aio::Gateway>>,
+    /// Whether shutdown has been initiated
+    shutdown_initiated: Arc<AtomicBool>,
 }
 
 impl ShutdownState {
+    /// Create a new shutdown state
     pub fn new(port: u16, gateways: Vec<igd::aio::Gateway>) -> Self {
         Self {
             port,
             gateways: Arc::new(gateways),
+            shutdown_initiated: Arc::new(AtomicBool::new(false)),
         }
+    }
+
+    /// Get the port
+    pub fn port(&self) -> u16 {
+        self.port
+    }
+
+    /// Get the gateways
+    pub fn get_gateways(&self) -> &[igd::aio::Gateway] {
+        &self.gateways
+    }
+
+    /// Initiate shutdown
+    pub fn initiate_shutdown(&self) {
+        self.shutdown_initiated.store(true, Ordering::SeqCst);
+    }
+
+    /// Check if shutdown has been initiated
+    pub fn is_shutdown_initiated(&self) -> bool {
+        self.shutdown_initiated.load(Ordering::SeqCst)
     }
 
     /// Clean up UPnP mappings and exit
@@ -28,9 +55,10 @@ impl ShutdownState {
         std::process::exit(0);
     }
 
+    /// Wait for shutdown to complete
     pub async fn wait_shutdown(
         &self,
-        server_handle: tokio::task::JoinHandle<Result<(), anyhow::Error>>,
+        server_handle: JoinHandle<Result<(), anyhow::Error>>,
     ) -> Result<(), anyhow::Error> {
         #[cfg(test)]
         let ctrl_c = async {
@@ -57,5 +85,15 @@ impl ShutdownState {
 
         info!("Shutdown complete");
         Ok(())
+    }
+}
+
+impl Clone for ShutdownState {
+    fn clone(&self) -> Self {
+        Self {
+            port: self.port,
+            gateways: self.gateways.clone(),
+            shutdown_initiated: self.shutdown_initiated.clone(),
+        }
     }
 }

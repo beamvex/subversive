@@ -14,9 +14,10 @@ mod peer_test;
 
 pub use discovery::get_external_ip;
 use dns::reverse_lookup;
-pub use health::start_health_checker;
+pub use health::check_peer_health;
+pub use health::start_health_check_loop;
 pub use interfaces::get_network_interfaces;
-pub use peer::{broadcast_to_peers, connect_to_initial_peer};
+pub use peer::{add_peer, add_peers, broadcast_to_peers, connect_to_initial_peer, get_peers, remove_peer, update_peer_last_seen};
 pub use upnp::{cleanup_upnp, setup_upnp};
 
 use anyhow::Result;

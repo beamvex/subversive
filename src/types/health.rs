@@ -1,33 +1,37 @@
 use reqwest::Client;
+use std::time::SystemTime;
 
 /// Health status of a peer
 #[derive(Debug)]
 pub struct PeerHealth {
-    /// HTTP client for the peer
-    pub client: Client,
-    /// Number of consecutive failed health checks
-    pub failed_checks: u32,
-    pub(crate) address: String,
+    /// HTTP client for peer communication
+    pub(crate) client: Client,
+    /// Last time we received a message from this peer
+    pub(crate) last_seen: i64,
 }
 
 impl PeerHealth {
-    /// Create a new PeerHealth instance
-    pub fn new(client: Client, address: String) -> Self {
+    /// Create a new peer health tracker
+    pub fn new(client: Client, _: String) -> Self {
         Self {
             client,
-            failed_checks: 0,
-            address,
+            last_seen: SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .unwrap()
+                .as_secs() as i64,
         }
     }
 
-    /// Record a failed health check
-    pub fn record_failure(&mut self) -> u32 {
-        self.failed_checks += 1;
-        self.failed_checks
+    /// Update the last seen timestamp
+    pub fn update_last_seen(&mut self) {
+        self.last_seen = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64;
     }
 
-    /// Reset failed health checks counter
-    pub fn reset_failures(&mut self) {
-        self.failed_checks = 0;
+    /// Get the last seen timestamp
+    pub fn get_last_seen(&self) -> i64 {
+        self.last_seen
     }
 }

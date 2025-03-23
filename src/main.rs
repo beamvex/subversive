@@ -124,20 +124,21 @@ pub async fn main() -> Result<()> {
 
     // Load config
     let config = types::config::Config::load().await;
+    let port = config.port.unwrap_or(8080);
 
     // Initialize database
     let db = Arc::new(DbContext::new("subversive.db").await?);
 
     // Create application state
     let app_state = Arc::new(AppState {
-        config,
-        own_address: format!("https://localhost:{}", config.port.unwrap_or(8080)),
+        config: config.clone(),
+        own_address: format!("https://localhost:{}", port),
         peers: Default::default(),
         db,
-        actual_port: config.port.unwrap_or(8080),
+        actual_port: port,
         shutdown: Arc::new(shutdown::ShutdownState::new(
-            config.port.unwrap_or(8080),
-            config.gateways.unwrap_or_default(),
+            port,
+            Vec::new(), // No gateways for now
         )),
     });
 

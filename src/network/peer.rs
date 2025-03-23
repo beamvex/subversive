@@ -3,7 +3,7 @@ use anyhow::Result;
 use reqwest::Client;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
-use tracing::{error, info};
+use tracing::{debug, error, info};
 
 /// Initialize connection to an initial peer
 ///
@@ -18,10 +18,7 @@ pub async fn connect_to_initial_peer(state: Arc<AppState>) -> Result<()> {
     let own_address = state.own_address.clone();
 
     info!("Connecting to initial peer: {}", peer_addr);
-    let client = Client::builder()
-        .danger_accept_invalid_certs(true)
-        .build()
-        .expect("Failed to create HTTP client");
+    let client = Client::new();
 
     // Acquire the lock to update peers
     {
@@ -41,14 +38,8 @@ pub async fn connect_to_initial_peer(state: Arc<AppState>) -> Result<()> {
             info!("Successfully connected to peer: {}", peer_addr);
 
             // Add the initial peer
-            peers.insert(
-                peer_addr.clone(),
-                PeerHealth {
-                    address: peer_addr.clone(),
-                    client: client.clone(),
-                    failed_checks: 0,
-                },
-            );
+            let peer_health = PeerHealth::new(client.clone(), peer_addr.clone());
+            peers.insert(peer_addr.clone(), peer_health);
 
             // Get and add the peer's known peers
             if let Ok(known_peers) = response.json::<Vec<PeerInfo>>().await {
@@ -62,19 +53,10 @@ pub async fn connect_to_initial_peer(state: Arc<AppState>) -> Result<()> {
                     if known_peer.address != own_address.clone()
                         && !peers.contains_key(&known_peer.address)
                     {
-                        let peer_client = Client::builder()
-                            .danger_accept_invalid_certs(true)
-                            .build()
-                            .expect("Failed to create HTTP client");
+                        let peer_client = Client::new();
 
-                        peers.insert(
-                            known_peer.address.clone(),
-                            PeerHealth {
-                                address: known_peer.address,
-                                client: peer_client,
-                                failed_checks: 0,
-                            },
-                        );
+                        let peer_health = PeerHealth::new(peer_client, known_peer.address.clone());
+                        peers.insert(known_peer.address.clone(), peer_health);
                     }
                 }
             }
@@ -104,7 +86,7 @@ pub async fn broadcast_to_peers(
         peers_guard
             .iter()
             .filter(|(addr, _)| *addr != source)
-            .map(|(addr, client)| (addr.clone(), client.client.clone()))
+            .map(|(addr, peer_health)| (addr.clone(), peer_health.client.clone()))
             .collect()
     }; // Lock is released here
 
@@ -121,4 +103,62 @@ pub async fn broadcast_to_peers(
     }
 
     Ok(())
+}
+
+/// Add a new peer to the network
+pub async fn add_peer(app_state: Arc<AppState>, peer_addr: String) {
+    let mut peers = app_state.peers.lock().await;
+
+    // Skip if we already know about this peer
+    if peers.contains_key(&peer_addr) {
+        debug!("Peer {} already known", peer_addr);
+        return;
+    }
+
+    info!("Adding new peer: {}", peer_addr);
+
+    // Create a new HTTP client for this peer
+    let client = Client::new();
+
+    // Create a new peer health tracker
+    let peer_health = PeerHealth::new(client, peer_addr.clone());
+
+    // Add the peer to our list
+    peers.insert(peer_addr.clone(), peer_health);
+
+    info!("Successfully added peer: {}", peer_addr);
+}
+
+/// Add multiple peers to the network
+pub async fn add_peers(app_state: Arc<AppState>, peer_addrs: Vec<String>) {
+    for peer_addr in peer_addrs {
+        add_peer(app_state.clone(), peer_addr).await;
+    }
+}
+
+/// Get all known peers
+pub async fn get_peers(app_state: Arc<AppState>) -> Vec<String> {
+    let peers = app_state.peers.lock().await;
+    peers.keys().cloned().collect()
+}
+
+/// Remove a peer from the network
+pub async fn remove_peer(app_state: Arc<AppState>, peer_addr: String) {
+    let mut peers = app_state.peers.lock().await;
+    if peers.remove(&peer_addr).is_some() {
+        info!("Removed peer: {}", peer_addr);
+    } else {
+        debug!("Peer {} not found", peer_addr);
+    }
+}
+
+/// Update a peer's last seen timestamp
+pub async fn update_peer_last_seen(app_state: Arc<AppState>, peer_addr: String) {
+    let mut peers = app_state.peers.lock().await;
+    if let Some(peer_health) = peers.get_mut(&peer_addr) {
+        peer_health.update_last_seen();
+        debug!("Updated last seen for peer: {}", peer_addr);
+    } else {
+        debug!("Peer {} not found", peer_addr);
+    }
 }
