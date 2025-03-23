@@ -102,9 +102,9 @@ impl DbContext {
         self.peers.save_peer(address, last_seen).await
     }
 
-    /// Gets recent messages from the database.
-    pub async fn get_recent_messages(&self, limit: i64) -> Result<Vec<MessageDoc>> {
-        self.messages.get_recent_messages(limit).await
+    /// Gets messages since a certain timestamp from the database.
+    pub async fn get_messages_since(&self, since: i64) -> Result<Vec<MessageDoc>> {
+        self.messages.get_messages_since(since).await
     }
 
     /// Gets active peers from the database.

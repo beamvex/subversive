@@ -123,31 +123,36 @@ pub async fn main() -> Result<()> {
     tracing_subscriber::fmt::init();
 
     // Load config
-    let config = types::config::Config::load().await?;
-    info!("Loaded config: {:?}", config);
+    let config = types::config::Config::load().await;
 
     // Initialize database
-    let db = Arc::new(DbContext::new(&config.get_database()).await?);
+    let db = Arc::new(DbContext::new("subversive.db").await?);
 
-    // Initialize app state
-    let (app_state, shutdown_state) = initialize().await?;
+    // Create application state
+    let app_state = Arc::new(AppState {
+        config,
+        own_address: format!("https://localhost:{}", config.port.unwrap_or(8080)),
+        peers: Default::default(),
+        db,
+        actual_port: config.port.unwrap_or(8080),
+        shutdown: Arc::new(shutdown::ShutdownState::new(
+            config.port.unwrap_or(8080),
+            config.gateways.unwrap_or_default(),
+        )),
+    });
 
     // Start server
     let server_handle = tokio::spawn(server::spawn_server(app_state.clone()));
 
-    // Connect to initial peer if configured
-    if let Some(peer) = &config.peer {
-        info!("Connecting to initial peer: {}", peer);
-        if let Err(e) = network::connect_to_initial_peer(app_state.clone()).await {
-            tracing::error!("Failed to connect to initial peer: {}", e);
-        }
-    }
-
-    // Start survival mode
-    survival::start_survival_mode(app_state.clone()).await;
+    // Wait for shutdown signal
+    tokio::signal::ctrl_c().await?;
+    info!("Shutting down...");
 
     // Wait for server to finish
-    server_handle.await??;
+    if let Err(e) = server_handle.await? {
+        tracing::error!("Server error: {}", e);
+        return Err(e.into());
+    }
 
     Ok(())
 }
