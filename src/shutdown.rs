@@ -1,7 +1,7 @@
 use crate::network;
 use anyhow::Result;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use tokio::task::JoinHandle;
 use tracing::{error, info};
 
@@ -63,7 +63,7 @@ impl ShutdownState {
         #[cfg(test)]
         let ctrl_c = async {
             tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-            Ok(())
+            Ok::<(), anyhow::Error>(())
         };
 
         #[cfg(not(test))]

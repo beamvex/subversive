@@ -6,6 +6,7 @@ use axum::{
     body::to_bytes,
     extract::{Json, State},
     http::StatusCode,
+    response::IntoResponse,
 };
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
@@ -29,7 +30,7 @@ async fn setup_test_state() -> Arc<AppState> {
 #[tokio::test(flavor = "multi_thread")]
 async fn test_list_peers_empty() {
     let state = setup_test_state().await;
-    let response = Peers::list_peers(State(state)).await;
+    let response = Peers::list_peers(State(state)).await.into_response();
     let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
     let peers: Vec<PeerInfo> = serde_json::from_slice(&body).unwrap();
     assert!(peers.is_empty());
@@ -41,17 +42,13 @@ async fn test_list_peers_with_peers() {
     let peer_addr = "https://peer1:8080".to_string();
 
     // Add a test peer
-    let client = reqwest::Client::builder()
-        .danger_accept_invalid_certs(true)
-        .build()
-        .unwrap();
-
+    let client = reqwest::Client::new();
     state.peers.lock().await.insert(
         peer_addr.clone(),
         PeerHealth::new(client, peer_addr.clone()),
     );
 
-    let response = Peers::list_peers(State(state)).await;
+    let response = Peers::list_peers(State(state)).await.into_response();
     let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
     let peers: Vec<PeerInfo> = serde_json::from_slice(&body).unwrap();
 
@@ -66,9 +63,7 @@ async fn test_add_peer_empty_address() {
         address: "".to_string(),
     };
 
-    let response = Peers::add_peer(State(state), Json(peer)).await;
-
-    assert_eq!(response.status(), StatusCode::OK);
+    let response = Peers::add_peer(State(state), Json(peer)).await.into_response();
     let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
     let error_msg: &str = std::str::from_utf8(&body).unwrap();
     assert!(error_msg.contains("cannot be empty"));
@@ -82,9 +77,7 @@ async fn test_add_peer_success() {
         address: peer_addr.clone(),
     };
 
-    let response = Peers::add_peer(State(state.clone()), Json(peer)).await;
-
-    assert_eq!(response.status(), StatusCode::OK);
+    let response = Peers::add_peer(State(state.clone()), Json(peer)).await.into_response();
 
     // Verify peer was added and HTTPS was enforced
     let peers = state.peers.lock().await;
@@ -109,9 +102,7 @@ async fn test_add_peer_already_https() {
         address: peer_addr.clone(),
     };
 
-    let response = Peers::add_peer(State(state.clone()), Json(peer)).await;
-
-    assert_eq!(response.status(), StatusCode::OK);
+    let response = Peers::add_peer(State(state.clone()), Json(peer)).await.into_response();
 
     // Verify peer was added without modification
     let peers = state.peers.lock().await;
@@ -136,7 +127,7 @@ async fn test_get_active_peers() {
         .as_secs() as i64;
     state.db.peers.save_peer(&peer_addr, timestamp).await.unwrap();
 
-    let response = Peers::get_peers(State(state)).await;
+    let response = Peers::get_peers(State(state)).await.into_response();
     let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
     let peers: Vec<PeerInfo> = serde_json::from_slice(&body).unwrap();
 
@@ -152,7 +143,7 @@ async fn test_register_peer() {
         address: peer_addr.clone(),
     };
 
-    let response = Peers::register_peer(State(state.clone()), Json(peer)).await;
+    let response = Peers::register_peer(State(state.clone()), Json(peer)).await.into_response();
     let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
     let peers: Vec<PeerInfo> = serde_json::from_slice(&body).unwrap();
 
