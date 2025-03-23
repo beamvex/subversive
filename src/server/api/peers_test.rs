@@ -63,7 +63,9 @@ async fn test_add_peer_empty_address() {
         address: "".to_string(),
     };
 
-    let response = Peers::add_peer(State(state), Json(peer)).await.into_response();
+    let response = Peers::add_peer(State(state), Json(peer))
+        .await
+        .into_response();
     let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
     let error_msg: &str = std::str::from_utf8(&body).unwrap();
     assert!(error_msg.contains("cannot be empty"));
@@ -77,7 +79,9 @@ async fn test_add_peer_success() {
         address: peer_addr.clone(),
     };
 
-    let response = Peers::add_peer(State(state.clone()), Json(peer)).await.into_response();
+    let response = Peers::add_peer(State(state.clone()), Json(peer))
+        .await
+        .into_response();
 
     // Verify peer was added and HTTPS was enforced
     let peers = state.peers.lock().await;
@@ -102,7 +106,9 @@ async fn test_add_peer_already_https() {
         address: peer_addr.clone(),
     };
 
-    let response = Peers::add_peer(State(state.clone()), Json(peer)).await.into_response();
+    let response = Peers::add_peer(State(state.clone()), Json(peer))
+        .await
+        .into_response();
 
     // Verify peer was added without modification
     let peers = state.peers.lock().await;
@@ -125,7 +131,12 @@ async fn test_get_active_peers() {
         .duration_since(std::time::SystemTime::UNIX_EPOCH)
         .unwrap()
         .as_secs() as i64;
-    state.db.peers.save_peer(&peer_addr, timestamp).await.unwrap();
+    state
+        .db
+        .peers
+        .save_peer(&peer_addr, timestamp)
+        .await
+        .unwrap();
 
     let response = Peers::get_peers(State(state)).await.into_response();
     let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
@@ -143,7 +154,9 @@ async fn test_register_peer() {
         address: peer_addr.clone(),
     };
 
-    let response = Peers::register_peer(State(state.clone()), Json(peer)).await.into_response();
+    let response = Peers::register_peer(State(state.clone()), Json(peer))
+        .await
+        .into_response();
     let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
     let peers: Vec<PeerInfo> = serde_json::from_slice(&body).unwrap();
 
@@ -155,7 +168,12 @@ async fn test_register_peer() {
         .duration_since(std::time::SystemTime::UNIX_EPOCH)
         .unwrap()
         .as_secs() as i64;
-    let db_peers = state.db.peers.get_active_peers(timestamp - 3600).await.unwrap();
+    let db_peers = state
+        .db
+        .peers
+        .get_active_peers(timestamp - 3600)
+        .await
+        .unwrap();
     assert_eq!(db_peers.len(), 1);
     assert_eq!(db_peers[0].address, peer_addr);
 }
