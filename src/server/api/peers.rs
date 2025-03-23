@@ -37,7 +37,11 @@ impl Peers {
             .unwrap();
 
         let peer_health = PeerHealth::new(client, peer_addr.clone());
-        state.peers.lock().await.insert(peer_addr.clone(), peer_health);
+        state
+            .peers
+            .lock()
+            .await
+            .insert(peer_addr.clone(), peer_health);
 
         // Save peer to database
         let timestamp = SystemTime::now()
@@ -89,12 +93,15 @@ impl Peers {
             .as_secs() as i64
             - 3600; // Active in the last hour
 
-        let peers = state.db.peers.get_active_peers(since).await.unwrap_or_default();
+        let peers = state
+            .db
+            .peers
+            .get_active_peers(since)
+            .await
+            .unwrap_or_default();
         let peer_info: Vec<PeerInfo> = peers
             .into_iter()
-            .map(|p| PeerInfo {
-                address: p.address,
-            })
+            .map(|p| PeerInfo { address: p.address })
             .collect();
 
         Json(peer_info)
@@ -117,12 +124,15 @@ impl Peers {
         }
 
         // Return list of known peers
-        let peers = state.db.peers.get_active_peers(timestamp - 3600).await.unwrap_or_default();
+        let peers = state
+            .db
+            .peers
+            .get_active_peers(timestamp - 3600)
+            .await
+            .unwrap_or_default();
         let peer_info: Vec<PeerInfo> = peers
             .into_iter()
-            .map(|p| PeerInfo {
-                address: p.address,
-            })
+            .map(|p| PeerInfo { address: p.address })
             .collect();
 
         Json(peer_info)

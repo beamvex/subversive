@@ -41,9 +41,7 @@ impl Messages {
 
         let chat_messages: Vec<Message> = messages
             .into_iter()
-            .map(|m| Message::Chat {
-                content: m.content,
-            })
+            .map(|m| Message::Chat { content: m.content })
             .collect();
 
         Json(chat_messages)
