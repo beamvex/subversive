@@ -26,8 +26,7 @@ igd = { version = "0.12", features = ["aio"] }
 rand = "0.8"
 ctrlc = "3.4"
 local-ip-address = "0.5"
-polodb_core = "2.0"
-polodb_bson = "2.0"
+surrealdb = { version = "1.2.0", features = ["kv-mem"] }
 chrono = "0.4"
 rustls = "0.22"
 rustls-pemfile = "2.1"

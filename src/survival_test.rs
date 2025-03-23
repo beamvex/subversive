@@ -16,9 +16,7 @@ async fn test_survival_mode_start() {
     let peers = Arc::new(Mutex::new(HashMap::new()));
     let gateways = Vec::new();
     let shutdown = Arc::new(ShutdownState::new(12345, gateways));
-    let temp_dir = tempdir().unwrap();
-    let db_path = temp_dir.path().join("test.db");
-    let db = Arc::new(DbContext::new(&db_path).unwrap());
+    let db = Arc::new(DbContext::new_memory().await.unwrap());
     let app_state = Arc::new(AppState {
         config,
         peers: peers.clone(),
@@ -52,9 +50,7 @@ async fn test_survival_mode_no_peers() {
     let peers = Arc::new(Mutex::new(HashMap::new()));
     let gateways = Vec::new();
     let shutdown = Arc::new(ShutdownState::new(12345, gateways));
-    let temp_dir = tempdir().unwrap();
-    let db_path = temp_dir.path().join("test.db");
-    let db = Arc::new(DbContext::new(&db_path).unwrap());
+    let db = Arc::new(DbContext::new_memory().await.unwrap());
     let app_state = Arc::new(AppState {
         config,
         peers: peers.clone(),
@@ -86,9 +82,7 @@ async fn test_survival_mode_with_peers() {
     let peers = Arc::new(Mutex::new(peers_map));
     let gateways = Vec::new();
     let shutdown = Arc::new(ShutdownState::new(12345, gateways));
-    let temp_dir = tempdir().unwrap();
-    let db_path = temp_dir.path().join("test.db");
-    let db = Arc::new(DbContext::new(&db_path).unwrap());
+    let db = Arc::new(DbContext::new_memory().await.unwrap());
     let app_state = Arc::new(AppState {
         config,
         peers: peers.clone(),
@@ -116,9 +110,7 @@ async fn test_survival_mode_peer_reconnection() {
     let peers = Arc::new(Mutex::new(peers_map));
     let gateways = Vec::new();
     let shutdown = Arc::new(ShutdownState::new(12345, gateways));
-    let temp_dir = tempdir().unwrap();
-    let db_path = temp_dir.path().join("test.db");
-    let db = Arc::new(DbContext::new(&db_path).unwrap());
+    let db = Arc::new(DbContext::new_memory().await.unwrap());
     let app_state = Arc::new(AppState {
         config,
         peers: peers.clone(),

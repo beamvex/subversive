@@ -23,7 +23,7 @@ pub struct Messages;
 impl Messages {
     /// Get recent messages
     pub async fn get_recent_messages(State(state): State<Arc<AppState>>) -> Response {
-        match state.db.get_recent_messages(100) {
+        match state.db.get_recent_messages(100).await {
             Ok(messages) => Json(messages).into_response(),
             Err(e) => {
                 error!("Failed to get recent messages: {}", e);
@@ -39,7 +39,7 @@ impl Messages {
     ) -> Response {
         // Save message to database
         let timestamp = Utc::now().timestamp();
-        if let Err(e) = state.db.save_message(&message.content, "local", timestamp) {
+        if let Err(e) = state.db.save_message(&message.content, "local", timestamp).await {
             error!("Failed to save message to database: {}", e);
             return Json("Failed to save message").into_response();
         }

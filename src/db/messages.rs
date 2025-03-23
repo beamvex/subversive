@@ -1,8 +1,8 @@
 use anyhow::Result;
-use polodb_bson::doc;
-use polodb_core::Database;
 use serde::{Deserialize, Serialize};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use surrealdb::Surreal;
+use surrealdb::engine::any::Any;
 
 /// Represents a message document in the database.
 #[derive(Debug, Serialize, Deserialize)]
@@ -14,55 +14,32 @@ pub struct MessageDoc {
 
 /// Message-related database operations
 pub struct MessageStore {
-    db: Arc<Mutex<Database>>,
+    db: Arc<Surreal<Any>>,
 }
 
 impl MessageStore {
-    pub(crate) fn new(db: Arc<Mutex<Database>>) -> Self {
+    pub(crate) fn new(db: Arc<Surreal<Any>>) -> Self {
         Self { db }
     }
 
     /// Saves a message to the database.
-    pub fn save_message(&self, content: &str, source: &str, timestamp: i64) -> Result<()> {
-        let mut db = self.db.lock().unwrap();
-        let mut messages = db.collection("messages")?;
+    pub async fn save_message(&self, content: &str, source: &str, timestamp: i64) -> Result<()> {
         let message = MessageDoc {
             content: content.to_string(),
             source: source.to_string(),
             timestamp,
         };
-        messages.insert(&mut doc! {
-            "content": message.content,
-            "source": message.source,
-            "timestamp": message.timestamp,
-        })?;
+        self.db.create(("messages", timestamp.to_string())).content(message).await?;
         Ok(())
     }
 
     /// Gets recent messages from the database.
-    pub fn get_recent_messages(&self, limit: i64) -> Result<Vec<MessageDoc>> {
-        let mut db = self.db.lock().unwrap();
-        let mut messages = db.collection("messages")?;
-        let filter = doc! {};
-        let results = messages.find(&filter)?;
-        let mut docs = results
-            .into_iter()
-            .map(|doc| MessageDoc {
-                content: doc
-                    .get("content")
-                    .map(|v| v.to_string())
-                    .unwrap_or_default(),
-                source: doc.get("source").map(|v| v.to_string()).unwrap_or_default(),
-                timestamp: doc
-                    .get("timestamp")
-                    .and_then(|v| v.to_string().parse().ok())
-                    .unwrap_or_default(),
-            })
-            .collect::<Vec<_>>();
-        docs.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
-        if docs.len() > limit as usize {
-            docs.truncate(limit as usize);
-        }
-        Ok(docs)
+    pub async fn get_recent_messages(&self, limit: i64) -> Result<Vec<MessageDoc>> {
+        let mut messages: Vec<MessageDoc> = self.db
+            .query("SELECT * FROM messages ORDER BY timestamp DESC LIMIT $limit")
+            .bind(("limit", limit))
+            .await?
+            .take(0)?;
+        Ok(messages)
     }
 }

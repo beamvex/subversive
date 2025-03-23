@@ -95,7 +95,7 @@ async fn attempt_reconnection(state: &Arc<AppState>) {
         .unwrap()
         .as_secs() as i64
         - 86400; // 24 hours ago
-    let known_peers = match state.db.get_active_peers(since) {
+    let known_peers = match state.db.get_active_peers(since).await {
         Ok(peers) => peers,
         Err(e) => {
             error!("Failed to retrieve known peers from database: {}", e);

@@ -7,7 +7,7 @@ use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
 use uuid::Uuid;
 
-fn setup_test_state(own_address: &str) -> Arc<AppState> {
+async fn setup_test_state(own_address: &str) -> Arc<AppState> {
     let mut config = Config::default_config();
     config.hostname = Some(own_address.to_string());
 
@@ -19,7 +19,7 @@ fn setup_test_state(own_address: &str) -> Arc<AppState> {
         config,
         own_address: own_address.to_string(),
         peers: Arc::new(Mutex::new(HashMap::new())),
-        db: Arc::new(DbContext::new(format!("test_{}", Uuid::new_v4())).unwrap()),
+        db: Arc::new(DbContext::new_memory().await.unwrap()),
         actual_port: port,
         shutdown,
     })
@@ -27,7 +27,7 @@ fn setup_test_state(own_address: &str) -> Arc<AppState> {
 
 #[tokio::test]
 async fn test_connect_to_initial_peer_no_peer_configured() {
-    let state = setup_test_state("https://localhost:8080");
+    let state = setup_test_state("https://localhost:8080").await;
     let result = connect_to_initial_peer(state).await;
     assert!(result.is_ok());
 }
@@ -67,7 +67,7 @@ async fn test_connect_to_initial_peer_success() {
         config,
         own_address: own_addr.clone(),
         peers: Arc::new(Mutex::new(HashMap::new())),
-        db: Arc::new(DbContext::new(format!("test_{}", Uuid::new_v4())).unwrap()),
+        db: Arc::new(DbContext::new_memory().await.unwrap()),
         actual_port: 8080,
         shutdown,
     });
@@ -104,7 +104,7 @@ async fn test_connect_to_initial_peer_failure() {
         config,
         own_address: "https://localhost:8080".to_string(),
         peers: Arc::new(Mutex::new(HashMap::new())),
-        db: Arc::new(DbContext::new(format!("test_{}", Uuid::new_v4())).unwrap()),
+        db: Arc::new(DbContext::new_memory().await.unwrap()),
         actual_port: 8080,
         shutdown,
     });
@@ -151,7 +151,7 @@ async fn test_connect_to_initial_peer_skip_own_address() {
         config,
         own_address: own_addr.clone(),
         peers: Arc::new(Mutex::new(HashMap::new())),
-        db: Arc::new(DbContext::new(format!("test_{}", Uuid::new_v4())).unwrap()),
+        db: Arc::new(DbContext::new_memory().await.unwrap()),
         actual_port: 8080,
         shutdown,
     });
