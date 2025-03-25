@@ -5,7 +5,6 @@ use crate::types::{config::Config, health::PeerHealth, state::AppState, PeerInfo
 use axum::{
     body::to_bytes,
     extract::{Json, State},
-    http::StatusCode,
     response::IntoResponse,
 };
 use std::{collections::HashMap, sync::Arc};

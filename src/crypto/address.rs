@@ -2,7 +2,7 @@ use rand::rngs::OsRng;
 use ripemd::{Digest, Ripemd160};
 use secp256k1::{PublicKey, Secp256k1, SecretKey};
 use sha2::Sha256;
-use base58::ToBase58;
+use base58::{ToBase58, FromBase58};
 
 pub struct Address {
     private_key: SecretKey,
