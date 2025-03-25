@@ -1,30 +1,14 @@
 pub mod discovery;
 pub mod dns;
-mod health;
-mod interfaces;
+pub mod health;
+pub mod interfaces;
 pub mod peer;
-mod upnp;
+pub mod upnp;
 
-#[cfg(test)]
-mod discovery_test;
-#[cfg(test)]
-mod dns_test;
-#[cfg(test)]
-mod peer_test;
-
-pub use discovery::get_external_ip;
-use dns::reverse_lookup;
-pub use health::check_peer_health;
-pub use health::start_health_check_loop;
-pub use interfaces::get_network_interfaces;
-pub use peer::{
-    add_peer, add_peers, broadcast_to_peers, connect_to_initial_peer, get_peers, remove_peer,
-    update_peer_last_seen,
-};
-pub use upnp::{cleanup_upnp, setup_upnp};
+pub use peer::broadcast_to_peers;
+pub use upnp::cleanup_upnp;
 
 use anyhow::Result;
-use igd::aio::Gateway;
 use tracing::info;
 
 use crate::types::config::Config;

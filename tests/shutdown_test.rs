@@ -1,7 +1,7 @@
 use std::sync::Arc;
-use tokio::sync::oneshot;
+use tokio::sync::broadcast;
 
-use crate::shutdown::ShutdownState;
+use subversive::shutdown::ShutdownState;
 
 #[tokio::test]
 async fn test_new_shutdown_state() {
@@ -18,7 +18,7 @@ async fn test_wait_shutdown_server_error() {
     let shutdown = Arc::new(ShutdownState::new(port, gateways));
 
     // Create a server handle that will return an error
-    let (tx, rx) = oneshot::channel();
+    let (tx, rx) = tokio::sync::oneshot::channel();
     let server_handle = tokio::spawn(async move {
         rx.await.unwrap(); // Wait for signal
         Err::<(), anyhow::Error>(anyhow::anyhow!("Server error"))
@@ -42,7 +42,7 @@ async fn test_wait_shutdown_ctrl_c() {
     let shutdown = Arc::new(ShutdownState::new(port, gateways));
 
     // Create a server handle that will never complete
-    let (_tx, rx) = oneshot::channel::<()>();
+    let (_tx, rx) = tokio::sync::oneshot::channel::<()>();
     let server_handle = tokio::spawn(async move {
         rx.await.unwrap(); // This will never complete
         Ok::<(), anyhow::Error>(())
