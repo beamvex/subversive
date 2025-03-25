@@ -61,7 +61,7 @@ pub async fn check_survival_status(state: &Arc<AppState>) {
 }
 
 #[cfg(not(test))]
-async fn check_survival_status(state: &Arc<AppState>) {
+pub async fn check_survival_status(state: &Arc<AppState>) {
     let peers = state.peers.lock().await;
     let peer_count = peers.len();
     drop(peers); // Release the lock before potentially long operations

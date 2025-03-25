@@ -1,11 +1,11 @@
 use anyhow::Result;
 use clap::Parser;
-use rand::Rng;
+use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
-use std::fs;
+use tokio::fs;
 use tracing::{debug, error, info};
 
-use crate::{network, types::args::Args};
+use crate::{logging::update_tracing, network, types::args::Args};
 
 /// Configuration for the P2P network application
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -42,8 +42,8 @@ pub struct Config {
 
 impl Config {
     /// Load configuration from a YAML file
-    pub fn from_file(path: &str) -> Result<Self> {
-        let contents = fs::read_to_string(path)?;
+    pub async fn from_file(path: &str) -> Result<Self> {
+        let contents = fs::read_to_string(path).await?;
         let config = serde_yaml::from_str(&contents)?;
         Ok(config)
     }
@@ -52,7 +52,7 @@ impl Config {
     pub fn default_config() -> Self {
         Self {
             port: Some({
-                let mut rng = rand::thread_rng();
+                let mut rng = thread_rng();
                 rng.gen_range(10000..=65535)
             }),
             peer: None,
@@ -102,7 +102,7 @@ impl Config {
     }
 
     /// Merge with command line arguments, preferring argument values over config file values
-    pub fn merge_with_args(&self, args: &crate::types::args::Args) -> Self {
+    pub fn merge_with_args(&self, args: &Args) -> Self {
         Self {
             port: args.port.or(self.port),
             peer: args.peer.clone().or(self.peer.clone()),
@@ -144,7 +144,7 @@ impl Config {
         // Load configuration
         let mut config = if let Some(config_path) = &args.config {
             info!("Loading configuration from {}", config_path);
-            Self::from_file(config_path).unwrap_or_else(|e| {
+            Self::from_file(config_path).await.unwrap_or_else(|e| {
                 error!("Failed to load config file: {}", e);
                 Self::default_config()
             })
@@ -186,6 +186,6 @@ impl Config {
     /// Update the log level
     pub fn update_log_level(&mut self, log_level: String) {
         self.log_level = Some(log_level.clone());
-        crate::update_tracing(&log_level);
+        update_tracing(&log_level);
     }
 }

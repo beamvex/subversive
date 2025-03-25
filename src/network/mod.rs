@@ -5,6 +5,9 @@ pub mod interfaces;
 pub mod peer;
 pub mod upnp;
 
+use discovery::get_external_ip;
+use dns::reverse_lookup;
+use igd::aio::Gateway;
 pub use peer::broadcast_to_peers;
 pub use upnp::cleanup_upnp;
 

@@ -1,8 +1,8 @@
+use base58::{ToBase58, FromBase58};
 use rand::rngs::OsRng;
-use ripemd::{Digest, Ripemd160};
+use ripemd::Ripemd160;
 use secp256k1::{PublicKey, Secp256k1, SecretKey};
-use sha2::Sha256;
-use base58::ToBase58;
+use sha2::{Digest, Sha256};
 
 pub struct Address {
     private_key: SecretKey,

@@ -10,11 +10,7 @@ use std::sync::Arc;
 use tracing::{error, info};
 
 use super::ApiModule;
-use crate::types::{
-    message::HeartbeatMessage,
-    state::AppState,
-    health::PeerHealth,
-};
+use crate::types::{health::PeerHealth, message::HeartbeatMessage, state::AppState};
 
 /// Health API module
 pub struct Health;
