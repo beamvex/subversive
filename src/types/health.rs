@@ -34,4 +34,10 @@ impl PeerHealth {
     pub fn get_last_seen(&self) -> i64 {
         self.last_seen
     }
+
+    /// Record a failure for this peer
+    pub fn record_failure(&mut self) {
+        // Set last_seen to 0 to mark as unhealthy
+        self.last_seen = 0;
+    }
 }
