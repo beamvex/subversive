@@ -1,5 +1,5 @@
-use subversive::types::{args::Args, config::Config};
 use std::fs;
+use subversive::types::{args::Args, config::Config};
 use tempfile::NamedTempFile;
 
 #[tokio::test]
@@ -148,7 +148,7 @@ async fn test_update_log_level() {
 
 #[tokio::test]
 async fn test_config_merge() {
-    let mut config = Config::default_config();
+    let config = Config::default_config();
     let args = Args {
         port: Some(8081),
         peer: None,
@@ -167,6 +167,6 @@ async fn test_config_merge() {
         opendns_network: None,
     };
 
-    config.merge_with_args(&args);
-    assert_eq!(config.port, Some(8081));
+    let merged = config.merge_with_args(&args);
+    assert_eq!(merged.port, Some(8081));
 }

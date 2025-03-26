@@ -1,6 +1,4 @@
 use std::sync::Arc;
-use std::time::Duration;
-use tokio::time::sleep;
 
 use subversive::shutdown::ShutdownState;
 

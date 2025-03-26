@@ -1,19 +1,15 @@
 #[cfg(test)]
 mod tests {
+    use mockito::{Server, ServerGuard};
     use std::sync::OnceLock;
     use subversive::network::discovery::get_external_ip;
-    use mockito::{Server, ServerGuard};
-    use test_log::test;
     use tokio::sync::Mutex;
 
     static TEST_SERVER: OnceLock<Mutex<Option<ServerGuard>>> = OnceLock::new();
 
     async fn setup_test() -> ServerGuard {
         let server = Server::new();
-        let mut guard = TEST_SERVER
-            .get_or_init(|| Mutex::new(None))
-            .lock()
-            .await;
+        let mut guard = TEST_SERVER.get_or_init(|| Mutex::new(None)).lock().await;
         *guard = Some(server);
         guard.take().unwrap()
     }

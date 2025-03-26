@@ -5,13 +5,9 @@ use tracing::info;
 
 use subversive::{
     db::DbContext,
-    types::{
-        args::Args,
-        config::Config,
-        state::AppState,
-    },
     server,
     shutdown::ShutdownState,
+    types::{args::Args, config::Config, state::AppState},
 };
 
 #[tokio::main]
@@ -37,7 +33,7 @@ async fn main() -> Result<()> {
     });
 
     let server_handle = tokio::spawn(server::spawn_server(app_state.clone()));
-    server_handle.await??;
+    let _ = server_handle.await??;
 
     Ok(())
 }

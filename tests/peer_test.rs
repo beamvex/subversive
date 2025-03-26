@@ -1,12 +1,11 @@
+use mockito::Server;
+use std::{collections::HashMap, sync::Arc};
 use subversive::{
     db::context::DbContext,
     shutdown::ShutdownState,
     types::{config::Config, peer::PeerInfo, state::AppState},
 };
-use mockito::Server;
-use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
-use uuid::Uuid;
 
 async fn setup_test_state(own_address: &str) -> Arc<AppState> {
     let mut config = Config::default_config();
