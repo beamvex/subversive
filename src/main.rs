@@ -1,62 +1,43 @@
-// Import required dependencies and types
 use anyhow::Result;
+use clap::Parser;
 use std::sync::Arc;
 use tracing::info;
 
 use subversive::{
     db::DbContext,
+    types::{
+        args::Args,
+        config::Config,
+        state::AppState,
+    },
     server,
     shutdown::ShutdownState,
-    types::{args::Args, config::Config, state::AppState},
 };
 
-// Module declarations
-#[allow(unused)]
-mod db;
-mod network;
-
-mod shutdown;
-mod survival;
-mod types;
-
-/// Main entry point of the application
 #[tokio::main]
-pub async fn main() -> Result<()> {
-    // Initialize logging
-    tracing_subscriber::fmt::init();
+async fn main() -> Result<()> {
+    let args = Args::parse();
+    let port = args.port.unwrap_or(8080);
 
-    // Load config
-    let config = types::config::Config::load().await;
-    let port = config.port.unwrap_or(8080);
+    info!("Starting subversive node on port {}", port);
 
-    // Initialize database
     let db = Arc::new(DbContext::new("subversive.db").await?);
+    let config = Config::default_config();
 
-    // Create application state
     let app_state = Arc::new(AppState {
-        config: config.clone(),
-        own_address: format!("https://localhost:{}", port),
         peers: Default::default(),
         db,
         actual_port: port,
+        config: config.clone(),
+        own_address: format!("https://localhost:{}", port),
         shutdown: Arc::new(ShutdownState::new(
             port,
             Vec::new(), // No gateways for now
         )),
     });
 
-    // Start server
     let server_handle = tokio::spawn(server::spawn_server(app_state.clone()));
-
-    // Wait for shutdown signal
-    tokio::signal::ctrl_c().await?;
-    info!("Shutting down...");
-
-    // Wait for server to finish
-    if let Err(e) = server_handle.await? {
-        tracing::error!("Server error: {}", e);
-        return Err(e.into());
-    }
+    server_handle.await??;
 
     Ok(())
 }

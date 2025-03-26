@@ -1,6 +1,6 @@
 pub mod crypto;
 pub mod db;
-pub mod logging;
+pub mod logutils;
 pub mod network;
 pub mod server;
 pub mod shutdown;
