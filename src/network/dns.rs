@@ -5,7 +5,7 @@ use std::net::IpAddr;
 use tracing::warn;
 
 /// Attempt to do a reverse DNS lookup of an IP address
-pub(crate) async fn reverse_lookup(ip: &str) -> Result<String> {
+pub async fn reverse_lookup(ip: &str) -> Result<String> {
     // Parse the IP address
     let ip_addr: IpAddr = ip.parse()?;
 

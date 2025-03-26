@@ -2,7 +2,7 @@ use subversive::{
     db::context::DbContext,
     server::api::peers::Peers,
     shutdown::ShutdownState,
-    types::{config::Config, health::PeerHealth, state::AppState, PeerInfo},
+    types::{config::Config, health::PeerHealth, peer::PeerInfo, state::AppState},
 };
 use axum::{
     body::to_bytes,
@@ -55,6 +55,28 @@ async fn test_list_peers_with_peers() {
 
     assert_eq!(peers.len(), 1);
     assert_eq!(peers[0].address, peer_addr);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn test_list_peers() {
+    let config = Config::default_config();
+    let port = 8080;
+    let gateways = Vec::new();
+    let shutdown = Arc::new(ShutdownState::new(port, gateways));
+
+    let state = Arc::new(AppState {
+        config,
+        own_address: "https://localhost:8080".to_string(),
+        peers: Arc::new(Mutex::new(HashMap::new())),
+        db: Arc::new(DbContext::new_memory().await.unwrap()),
+        actual_port: port,
+        shutdown,
+    });
+
+    let response = Peers::list_peers(State(state)).await.into_response();
+    let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let peers: Vec<PeerInfo> = serde_json::from_slice(&body).unwrap();
+    assert!(peers.is_empty());
 }
 
 #[tokio::test(flavor = "multi_thread")]

@@ -15,7 +15,7 @@ pub struct Messages;
 
 #[derive(Debug, Deserialize)]
 pub struct GetMessagesQuery {
-    since: Option<i64>,
+    pub since: Option<i64>,
 }
 
 impl Messages {
