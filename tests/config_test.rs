@@ -1,10 +1,9 @@
-use super::config::Config;
-use crate::types::args::Args;
+use subversive::types::{args::Args, config::Config};
 use std::fs;
 use tempfile::NamedTempFile;
 
-#[test]
-fn test_default_config() {
+#[tokio::test]
+async fn test_default_config() {
     let config = Config::default_config();
 
     // Check default values
@@ -25,22 +24,24 @@ fn test_default_config() {
     assert_eq!(config.log_level, Some("info".to_string()));
 }
 
-#[test]
-fn test_from_file() -> anyhow::Result<()> {
+#[tokio::test]
+async fn test_from_file() -> anyhow::Result<()> {
     // Create a temporary config file
     let config_file = NamedTempFile::new()?;
     let config_content = r#"
-        port: 12345
-        peer: "https://peer1:8080"
-        database: "test.db"
-        name: "test_node"
-        hostname: "test.example.com"
-        log_level: "debug"
+        {
+            "port": 12345,
+            "peer": "https://peer1:8080",
+            "database": "test.db",
+            "name": "test_node",
+            "hostname": "test.example.com",
+            "log_level": "debug"
+        }
     "#;
     fs::write(config_file.path(), config_content)?;
 
     // Load the config
-    let config = Config::from_file(config_file.path().to_str().unwrap())?;
+    let config = Config::from_file(config_file.path().to_str().unwrap()).await?;
 
     // Verify loaded values
     assert_eq!(config.port, Some(12345));
@@ -53,8 +54,8 @@ fn test_from_file() -> anyhow::Result<()> {
     Ok(())
 }
 
-#[test]
-fn test_merge_with_args() {
+#[tokio::test]
+async fn test_merge_with_args() {
     let config = Config {
         port: Some(8080),
         peer: Some("https://peer1:8080".to_string()),
@@ -103,8 +104,8 @@ fn test_merge_with_args() {
     assert_eq!(merged.log_level, Some("debug".to_string()));
 }
 
-#[test]
-fn test_getters() {
+#[tokio::test]
+async fn test_getters() {
     let mut config = Config::default_config();
     config.port = Some(8080);
     config.database = Some("test.db".to_string());
@@ -133,8 +134,8 @@ fn test_getters() {
     assert_eq!(empty_config.get_log_level(), "info");
 }
 
-#[test]
-fn test_update_log_level() {
+#[tokio::test]
+async fn test_update_log_level() {
     let mut config = Config::default_config();
     assert_eq!(config.get_log_level(), "info");
 
@@ -143,4 +144,29 @@ fn test_update_log_level() {
 
     config.update_log_level("trace".to_string());
     assert_eq!(config.get_log_level(), "trace");
+}
+
+#[tokio::test]
+async fn test_config_merge() {
+    let mut config = Config::default_config();
+    let args = Args {
+        port: Some(8081),
+        peer: None,
+        database: None,
+        name: None,
+        hostname: None,
+        log_level: None,
+        config: None,
+        survival_mode: None,
+        noip_hostname: None,
+        noip_username: None,
+        noip_password: None,
+        opendns_hostname: None,
+        opendns_username: None,
+        opendns_password: None,
+        opendns_network: None,
+    };
+
+    config.merge_with_args(&args);
+    assert_eq!(config.port, Some(8081));
 }

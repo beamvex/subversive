@@ -1,7 +1,8 @@
-use super::*;
-use crate::db::context::DbContext;
-use crate::shutdown::ShutdownState;
-use crate::types::{config::Config, peer::PeerInfo, state::AppState};
+use subversive::{
+    db::context::DbContext,
+    shutdown::ShutdownState,
+    types::{config::Config, peer::PeerInfo, state::AppState},
+};
 use mockito::Server;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
@@ -28,7 +29,7 @@ async fn setup_test_state(own_address: &str) -> Arc<AppState> {
 #[tokio::test]
 async fn test_connect_to_initial_peer_no_peer_configured() {
     let state = setup_test_state("https://localhost:8080").await;
-    let result = connect_to_initial_peer(state).await;
+    let result = subversive::network::peer::connect_to_initial_peer(state).await;
     assert!(result.is_ok());
 }
 
@@ -72,7 +73,7 @@ async fn test_connect_to_initial_peer_success() {
         shutdown,
     });
 
-    let result = connect_to_initial_peer(state.clone()).await;
+    let result = subversive::network::peer::connect_to_initial_peer(state.clone()).await;
     assert!(result.is_ok());
 
     let peers = state.peers.lock().await;
@@ -109,7 +110,7 @@ async fn test_connect_to_initial_peer_failure() {
         shutdown,
     });
 
-    let result = connect_to_initial_peer(state.clone()).await;
+    let result = subversive::network::peer::connect_to_initial_peer(state.clone()).await;
     assert!(result.is_ok()); // Function succeeds but peer not added
 
     let peers = state.peers.lock().await;
@@ -156,7 +157,7 @@ async fn test_connect_to_initial_peer_skip_own_address() {
         shutdown,
     });
 
-    let result = connect_to_initial_peer(state.clone()).await;
+    let result = subversive::network::peer::connect_to_initial_peer(state.clone()).await;
     assert!(result.is_ok());
 
     let peers = state.peers.lock().await;

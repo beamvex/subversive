@@ -1,7 +1,9 @@
-use crate::db::context::DbContext;
-use crate::server::api::peers::Peers;
-use crate::shutdown::ShutdownState;
-use crate::types::{config::Config, health::PeerHealth, state::AppState, PeerInfo};
+use subversive::{
+    db::context::DbContext,
+    server::api::peers::Peers,
+    shutdown::ShutdownState,
+    types::{config::Config, health::PeerHealth, state::AppState, PeerInfo},
+};
 use axum::{
     body::to_bytes,
     extract::{Json, State},

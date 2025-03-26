@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::network::dns::reverse_lookup;
+    use subversive::network::dns::reverse_lookup;
     use test_log::test;
     use tracing::info;
 
@@ -16,39 +16,23 @@ mod tests {
         info!("test_reverse_lookup_localhost");
         let result = reverse_lookup("127.0.0.1").await;
         assert!(result.is_ok());
-        let hostname = result.unwrap();
-        assert!(
-            hostname.contains("localhost") || hostname == "127.0.0.1",
-            "Expected localhost or IP, got: {}",
-            hostname
-        );
+        assert!(result.unwrap().contains("localhost"));
     }
 
     #[test(tokio::test)]
-    async fn test_reverse_lookup_unresolvable_ip() {
-        info!("test_reverse_lookup_unresolvable_ip");
-        // Use a TEST-NET-1 IP that should not resolve to any hostname
-        let test_ip = "192.0.2.1";
-        let result = reverse_lookup(test_ip).await;
-        assert!(result.is_ok());
-        assert_eq!(
-            result.unwrap(),
-            test_ip,
-            "Expected IP to be returned when no hostname found"
-        );
-    }
-
-    #[test(tokio::test)]
-    async fn test_reverse_lookup_ipv6() {
-        info!("test_reverse_lookup_ipv6");
+    async fn test_reverse_lookup_ipv6_localhost() {
+        info!("test_reverse_lookup_ipv6_localhost");
         let result = reverse_lookup("::1").await;
         assert!(result.is_ok());
-        let hostname = result.unwrap();
-        assert!(
-            hostname.contains("localhost") || hostname == "::1",
-            "Expected localhost or IP, got: {}",
-            hostname
-        );
+        assert!(result.unwrap().contains("localhost"));
+    }
+
+    #[test(tokio::test)]
+    async fn test_reverse_lookup_unresolvable() {
+        info!("test_reverse_lookup_unresolvable");
+        let result = reverse_lookup("192.0.2.1").await;
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "192.0.2.1");
     }
 
     #[test(tokio::test)]
@@ -61,7 +45,6 @@ mod tests {
     #[test(tokio::test)]
     async fn test_reverse_lookup_ipv6_unspecified() {
         info!("test_reverse_lookup_ipv6_unspecified");
-        // Test the unspecified IPv6 address (::)
         let result = reverse_lookup("::").await;
         assert!(result.is_ok());
         let hostname = result.unwrap();
@@ -75,12 +58,10 @@ mod tests {
     #[test(tokio::test)]
     async fn test_reverse_lookup_private_network() {
         info!("test_reverse_lookup_private_network");
-        // Test a private network IP (192.168.1.1)
         let test_ip = "192.168.1.1";
         let result = reverse_lookup(test_ip).await;
         assert!(result.is_ok());
         let hostname = result.unwrap();
-        // Should either resolve to a local hostname or return the IP
         assert!(
             hostname == test_ip || !hostname.contains("."),
             "Expected either IP or local hostname, got: {}",
@@ -91,7 +72,6 @@ mod tests {
     #[test(tokio::test)]
     async fn test_reverse_lookup_link_local() {
         info!("test_reverse_lookup_link_local");
-        // Test link-local addresses
         let ipv4_ll = "169.254.1.1";
         let ipv6_ll = "fe80::1";
 
@@ -117,7 +97,6 @@ mod tests {
     #[test(tokio::test)]
     async fn test_reverse_lookup_special_purpose() {
         info!("test_reverse_lookup_special_purpose");
-        // Test special-purpose addresses with their well-known DNS names
         let cases = vec![
             ("0.0.0.0", None),                            // Unspecified IPv4
             ("255.255.255.255", None),                    // Broadcast IPv4

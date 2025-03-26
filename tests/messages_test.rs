@@ -1,13 +1,16 @@
-use crate::db::context::DbContext;
-use crate::server::api::messages::{get_recent_messages, send_message, GetMessagesQuery};
-use crate::shutdown::ShutdownState;
-use crate::types::{config::Config, message::Message, state::AppState};
+use subversive::{
+    db::DbContext,
+    server::api::messages::{get_messages, send_message, GetMessagesQuery},
+    shutdown::ShutdownState,
+    types::{config::Config, message::Message, state::AppState},
+};
 use axum::{
     body::to_bytes,
     extract::{Json, Query, State},
 };
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
+use chrono::Utc;
 
 async fn setup_test_state() -> Arc<AppState> {
     let config = Config::default_config();
@@ -29,7 +32,7 @@ async fn setup_test_state() -> Arc<AppState> {
 async fn test_get_recent_messages_empty() {
     let state = setup_test_state().await;
     let query = GetMessagesQuery { since: None };
-    let response = get_recent_messages(State(state), Query(query)).await;
+    let response = get_messages(State(state), Query(query)).await;
     let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
     let messages: Vec<Message> = serde_json::from_slice(&body).unwrap();
     assert!(messages.is_empty());
@@ -40,10 +43,7 @@ async fn test_get_recent_messages_with_messages() {
     let state = setup_test_state().await;
     let content = "Test message";
     let source = "test";
-    let timestamp = std::time::SystemTime::now()
-        .duration_since(std::time::SystemTime::UNIX_EPOCH)
-        .unwrap()
-        .as_secs() as i64;
+    let timestamp = Utc::now();
 
     // Add a test message
     state
@@ -54,7 +54,7 @@ async fn test_get_recent_messages_with_messages() {
         .unwrap();
 
     let query = GetMessagesQuery { since: None };
-    let response = get_recent_messages(State(state), Query(query)).await;
+    let response = get_messages(State(state), Query(query)).await;
     let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
     let messages: Vec<Message> = serde_json::from_slice(&body).unwrap();
 
@@ -71,10 +71,7 @@ async fn test_get_recent_messages_with_since() {
     let state = setup_test_state().await;
     let content = "Test message";
     let source = "test";
-    let timestamp = std::time::SystemTime::now()
-        .duration_since(std::time::SystemTime::UNIX_EPOCH)
-        .unwrap()
-        .as_secs() as i64;
+    let timestamp = Utc::now();
 
     // Add a test message
     state
@@ -86,18 +83,18 @@ async fn test_get_recent_messages_with_since() {
 
     // Get messages since after the message was added
     let query = GetMessagesQuery {
-        since: Some(timestamp + 1),
+        since: timestamp + chrono::Duration::seconds(1),
     };
-    let response = get_recent_messages(State(state), Query(query)).await;
+    let response = get_messages(State(state), Query(query)).await;
     let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
     let messages: Vec<Message> = serde_json::from_slice(&body).unwrap();
     assert!(messages.is_empty());
 
     // Get messages since before the message was added
     let query = GetMessagesQuery {
-        since: Some(timestamp - 1),
+        since: timestamp - chrono::Duration::seconds(1),
     };
-    let response = get_recent_messages(State(state), Query(query)).await;
+    let response = get_messages(State(state), Query(query)).await;
     let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
     let messages: Vec<Message> = serde_json::from_slice(&body).unwrap();
     assert_eq!(messages.len(), 1);
@@ -106,8 +103,10 @@ async fn test_get_recent_messages_with_since() {
 #[tokio::test(flavor = "multi_thread")]
 async fn test_send_message() {
     let state = setup_test_state().await;
-    let message = Message::Chat {
+    let message = Message {
         content: "Test message".to_string(),
+        timestamp: Utc::now(),
+        sender: "test_user".to_string(),
     };
 
     let response = send_message(State(state.clone()), Json(message)).await;
@@ -115,14 +114,11 @@ async fn test_send_message() {
     let _: () = serde_json::from_slice(&body).unwrap();
 
     // Verify message was saved
-    let timestamp = std::time::SystemTime::now()
-        .duration_since(std::time::SystemTime::UNIX_EPOCH)
-        .unwrap()
-        .as_secs() as i64;
+    let timestamp = Utc::now();
     let messages = state
         .db
         .messages
-        .get_messages_since(timestamp - 3600)
+        .get_messages_since(timestamp - chrono::Duration::seconds(3600))
         .await
         .unwrap();
     assert_eq!(messages.len(), 1);
