@@ -1,63 +1,66 @@
-use std::sync::Arc;
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
 
-use subversive::shutdown::ShutdownState;
+    use crate::shutdown::ShutdownState;
 
-#[tokio::test]
-async fn test_new_shutdown_state() {
-    let port = 12345;
-    let gateways = Vec::new();
-    let _shutdown = ShutdownState::new(port, gateways);
-    // Can't test private fields directly, but we can test functionality
-}
+    #[tokio::test]
+    async fn test_new_shutdown_state() {
+        let port = 12345;
+        let gateways = Vec::new();
+        let _shutdown = ShutdownState::new(port, gateways);
+        // Can't test private fields directly, but we can test functionality
+    }
 
-#[tokio::test]
-async fn test_wait_shutdown_server_error() {
-    let port = 12345;
-    let gateways = Vec::new();
-    let shutdown = Arc::new(ShutdownState::new(port, gateways));
+    #[tokio::test]
+    async fn test_wait_shutdown_server_error() {
+        let port = 12345;
+        let gateways = Vec::new();
+        let shutdown = Arc::new(ShutdownState::new(port, gateways));
 
-    // Create a server handle that will return an error
-    let (tx, rx) = tokio::sync::oneshot::channel();
-    let server_handle = tokio::spawn(async move {
-        rx.await.unwrap(); // Wait for signal
-        Err::<(), anyhow::Error>(anyhow::anyhow!("Server error"))
-    });
+        // Create a server handle that will return an error
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        let server_handle = tokio::spawn(async move {
+            rx.await.unwrap(); // Wait for signal
+            Err::<(), anyhow::Error>(anyhow::anyhow!("Server error"))
+        });
 
-    // Spawn a task to trigger server error
-    tokio::spawn(async move {
-        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-        tx.send(()).unwrap();
-    });
+        // Spawn a task to trigger server error
+        tokio::spawn(async move {
+            tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+            tx.send(()).unwrap();
+        });
 
-    // Wait for shutdown - in test mode this won't exit the process
-    let result = shutdown.wait_shutdown(server_handle).await;
-    assert!(result.is_ok());
-}
+        // Wait for shutdown - in test mode this won't exit the process
+        let result = shutdown.wait_shutdown(server_handle).await;
+        assert!(result.is_ok());
+    }
 
-#[tokio::test]
-async fn test_wait_shutdown_ctrl_c() {
-    let port = 12345;
-    let gateways = Vec::new();
-    let shutdown = Arc::new(ShutdownState::new(port, gateways));
+    #[tokio::test]
+    async fn test_wait_shutdown_ctrl_c() {
+        let port = 12345;
+        let gateways = Vec::new();
+        let shutdown = Arc::new(ShutdownState::new(port, gateways));
 
-    // Create a server handle that will never complete
-    let (_tx, rx) = tokio::sync::oneshot::channel::<()>();
-    let server_handle = tokio::spawn(async move {
-        rx.await.unwrap(); // This will never complete
-        Ok::<(), anyhow::Error>(())
-    });
+        // Create a server handle that will never complete
+        let (_tx, rx) = tokio::sync::oneshot::channel::<()>();
+        let server_handle = tokio::spawn(async move {
+            rx.await.unwrap(); // This will never complete
+            Ok::<(), anyhow::Error>(())
+        });
 
-    // In test mode, ctrl_c will be simulated after 100ms
-    let result = shutdown.wait_shutdown(server_handle).await;
-    assert!(result.is_ok());
-}
+        // In test mode, ctrl_c will be simulated after 100ms
+        let result = shutdown.wait_shutdown(server_handle).await;
+        assert!(result.is_ok());
+    }
 
-#[tokio::test]
-async fn test_shutdown() {
-    let port = 12345;
-    let gateways = Vec::new();
-    let shutdown = ShutdownState::new(port, gateways);
+    #[tokio::test]
+    async fn test_shutdown() {
+        let port = 12345;
+        let gateways = Vec::new();
+        let shutdown = ShutdownState::new(port, gateways);
 
-    // In test mode, shutdown() should clean up UPnP but not exit
-    shutdown.shutdown().await;
+        // In test mode, shutdown() should clean up UPnP but not exit
+        shutdown.shutdown().await;
+    }
 }

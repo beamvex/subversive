@@ -4,5 +4,7 @@ pub mod logutils;
 pub mod network;
 pub mod server;
 pub mod shutdown;
+pub mod shutdown_test;
 pub mod survival;
+pub mod survival_test;
 pub mod types;

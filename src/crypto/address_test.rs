@@ -9,10 +9,10 @@ mod tests {
         let address = Address::new();
 
         // Check that private key exists
-        assert!(address.get_private_key().as_ref().len() > 0);
+        assert!(!address.get_private_key().as_ref().is_empty());
 
         // Check that public key exists
-        assert!(address.get_public_key().serialize().len() > 0);
+        assert!(!address.get_public_key().serialize().is_empty());
 
         // Check that public address is valid base58
         let public_address = address.get_public_address();
@@ -23,7 +23,7 @@ mod tests {
     #[test]
     fn test_address_from_private_key() {
         let original = Address::new();
-        let private_key = original.get_private_key().clone();
+        let private_key = *original.get_private_key();
 
         let restored = Address::from_private_key(private_key);
 
