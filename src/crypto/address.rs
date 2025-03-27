@@ -10,10 +10,16 @@ pub struct Address {
     public_address: String,
 }
 
+impl Default for Address {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Address {
     pub fn new() -> Self {
         let secp = Secp256k1::new();
-        let mut rng = OsRng::default();
+        let mut rng = OsRng;
 
         // Generate private key
         let private_key = SecretKey::new(&mut rng);
@@ -49,7 +55,7 @@ impl Address {
 
         // SHA256
         let mut sha256_hasher = Sha256::new();
-        sha256_hasher.update(&pub_key_serialized);
+        sha256_hasher.update(pub_key_serialized);
         let sha256_result = sha256_hasher.finalize();
 
         // RIPEMD160
@@ -85,10 +91,10 @@ mod tests {
         let address = Address::new();
 
         // Check that private key exists
-        assert!(address.get_private_key().as_ref().len() > 0);
+        assert!(!address.get_private_key().as_ref().is_empty());
 
         // Check that public key exists
-        assert!(address.get_public_key().serialize().len() > 0);
+        assert!(!address.get_public_key().serialize().is_empty());
 
         // Check that public address is valid base58
         let public_address = address.get_public_address();
@@ -99,9 +105,9 @@ mod tests {
     #[test]
     fn test_address_from_private_key() {
         let original = Address::new();
-        let private_key = original.get_private_key().clone();
+        let private_key = original.get_private_key();
 
-        let restored = Address::from_private_key(private_key);
+        let restored = Address::from_private_key(*private_key);
 
         assert_eq!(original.get_public_address(), restored.get_public_address());
         assert_eq!(
