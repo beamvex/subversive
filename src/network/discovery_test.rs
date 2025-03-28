@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
+    use crate::network::discovery::get_external_ip;
     use mockito::{Server, ServerGuard};
     use std::sync::OnceLock;
-    use subversive::network::discovery::get_external_ip;
     use tokio::sync::Mutex;
 
     static TEST_SERVER: OnceLock<Mutex<Option<ServerGuard>>> = OnceLock::new();

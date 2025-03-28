@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use subversive::network::dns::reverse_lookup;
+    use crate::network::dns::reverse_lookup;
     use test_log::test;
     use tracing::info;
 
