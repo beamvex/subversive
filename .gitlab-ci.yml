@@ -49,6 +49,7 @@ stages:
   - test
   - coverage
   - release
+  - pages
 
 # Security scanning for dependencies
 # dependency-scan:
@@ -158,7 +159,7 @@ coverage:
   allow_failure: true  # Don't fail pipeline if coverage is below threshold
 
 pages:
-  stage: coverage
+  stage: pages
   dependencies:
     - coverage
   script:
