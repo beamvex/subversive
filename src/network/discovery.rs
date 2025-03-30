@@ -12,9 +12,10 @@ fn init_ipify_url() -> &'static Mutex<String> {
 
 /// Set a custom URL for IP discovery (used for testing)
 #[cfg(test)]
-pub async fn set_ip_discovery_url(url: &str) {
+pub async fn set_ip_discovery_url(url: &str) -> tokio::sync::MutexGuard<'_, String> {
     let mut guard = init_ipify_url().lock().await;
     *guard = url.to_string();
+    guard
 }
 
 /// Get the external IP address of the machine

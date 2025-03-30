@@ -1,27 +1,33 @@
 #[cfg(test)]
 mod tests {
-    use crate::network::discovery::get_external_ip;
-    use mockito::{Server, ServerGuard};
     use std::sync::OnceLock;
-    use tokio::sync::Mutex;
 
-    static TEST_SERVER: OnceLock<Mutex<Option<ServerGuard>>> = OnceLock::new();
+    use crate::network::discovery::{get_external_ip, set_ip_discovery_url};
+    use mockito::{Server, ServerGuard};
+    use tokio::sync::{Mutex, MutexGuard};
 
-    async fn setup_test() -> ServerGuard {
-        let server = Server::new();
-        let mut guard = TEST_SERVER.get_or_init(|| Mutex::new(None)).lock().await;
-        *guard = Some(server);
-        guard.take().unwrap()
+    static MOCK_SERVER: OnceLock<Mutex<Option<ServerGuard>>> = OnceLock::new();
+
+    async fn setup_test() -> MutexGuard<'static, Option<ServerGuard>> {
+        let x = MOCK_SERVER.get_or_init(|| Mutex::new(None));
+        let mut guard = x.lock().await;
+        if guard.is_none() {
+            *guard = Some(Server::new_async().await);
+            let _ = set_ip_discovery_url(&guard.as_ref().unwrap().url()).await;
+        }
+        guard
     }
 
     #[tokio::test]
     async fn test_get_external_ip_success() {
         let mut server = setup_test().await;
+        let server = server.as_mut().unwrap();
         let _m = server
             .mock("GET", "/")
             .with_status(200)
             .with_body("1.2.3.4")
-            .create();
+            .create_async()
+            .await;
 
         let result = get_external_ip().await;
         assert!(result.is_ok());
@@ -31,7 +37,12 @@ mod tests {
     #[tokio::test]
     async fn test_get_external_ip_error() {
         let mut server = setup_test().await;
-        let _m = server.mock("GET", "/").with_status(500).create();
+        let server = server.as_mut().unwrap();
+        let _m = server
+            .mock("GET", "/")
+            .with_status(500)
+            .create_async()
+            .await;
 
         let result = get_external_ip().await;
         assert!(result.is_err());
@@ -40,12 +51,16 @@ mod tests {
     #[tokio::test]
     async fn test_get_external_ip_empty_response() {
         let mut server = setup_test().await;
-        let _m = server.mock("GET", "/").with_body("").create();
+        let server = server.as_mut().unwrap();
+        let _m = server
+            .mock("GET", "/")
+            .with_status(200)
+            .with_body("")
+            .create_async()
+            .await;
 
         let result = get_external_ip().await;
-        assert!(
-            result.unwrap().is_empty(),
-            "Empty response should be returned as-is"
-        );
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "");
     }
 }
