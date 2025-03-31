@@ -165,7 +165,7 @@ pages:
   script:
     - mkdir -p public
     - cp coverage/tarpaulin-report.html public/index.html
-    - cp -r badges public/
+    # - cp -r badges public/
   artifacts:
     paths:
       - public
