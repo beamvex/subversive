@@ -30,28 +30,7 @@ impl DbContext {
             OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_CREATE,
         )?));
 
-        // Initialize tables
-        {
-            let conn = conn.lock().await;
-            conn.execute(
-                "CREATE TABLE IF NOT EXISTS messages (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    content TEXT NOT NULL,
-                    source TEXT NOT NULL,
-                    timestamp INTEGER NOT NULL
-                )",
-                [],
-            )?;
-
-            conn.execute(
-                "CREATE TABLE IF NOT EXISTS peers (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    address TEXT NOT NULL UNIQUE,
-                    last_seen INTEGER NOT NULL
-                )",
-                [],
-            )?;
-        }
+        Self::init_tables(&conn).await?;
 
         Ok(Self {
             messages: MessageStore::new(conn.clone()),
@@ -63,33 +42,36 @@ impl DbContext {
     pub async fn new_memory() -> Result<Self> {
         let conn = Arc::new(Mutex::new(Connection::open_in_memory()?));
 
-        // Initialize tables
-        {
-            let conn = conn.lock().await;
-            conn.execute(
-                "CREATE TABLE IF NOT EXISTS messages (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    content TEXT NOT NULL,
-                    source TEXT NOT NULL,
-                    timestamp INTEGER NOT NULL
-                )",
-                [],
-            )?;
-
-            conn.execute(
-                "CREATE TABLE IF NOT EXISTS peers (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    address TEXT NOT NULL UNIQUE,
-                    last_seen INTEGER NOT NULL
-                )",
-                [],
-            )?;
-        }
+        Self::init_tables(&conn).await?;
 
         Ok(Self {
             messages: MessageStore::new(conn.clone()),
             peers: PeerStore::new(conn),
         })
+    }
+
+    /// Initialize database tables
+    async fn init_tables(conn: &Arc<Mutex<Connection>>) -> Result<()> {
+        let conn = conn.lock().await;
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                content TEXT NOT NULL,
+                source TEXT NOT NULL,
+                timestamp INTEGER NOT NULL
+            )",
+            [],
+        )?;
+
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS peers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                address TEXT NOT NULL UNIQUE,
+                last_seen INTEGER NOT NULL
+            )",
+            [],
+        )?;
+        Ok(())
     }
 
     /// Saves a message to the database.
