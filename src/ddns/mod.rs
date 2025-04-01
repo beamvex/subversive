@@ -6,42 +6,20 @@ use tracing::{info, warn};
 
 mod noip;
 mod opendns;
+mod provider;
 
 #[cfg(test)]
 mod noip_test;
 #[cfg(test)]
 mod opendns_test;
+#[cfg(test)]
+mod provider_test;
 
 pub use noip::NoIpProvider;
 pub use opendns::OpenDnsProvider;
+pub use provider::{DdnsProvider, DdnsProviderConfig};
 
 const UPDATE_INTERVAL: Duration = Duration::from_secs(300); // 5 minutes
-
-pub trait DdnsProviderConfig {
-    fn try_from_config(config: &crate::types::config::Config) -> Option<DdnsProvider>;
-}
-
-#[derive(Debug, Clone)]
-pub enum DdnsProvider {
-    NoIp(NoIpProvider),
-    OpenDns(OpenDnsProvider),
-}
-
-impl DdnsProvider {
-    async fn update_dns(&self, client: &Client) -> Result<String> {
-        match self {
-            DdnsProvider::NoIp(provider) => provider.update_dns(client).await,
-            DdnsProvider::OpenDns(provider) => provider.update_dns(client).await,
-        }
-    }
-
-    fn get_provider_name(&self) -> &'static str {
-        match self {
-            DdnsProvider::NoIp(_) => "No-IP",
-            DdnsProvider::OpenDns(_) => "OpenDNS",
-        }
-    }
-}
 
 /// Start a background task that periodically updates Dynamic DNS records
 pub async fn start_ddns_updater(provider: DdnsProvider, client: Client) -> Result<()> {
