@@ -10,6 +10,8 @@ pub struct NoIpProvider {
     pub hostname: String,
     pub username: String,
     pub password: String,
+    #[cfg(test)]
+    pub base_url: String,
 }
 
 impl NoIpProvider {
@@ -17,8 +19,13 @@ impl NoIpProvider {
         let auth = format!("{}:{}", self.username, self.password);
         let auth_header = format!("Basic {}", BASE64.encode(auth));
 
+        #[cfg(not(test))]
+        let url = "https://dynupdate.no-ip.com/nic/update";
+        #[cfg(test)]
+        let url = &format!("{}/nic/update", self.base_url);
+
         let response = client
-            .get("https://dynupdate.no-ip.com/nic/update")
+            .get(url)
             .header("Authorization", auth_header)
             .query(&[("hostname", &self.hostname)])
             .send()
@@ -35,12 +42,14 @@ impl NoIpProvider {
             hostname,
             username,
             password,
+            #[cfg(test)]
+            base_url: String::new(),
         }
     }
 }
 
 impl DdnsProviderConfig for NoIpProvider {
-    fn try_from_config(config: &crate::Config) -> Option<DdnsProvider> {
+    fn try_from_config(config: &crate::types::config::Config) -> Option<DdnsProvider> {
         match (
             config.noip_hostname.clone(),
             config.noip_username.clone(),

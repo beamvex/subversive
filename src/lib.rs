@@ -1,5 +1,6 @@
 pub mod crypto;
 pub mod db;
+pub mod ddns;
 pub mod logutils;
 pub mod network;
 pub mod server;

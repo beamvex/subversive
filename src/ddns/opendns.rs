@@ -11,6 +11,8 @@ pub struct OpenDnsProvider {
     pub username: String,
     pub password: String,
     pub network: String,
+    #[cfg(test)]
+    pub base_url: String,
 }
 
 impl OpenDnsProvider {
@@ -18,11 +20,19 @@ impl OpenDnsProvider {
         let auth = format!("{}:{}", self.username, self.password);
         let auth_header = format!("Basic {}", BASE64.encode(auth));
 
+        #[cfg(not(test))]
+        let url = format!(
+            "https://updates.opendns.com/nic/update?hostname={}&network={}",
+            self.hostname, self.network
+        );
+        #[cfg(test)]
+        let url = format!(
+            "{}/nic/update?hostname={}&network={}",
+            self.base_url, self.hostname, self.network
+        );
+
         let response = client
-            .get(format!(
-                "https://updates.opendns.com/nic/update?hostname={}&network={}",
-                self.hostname, self.network
-            ))
+            .get(url)
             .header("Authorization", auth_header)
             .send()
             .await?
@@ -39,12 +49,14 @@ impl OpenDnsProvider {
             username,
             password,
             network,
+            #[cfg(test)]
+            base_url: String::new(),
         }
     }
 }
 
 impl DdnsProviderConfig for OpenDnsProvider {
-    fn try_from_config(config: &crate::Config) -> Option<DdnsProvider> {
+    fn try_from_config(config: &crate::types::config::Config) -> Option<DdnsProvider> {
         match (
             config.opendns_hostname.clone(),
             config.opendns_username.clone(),

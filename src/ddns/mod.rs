@@ -7,13 +7,18 @@ use tracing::{info, warn};
 mod noip;
 mod opendns;
 
+#[cfg(test)]
+mod noip_test;
+#[cfg(test)]
+mod opendns_test;
+
 pub use noip::NoIpProvider;
 pub use opendns::OpenDnsProvider;
 
 const UPDATE_INTERVAL: Duration = Duration::from_secs(300); // 5 minutes
 
 pub trait DdnsProviderConfig {
-    fn try_from_config(config: &crate::Config) -> Option<DdnsProvider>;
+    fn try_from_config(config: &crate::types::config::Config) -> Option<DdnsProvider>;
 }
 
 #[derive(Debug, Clone)]
@@ -61,7 +66,7 @@ pub async fn start_ddns_updater(provider: DdnsProvider, client: Client) -> Resul
 }
 
 /// Configure DDNS if settings are present
-pub async fn config_ddns(config: &crate::Config) {
+pub async fn config_ddns(config: &crate::types::config::Config) {
     info!("Configuring DDNS");
     let client = reqwest::Client::new();
     let providers = [
