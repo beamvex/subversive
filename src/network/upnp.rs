@@ -1,11 +1,70 @@
 use anyhow::Result;
+use async_trait::async_trait;
 use igd::aio::Gateway;
 use local_ip_address::local_ip;
 use log::{error, info};
-use std::net::SocketAddrV4;
+use std::net::{SocketAddr, SocketAddrV4};
 use std::path::Path;
 
-pub async fn try_setup_upnp(port: u16) -> Result<Vec<Gateway>> {
+#[async_trait]
+pub trait GatewayInterface: Send + Sync {
+    async fn add_port(
+        &self,
+        protocol: igd::PortMappingProtocol,
+        external_port: u16,
+        local_addr: std::net::SocketAddrV4,
+        lease_duration: u32,
+        description: &str,
+    ) -> Result<(), igd::AddPortError>;
+
+    async fn remove_port(
+        &self,
+        protocol: igd::PortMappingProtocol,
+        external_port: u16,
+    ) -> Result<(), igd::RemovePortError>;
+
+    fn local_addr(&self) -> SocketAddr;
+    fn root_url(&self) -> String;
+}
+
+#[async_trait]
+impl GatewayInterface for Gateway {
+    async fn add_port(
+        &self,
+        protocol: igd::PortMappingProtocol,
+        external_port: u16,
+        local_addr: std::net::SocketAddrV4,
+        lease_duration: u32,
+        description: &str,
+    ) -> Result<(), igd::AddPortError> {
+        self.add_port(
+            protocol,
+            external_port,
+            local_addr,
+            lease_duration,
+            description,
+        )
+        .await
+    }
+
+    async fn remove_port(
+        &self,
+        protocol: igd::PortMappingProtocol,
+        external_port: u16,
+    ) -> Result<(), igd::RemovePortError> {
+        self.remove_port(protocol, external_port).await
+    }
+
+    fn local_addr(&self) -> SocketAddr {
+        self.local_addr()
+    }
+
+    fn root_url(&self) -> String {
+        self.root_url()
+    }
+}
+
+pub async fn try_setup_upnp(port: u16) -> Result<Vec<Box<dyn GatewayInterface>>> {
     let gateway = igd::aio::search_gateway(Default::default()).await?;
 
     info!("found gateway: {}", gateway);
@@ -33,7 +92,7 @@ pub async fn try_setup_upnp(port: u16) -> Result<Vec<Gateway>> {
                 "Successfully added port mapping for port {} using IP {}",
                 port, local_ipv4
             );
-            Ok(vec![gateway])
+            Ok(vec![Box::new(gateway)])
         }
         Err(e) => {
             error!("Failed to add port mapping: {}", e);
@@ -46,7 +105,7 @@ pub fn is_wsl() -> bool {
     Path::new("/proc/sys/fs/binfmt_misc/WSLInterop").exists()
 }
 
-pub async fn setup_upnp(mut port: u16) -> Result<(u16, Vec<Gateway>)> {
+pub async fn setup_upnp(mut port: u16) -> Result<(u16, Vec<Box<dyn GatewayInterface>>)> {
     if is_wsl() {
         info!("WSL2 detected - skipping UPnP port mapping");
         return Ok((port, Vec::new()));
@@ -78,13 +137,13 @@ pub async fn setup_upnp(mut port: u16) -> Result<(u16, Vec<Gateway>)> {
     ))
 }
 
-pub async fn cleanup_upnp(port: u16, gateways: Vec<Gateway>) -> Result<()> {
+pub async fn cleanup_upnp(port: u16, gateways: &[Box<dyn GatewayInterface>]) -> Result<()> {
     for gateway in gateways {
         if let Err(e) = gateway
             .remove_port(igd::PortMappingProtocol::TCP, port)
             .await
         {
-            error!("Error removing port mapping: {}", e);
+            error!("Failed to remove port mapping: {}", e);
         }
     }
     Ok(())

@@ -1,4 +1,5 @@
 use crate::network;
+use crate::network::upnp::GatewayInterface;
 use anyhow::Result;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -10,14 +11,14 @@ pub struct ShutdownState {
     /// Port that the server is listening on
     port: u16,
     /// Gateway addresses
-    gateways: Arc<Vec<igd::aio::Gateway>>,
+    gateways: Arc<Vec<Box<dyn GatewayInterface>>>,
     /// Whether shutdown has been initiated
     shutdown_initiated: Arc<AtomicBool>,
 }
 
 impl ShutdownState {
     /// Create a new shutdown state
-    pub fn new(port: u16, gateways: Vec<igd::aio::Gateway>) -> Self {
+    pub fn new(port: u16, gateways: Vec<Box<dyn GatewayInterface>>) -> Self {
         Self {
             port,
             gateways: Arc::new(gateways),
@@ -31,7 +32,7 @@ impl ShutdownState {
     }
 
     /// Get the gateways
-    pub fn get_gateways(&self) -> &[igd::aio::Gateway] {
+    pub fn get_gateways(&self) -> &[Box<dyn GatewayInterface>] {
         &self.gateways
     }
 
@@ -48,7 +49,7 @@ impl ShutdownState {
     /// Clean up UPnP mappings and exit
     pub async fn shutdown(&self) {
         info!("Cleaning up UPnP mappings...");
-        if let Err(e) = network::cleanup_upnp(self.port, self.gateways.to_vec()).await {
+        if let Err(e) = network::cleanup_upnp(self.port, &self.gateways).await {
             error!("Failed to clean up UPnP mappings: {}", e);
         }
         #[cfg(not(test))]

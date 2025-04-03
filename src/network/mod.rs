@@ -13,15 +13,17 @@ pub mod dns_test;
 pub mod health_test;
 #[cfg(test)]
 pub mod interfaces_test;
+#[cfg(test)]
+pub mod upnp_test;
 
 use discovery::get_external_ip;
 use dns::reverse_lookup;
-use igd::aio::Gateway;
 pub use peer::broadcast_to_peers;
 pub use upnp::cleanup_upnp;
 
 use anyhow::Result;
 use tracing::info;
+use upnp::GatewayInterface;
 
 use crate::types::config::Config;
 
@@ -36,7 +38,10 @@ use crate::types::config::Config;
 /// * The actual port being used (may be different from requested if UPnP mapping fails)
 /// * The list of discovered UPnP gateways
 /// * The full address string in the format "https://<hostname>:<actual_port>"
-pub async fn setup_network(port: u16, config: &Config) -> Result<(u16, Vec<Gateway>, String)> {
+pub async fn setup_network(
+    port: u16,
+    config: &Config,
+) -> Result<(u16, Vec<Box<dyn GatewayInterface>>, String)> {
     // Get external IP and resolve hostname
     let host = config.get_hostname().unwrap_or_default();
     let own_address = format!("https://{}:{}", host, port);
