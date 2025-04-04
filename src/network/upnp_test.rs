@@ -1,79 +1,14 @@
 use anyhow::Result;
-use async_trait::async_trait;
-use mockall::automock;
 use mockall::predicate::*;
 use std::net::Ipv4Addr;
-use std::net::SocketAddr;
 use tracing::info;
 
-use crate::network::upnp::{cleanup_upnp, setup_upnp, try_setup_upnp, GatewayInterface};
+use crate::network::upnp::{cleanup_upnp, setup_upnp, try_setup_upnp};
 use crate::test_utils::init_test_tracing;
 
 // Helper function to initialize tracing for tests
 fn init_tracing() {
     init_test_tracing();
-}
-
-// Define a new trait for testing that mirrors GatewayInterface
-#[automock]
-#[async_trait]
-pub trait TestGateway: std::fmt::Debug {
-    async fn add_port(
-        &self,
-        protocol: igd::PortMappingProtocol,
-        external_port: u16,
-        local_addr: std::net::SocketAddrV4,
-        lease_duration: u32,
-        description: &str,
-    ) -> Result<(), igd::AddPortError>;
-
-    async fn remove_port(
-        &self,
-        protocol: igd::PortMappingProtocol,
-        external_port: u16,
-    ) -> Result<(), igd::RemovePortError>;
-
-    fn local_addr(&self) -> SocketAddr;
-    fn root_url(&self) -> String;
-}
-
-// Make MockTestGateway implement GatewayInterface
-#[async_trait]
-impl GatewayInterface for MockTestGateway {
-    async fn add_port(
-        &self,
-        protocol: igd::PortMappingProtocol,
-        external_port: u16,
-        local_addr: std::net::SocketAddrV4,
-        lease_duration: u32,
-        description: &str,
-    ) -> Result<(), igd::AddPortError> {
-        TestGateway::add_port(
-            self,
-            protocol,
-            external_port,
-            local_addr,
-            lease_duration,
-            description,
-        )
-        .await
-    }
-
-    async fn remove_port(
-        &self,
-        protocol: igd::PortMappingProtocol,
-        external_port: u16,
-    ) -> Result<(), igd::RemovePortError> {
-        TestGateway::remove_port(self, protocol, external_port).await
-    }
-
-    fn local_addr(&self) -> SocketAddr {
-        TestGateway::local_addr(self)
-    }
-
-    fn root_url(&self) -> String {
-        TestGateway::root_url(self)
-    }
 }
 
 #[tokio::test]
@@ -249,7 +184,7 @@ async fn test_cleanup_upnp_success() -> Result<()> {
         .expect_root_url()
         .returning(|| "http://mock-gateway".to_string());
 
-    let gateways: Vec<Box<dyn GatewayInterface>> = vec![Box::new(mock_gateway)];
+    let gateways: Vec<dyn GatewayInterface> = vec![mock_gateway];
     cleanup_upnp(port, &gateways).await?;
 
     Ok(())
@@ -275,7 +210,7 @@ async fn test_cleanup_upnp_failure() -> Result<()> {
         .returning(|| "http://mock-gateway".to_string());
 
     // Cleanup should succeed even if removing port fails
-    let gateways: Vec<Box<dyn GatewayInterface>> = vec![Box::new(mock_gateway)];
+    let gateways: Vec<dyn GatewayInterface> = vec![mock_gateway];
     cleanup_upnp(port, &gateways).await?;
 
     Ok(())

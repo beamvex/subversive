@@ -19,14 +19,12 @@ pub mod upnp_test;
 use discovery::get_external_ip;
 use dns::reverse_lookup;
 
+use igd::aio::Gateway;
 pub use peer::broadcast_to_peers;
 pub use upnp::cleanup_upnp;
 
-#[cfg(test)]
-use crate::network::upnp_test::MockTestGateway;
 use anyhow::Result;
 
-use crate::network::upnp::GatewayInterface;
 use crate::types::config::Config;
 
 use tracing::info;
@@ -42,24 +40,15 @@ use tracing::info;
 /// * The actual port being used (may be different from requested if UPnP mapping fails)
 /// * The list of discovered UPnP gateways
 /// * The full address string in the format "<hostname>:<actual_port>"
-pub async fn setup_network(
-    port: u16,
-    config: &Config,
-) -> Result<(u16, Vec<Box<dyn GatewayInterface>>, String)> {
+pub async fn setup_network(port: u16, config: &Config) -> Result<(u16, Vec<Gateway>, String)> {
     // Get external IP and resolve hostname
     let host = config.get_hostname().unwrap_or_default();
     let own_address = format!("{}:{}", host, port);
     info!("Server listening on internet endpoint: {}", own_address);
 
     // Set up UPnP port mapping
-    #[cfg(test)]
-    let gateway = Box::new(MockTestGateway::new()) as Box<dyn GatewayInterface>;
-    let (actual_port, gateways) = upnp::setup_upnp(
-        port,
-        #[cfg(test)]
-        gateway,
-    )
-    .await?;
+
+    let (actual_port, gateways) = upnp::setup_upnp(port).await?;
     info!("Using port {}", actual_port);
 
     // After UPnP setup

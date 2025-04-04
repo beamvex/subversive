@@ -1,69 +1,12 @@
 use anyhow::Result;
-use async_trait::async_trait;
 use igd::aio::Gateway;
 use local_ip_address::local_ip;
 use log::{error, info};
-use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
+use std::net::SocketAddrV4;
 use std::path::Path;
 
-#[async_trait]
-pub trait GatewayInterface: Send + Sync + std::fmt::Debug {
-    async fn add_port(
-        &self,
-        protocol: igd::PortMappingProtocol,
-        external_port: u16,
-        local_addr: std::net::SocketAddrV4,
-        lease_duration: u32,
-        description: &str,
-    ) -> Result<(), igd::AddPortError>;
-
-    async fn remove_port(
-        &self,
-        protocol: igd::PortMappingProtocol,
-        external_port: u16,
-    ) -> Result<(), igd::RemovePortError>;
-
-    fn local_addr(&self) -> SocketAddr;
-    fn root_url(&self) -> String;
-}
-
-#[async_trait]
-impl GatewayInterface for Gateway {
-    async fn add_port(
-        &self,
-        _protocol: igd::PortMappingProtocol,
-        _external_port: u16,
-        _local_addr: std::net::SocketAddrV4,
-        _lease_duration: u32,
-        _description: &str,
-    ) -> Result<(), igd::AddPortError> {
-        Ok(())
-    }
-
-    async fn remove_port(
-        &self,
-        _protocol: igd::PortMappingProtocol,
-        _external_port: u16,
-    ) -> Result<(), igd::RemovePortError> {
-        Ok(())
-    }
-
-    fn local_addr(&self) -> SocketAddr {
-        SocketAddrV4::new(Ipv4Addr::from([0, 0, 0, 0]), 0).into()
-    }
-
-    fn root_url(&self) -> String {
-        "http://0.0.0.0".to_string()
-    }
-}
-
-pub async fn try_setup_upnp(
-    port: u16,
-    #[cfg(test)] gateway: &Box<dyn GatewayInterface>,
-) -> Result<&Box<dyn GatewayInterface>> {
-    #[cfg(not(test))]
-    let gateway =
-        Box::new(igd::aio::search_gateway(Default::default()).await?) as Box<dyn GatewayInterface>;
+pub async fn try_setup_upnp(port: u16) -> Result<Gateway> {
+    let gateway = igd::aio::search_gateway(Default::default()).await?;
 
     info!("found gateway: {:?}", gateway);
 
@@ -90,7 +33,7 @@ pub async fn try_setup_upnp(
                 "Successfully added port mapping for port {} using IP {}",
                 port, local_ipv4
             );
-            Ok(&gateway)
+            Ok(gateway.clone())
         }
         Err(e) => {
             error!("Failed to add port mapping: {}", e);
@@ -103,10 +46,7 @@ pub fn is_wsl() -> bool {
     Path::new("/proc/sys/fs/binfmt_misc/WSLInterop").exists()
 }
 
-pub async fn setup_upnp(
-    mut port: u16,
-    #[cfg(test)] gateway: Box<dyn GatewayInterface>,
-) -> Result<(u16, Vec<Box<dyn GatewayInterface>>)> {
+pub async fn setup_upnp(mut port: u16) -> Result<(u16, Vec<Gateway>)> {
     if is_wsl() {
         info!("WSL2 detected - skipping UPnP port mapping");
         return Ok((port, Vec::new()));
@@ -116,13 +56,7 @@ pub async fn setup_upnp(
     info!("Searching for UPnP gateway");
     for attempt in 1..=10 {
         info!("Attempt {} of 10", attempt);
-        match try_setup_upnp(
-            port,
-            #[cfg(test)]
-            &gateway,
-        )
-        .await
-        {
+        match try_setup_upnp(port).await {
             Ok(new_gateway) => {
                 gateways.push(new_gateway);
                 break;
@@ -137,7 +71,7 @@ pub async fn setup_upnp(
     Ok((port, gateways))
 }
 
-pub async fn cleanup_upnp(port: u16, gateways: &[Box<dyn GatewayInterface>]) -> Result<()> {
+pub async fn cleanup_upnp(port: u16, gateways: Vec<Gateway>) -> Result<()> {
     for gateway in gateways {
         if let Err(e) = gateway
             .remove_port(igd::PortMappingProtocol::TCP, port)
