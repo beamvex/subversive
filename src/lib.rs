@@ -9,3 +9,6 @@ pub mod shutdown_test;
 pub mod survival;
 pub mod survival_test;
 pub mod types;
+
+#[cfg(test)]
+mod test_utils;

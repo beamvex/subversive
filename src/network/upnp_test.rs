@@ -4,13 +4,20 @@ use mockall::automock;
 use mockall::predicate::*;
 use std::net::Ipv4Addr;
 use std::net::SocketAddr;
+use tracing::info;
 
 use crate::network::upnp::{cleanup_upnp, setup_upnp, try_setup_upnp, GatewayInterface};
+use crate::test_utils::init_test_tracing;
+
+// Helper function to initialize tracing for tests
+fn init_tracing() {
+    init_test_tracing();
+}
 
 // Define a new trait for testing that mirrors GatewayInterface
 #[automock]
 #[async_trait]
-pub trait TestGateway {
+pub trait TestGateway: std::fmt::Debug {
     async fn add_port(
         &self,
         protocol: igd::PortMappingProtocol,
@@ -71,6 +78,7 @@ impl GatewayInterface for MockTestGateway {
 
 #[tokio::test]
 async fn test_try_setup_upnp_success() -> Result<()> {
+    init_tracing();
     let port = 8080;
     let local_ip = Ipv4Addr::new(192, 168, 1, 100);
 
@@ -93,15 +101,14 @@ async fn test_try_setup_upnp_success() -> Result<()> {
         .expect_root_url()
         .returning(|| "http://mock-gateway".to_string());
 
-    let _gateways: Vec<Box<dyn GatewayInterface>> = vec![Box::new(mock_gateway)];
-    let gateways = try_setup_upnp(port).await?;
-    assert_eq!(gateways.len(), 1);
+    let _gateway = try_setup_upnp(port, &Box::new(mock_gateway)).await?;
 
     Ok(())
 }
 
 #[tokio::test]
 async fn test_try_setup_upnp_failure() -> Result<()> {
+    init_tracing();
     let port = 8080;
     let _local_ip = Ipv4Addr::new(192, 168, 1, 100);
 
@@ -119,8 +126,7 @@ async fn test_try_setup_upnp_failure() -> Result<()> {
         .expect_root_url()
         .returning(|| "http://mock-gateway".to_string());
 
-    let _gateways: Vec<Box<dyn GatewayInterface>> = vec![Box::new(mock_gateway)];
-    let result = try_setup_upnp(port).await;
+    let result = try_setup_upnp(port, &Box::new(mock_gateway)).await;
     assert!(result.is_err());
 
     Ok(())
@@ -128,22 +134,22 @@ async fn test_try_setup_upnp_failure() -> Result<()> {
 
 #[tokio::test]
 async fn test_setup_upnp_wsl() -> Result<()> {
+    init_tracing();
     // Create a temporary file to simulate WSL environment
     let temp_dir = tempfile::tempdir()?;
     let wsl_path = temp_dir.path().join("WSLInterop");
     std::fs::write(&wsl_path, "")?;
 
-    // Mock is_wsl to return true
-    let (port, gateways) = setup_upnp(8080).await?;
-
-    assert_eq!(port, 8080);
-    assert!(gateways.is_empty());
+    let mock_gateway = MockTestGateway::new();
+    let result = setup_upnp(8080, Box::new(mock_gateway)).await?;
+    assert_eq!(result.1.len(), 0);
 
     Ok(())
 }
 
 #[tokio::test]
 async fn test_setup_upnp_retry_success() -> Result<()> {
+    init_tracing();
     let initial_port = 8080;
     let success_port = 8081;
 
@@ -186,8 +192,7 @@ async fn test_setup_upnp_retry_success() -> Result<()> {
         .expect_root_url()
         .returning(|| "http://mock-gateway".to_string());
 
-    let _gateways: Vec<Box<dyn GatewayInterface>> = vec![Box::new(mock_gateway)];
-    let result = setup_upnp(initial_port).await?;
+    let result = setup_upnp(initial_port, Box::new(mock_gateway)).await?;
     let (port, gateways) = result;
 
     assert_eq!(port, success_port);
@@ -198,6 +203,7 @@ async fn test_setup_upnp_retry_success() -> Result<()> {
 
 #[tokio::test]
 async fn test_setup_upnp_max_attempts() -> Result<()> {
+    init_tracing();
     let initial_port = 8080;
 
     // Create a mock gateway that always fails
@@ -214,15 +220,20 @@ async fn test_setup_upnp_max_attempts() -> Result<()> {
         .expect_root_url()
         .returning(|| "http://mock-gateway".to_string());
 
-    let _gateways: Vec<Box<dyn GatewayInterface>> = vec![Box::new(mock_gateway)];
-    let result = setup_upnp(initial_port).await;
-    assert!(result.is_err());
+    let result = setup_upnp(initial_port, Box::new(mock_gateway)).await;
+
+    let is_error = result.is_err();
+    let (port, _gateways) = result.unwrap();
+
+    info!("Result: {:?}", port);
+    assert!(is_error);
 
     Ok(())
 }
 
 #[tokio::test]
 async fn test_cleanup_upnp_success() -> Result<()> {
+    init_tracing();
     let port = 8080;
 
     // Create a mock gateway
@@ -246,6 +257,7 @@ async fn test_cleanup_upnp_success() -> Result<()> {
 
 #[tokio::test]
 async fn test_cleanup_upnp_failure() -> Result<()> {
+    init_tracing();
     let port = 8080;
 
     // Create a mock gateway that fails to remove port

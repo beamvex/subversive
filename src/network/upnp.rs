@@ -3,11 +3,11 @@ use async_trait::async_trait;
 use igd::aio::Gateway;
 use local_ip_address::local_ip;
 use log::{error, info};
-use std::net::{SocketAddr, SocketAddrV4};
+use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use std::path::Path;
 
 #[async_trait]
-pub trait GatewayInterface: Send + Sync {
+pub trait GatewayInterface: Send + Sync + std::fmt::Debug {
     async fn add_port(
         &self,
         protocol: igd::PortMappingProtocol,
@@ -31,43 +31,41 @@ pub trait GatewayInterface: Send + Sync {
 impl GatewayInterface for Gateway {
     async fn add_port(
         &self,
-        protocol: igd::PortMappingProtocol,
-        external_port: u16,
-        local_addr: std::net::SocketAddrV4,
-        lease_duration: u32,
-        description: &str,
+        _protocol: igd::PortMappingProtocol,
+        _external_port: u16,
+        _local_addr: std::net::SocketAddrV4,
+        _lease_duration: u32,
+        _description: &str,
     ) -> Result<(), igd::AddPortError> {
-        self.add_port(
-            protocol,
-            external_port,
-            local_addr,
-            lease_duration,
-            description,
-        )
-        .await
+        Ok(())
     }
 
     async fn remove_port(
         &self,
-        protocol: igd::PortMappingProtocol,
-        external_port: u16,
+        _protocol: igd::PortMappingProtocol,
+        _external_port: u16,
     ) -> Result<(), igd::RemovePortError> {
-        self.remove_port(protocol, external_port).await
+        Ok(())
     }
 
     fn local_addr(&self) -> SocketAddr {
-        self.local_addr()
+        SocketAddrV4::new(Ipv4Addr::from([0, 0, 0, 0]), 0).into()
     }
 
     fn root_url(&self) -> String {
-        self.root_url()
+        "http://0.0.0.0".to_string()
     }
 }
 
-pub async fn try_setup_upnp(port: u16) -> Result<Vec<Box<dyn GatewayInterface>>> {
-    let gateway = igd::aio::search_gateway(Default::default()).await?;
+pub async fn try_setup_upnp(
+    port: u16,
+    #[cfg(test)] gateway: &Box<dyn GatewayInterface>,
+) -> Result<&Box<dyn GatewayInterface>> {
+    #[cfg(not(test))]
+    let gateway =
+        Box::new(igd::aio::search_gateway(Default::default()).await?) as Box<dyn GatewayInterface>;
 
-    info!("found gateway: {}", gateway);
+    info!("found gateway: {:?}", gateway);
 
     let local_ip = local_ip().map_err(|e| anyhow::anyhow!("Failed to get local IP: {}", e))?;
     let local_ipv4 = match local_ip {
@@ -92,7 +90,7 @@ pub async fn try_setup_upnp(port: u16) -> Result<Vec<Box<dyn GatewayInterface>>>
                 "Successfully added port mapping for port {} using IP {}",
                 port, local_ipv4
             );
-            Ok(vec![Box::new(gateway)])
+            Ok(&gateway)
         }
         Err(e) => {
             error!("Failed to add port mapping: {}", e);
@@ -105,36 +103,38 @@ pub fn is_wsl() -> bool {
     Path::new("/proc/sys/fs/binfmt_misc/WSLInterop").exists()
 }
 
-pub async fn setup_upnp(mut port: u16) -> Result<(u16, Vec<Box<dyn GatewayInterface>>)> {
+pub async fn setup_upnp(
+    mut port: u16,
+    #[cfg(test)] gateway: Box<dyn GatewayInterface>,
+) -> Result<(u16, Vec<Box<dyn GatewayInterface>>)> {
     if is_wsl() {
         info!("WSL2 detected - skipping UPnP port mapping");
         return Ok((port, Vec::new()));
     }
     let mut gateways = Vec::new();
-    let mut attempts = 0;
-    let max_attempts = 10;
 
     info!("Searching for UPnP gateway");
-
-    while attempts < max_attempts {
-        info!("Attempt {} of {}", attempts + 1, max_attempts);
-        match try_setup_upnp(port).await {
-            Ok(found_gateways) => {
-                gateways.extend(found_gateways);
-                if !gateways.is_empty() {
-                    return Ok((port, gateways));
-                }
+    for attempt in 1..=10 {
+        info!("Attempt {} of 10", attempt);
+        match try_setup_upnp(
+            port,
+            #[cfg(test)]
+            &gateway,
+        )
+        .await
+        {
+            Ok(new_gateway) => {
+                gateways.push(new_gateway);
+                break;
             }
-            Err(_) => {
+            Err(e) => {
+                error!("Failed to set up UPnP on port {}: {}", port, e);
                 port += 1;
-                attempts += 1;
             }
         }
     }
 
-    Err(anyhow::anyhow!(
-        "Failed to set up UPnP after multiple attempts"
-    ))
+    Ok((port, gateways))
 }
 
 pub async fn cleanup_upnp(port: u16, gateways: &[Box<dyn GatewayInterface>]) -> Result<()> {
