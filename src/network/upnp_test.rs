@@ -59,6 +59,48 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_setup_upnp_success() -> anyhow::Result<()> {
+        init_test_upnp();
+        let success_port = 8080;
+        let local_ipv4 = crate::network::local_ip::get_local_ipv4()?;
+
+        // Create a mock gateway that fails for the first port but succeeds for the second
+        let mut mock_gateway = MockIGateway::new();
+        mock_gateway
+            .expect_add_port()
+            .with(
+                eq(PortMappingProtocol::TCP),
+                eq(success_port),
+                eq(std::net::SocketAddrV4::new(local_ipv4, success_port)),
+                eq(0),
+                eq("P2P Network"),
+            )
+            .returning(|_, _, _, _, _| Ok(()));
+        mock_gateway
+            .expect_local_addr()
+            .returning(|| "127.0.0.1:0".parse().unwrap());
+        mock_gateway
+            .expect_root_url()
+            .returning(|| "http://mock-gateway".to_string());
+
+        let mg = Gateway2::Mock(Arc::new(mock_gateway));
+
+        // Create a mock gateway search
+        let mut mock_search = MockGatewaySearch::new();
+        mock_search
+            .expect_search_gateway()
+            .returning(move || Ok(mg.clone()));
+
+        let result = setup_upnp_with_search(success_port, mock_search).await?;
+        let (port, gateways) = result;
+
+        assert_eq!(port, success_port);
+        assert_eq!(gateways.len(), 1);
+
+        Ok(())
+    }
+
+    #[tokio::test]
     async fn test_cleanup_upnp_success() -> anyhow::Result<()> {
         init_test_upnp();
         let port = 8080;
