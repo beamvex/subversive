@@ -111,7 +111,7 @@ mod tests {
         init_test_upnp();
         let initial_port = 8080;
         let success_port = 8081;
-        let local_ipv4 = crate::network::sut::get_local_ipv4()?;
+        let local_ipv4 = crate::network::local_ip::get_local_ipv4()?;
 
         // Create a mock gateway that fails for the first port but succeeds for the second
         let mut mock_gateway = MockIGateway::new();
