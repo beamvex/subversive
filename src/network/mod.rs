@@ -3,6 +3,7 @@ pub mod dns;
 pub mod health;
 pub mod interfaces;
 pub mod peer;
+pub mod sut;
 pub mod upnp;
 
 #[cfg(test)]

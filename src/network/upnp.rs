@@ -170,16 +170,39 @@ impl GatewaySearch for DefaultGatewaySearch {
     }
 }
 
-pub async fn try_setup_upnp(_port: u16, gateway_search: impl GatewaySearch) -> Result<Gateway2> {
+pub async fn try_setup_upnp(port: u16, gateway_search: impl GatewaySearch) -> Result<Gateway2> {
     let gateway = gateway_search.search_gateway().await?;
+    let local_ipv4 = crate::network::sut::get_local_ipv4()?;
 
     info!("found gateway: {:?}", gateway.root_url());
 
-    Ok(gateway)
+    match gateway
+        .add_port(
+            igd::PortMappingProtocol::TCP,
+            port,
+            SocketAddrV4::new(local_ipv4, port),
+            0,
+            "P2P Network",
+        )
+        .await
+    {
+        Ok(()) => {
+            info!(
+                "Successfully added port mapping for port {} using IP {}",
+                port, local_ipv4
+            );
+            Ok(gateway)
+        }
+        Err(e) => {
+            error!("Failed to add port mapping: {}", e);
+            Err(anyhow::anyhow!("Failed to add port mapping: {}", e))
+        }
+    }
 }
 
 pub async fn setup_upnp(port: u16) -> Result<(u16, Vec<Gateway2>)> {
-    setup_upnp_with_search(port, DefaultGatewaySearch).await
+    let gateway_search = DefaultGatewaySearch;
+    setup_upnp_with_search(port, gateway_search).await
 }
 
 pub async fn setup_upnp_with_search(
