@@ -1,150 +1,212 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use igd::aio::Gateway;
-use local_ip_address::local_ip;
+use igd::PortMappingProtocol;
 use log::{error, info};
-use std::net::{SocketAddr, SocketAddrV4};
+use std::net::SocketAddrV4;
 use std::path::Path;
+#[cfg(test)]
+use std::sync::Arc;
 
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
-pub trait GatewayInterface: Send + Sync {
+pub trait IGateway: Send + Sync {
     async fn add_port(
         &self,
-        protocol: igd::PortMappingProtocol,
+        protocol: PortMappingProtocol,
         external_port: u16,
-        local_addr: std::net::SocketAddrV4,
+        internal_addr: SocketAddrV4,
         lease_duration: u32,
         description: &str,
-    ) -> Result<(), igd::AddPortError>;
+    ) -> Result<()>;
 
-    async fn remove_port(
-        &self,
-        protocol: igd::PortMappingProtocol,
-        external_port: u16,
-    ) -> Result<(), igd::RemovePortError>;
+    async fn remove_port(&self, protocol: PortMappingProtocol, external_port: u16) -> Result<()>;
 
-    fn local_addr(&self) -> SocketAddr;
     fn root_url(&self) -> String;
+
+    fn local_addr(&self) -> SocketAddrV4;
+}
+
+#[derive(Clone)]
+pub struct GatewayWrapper(Gateway);
+
+impl GatewayWrapper {
+    pub fn new(gateway: Gateway) -> Self {
+        Self(gateway)
+    }
+
+    pub fn root_url(&self) -> String {
+        self.0.root_url.to_string()
+    }
+
+    pub fn local_addr(&self) -> SocketAddrV4 {
+        self.0.addr
+    }
 }
 
 #[async_trait]
-impl GatewayInterface for Gateway {
+impl IGateway for GatewayWrapper {
     async fn add_port(
         &self,
-        protocol: igd::PortMappingProtocol,
+        protocol: PortMappingProtocol,
         external_port: u16,
-        local_addr: std::net::SocketAddrV4,
+        internal_addr: SocketAddrV4,
         lease_duration: u32,
         description: &str,
-    ) -> Result<(), igd::AddPortError> {
-        self.add_port(
-            protocol,
-            external_port,
-            local_addr,
-            lease_duration,
-            description,
-        )
-        .await
+    ) -> Result<()> {
+        Ok(self
+            .0
+            .add_port(
+                protocol,
+                external_port,
+                internal_addr,
+                lease_duration,
+                description,
+            )
+            .await?)
     }
 
-    async fn remove_port(
-        &self,
-        protocol: igd::PortMappingProtocol,
-        external_port: u16,
-    ) -> Result<(), igd::RemovePortError> {
-        self.remove_port(protocol, external_port).await
-    }
-
-    fn local_addr(&self) -> SocketAddr {
-        self.local_addr()
+    async fn remove_port(&self, protocol: PortMappingProtocol, external_port: u16) -> Result<()> {
+        Ok(self.0.remove_port(protocol, external_port).await?)
     }
 
     fn root_url(&self) -> String {
-        self.root_url()
+        self.0.root_url.to_string()
+    }
+
+    fn local_addr(&self) -> SocketAddrV4 {
+        self.0.addr
     }
 }
 
-pub async fn try_setup_upnp(port: u16) -> Result<Vec<Box<dyn GatewayInterface>>> {
-    let gateway = igd::aio::search_gateway(Default::default()).await?;
+#[cfg(test)]
+#[derive(Clone)]
+pub enum Gateway2 {
+    Real(GatewayWrapper),
+    Mock(Arc<MockIGateway>),
+}
 
-    info!("found gateway: {}", gateway);
+#[cfg(not(test))]
+#[derive(Clone)]
+pub enum Gateway2 {
+    Real(GatewayWrapper),
+}
 
-    let local_ip = local_ip().map_err(|e| anyhow::anyhow!("Failed to get local IP: {}", e))?;
-    let local_ipv4 = match local_ip {
-        std::net::IpAddr::V4(ip) => ip,
-        _ => return Err(anyhow::anyhow!("Local IP is not IPv4")),
-    };
-
-    info!("Found local IP: {}", local_ipv4);
-
-    match gateway
-        .add_port(
-            igd::PortMappingProtocol::TCP,
-            port,
-            SocketAddrV4::new(local_ipv4, port),
-            0,
-            "P2P Network",
-        )
-        .await
-    {
-        Ok(()) => {
-            info!(
-                "Successfully added port mapping for port {} using IP {}",
-                port, local_ipv4
-            );
-            Ok(vec![Box::new(gateway)])
+#[async_trait]
+impl IGateway for Gateway2 {
+    async fn add_port(
+        &self,
+        protocol: PortMappingProtocol,
+        external_port: u16,
+        internal_addr: SocketAddrV4,
+        lease_duration: u32,
+        description: &str,
+    ) -> Result<()> {
+        match self {
+            Gateway2::Real(g) => {
+                g.add_port(
+                    protocol,
+                    external_port,
+                    internal_addr,
+                    lease_duration,
+                    description,
+                )
+                .await
+            }
+            #[cfg(test)]
+            Gateway2::Mock(m) => {
+                m.add_port(
+                    protocol,
+                    external_port,
+                    internal_addr,
+                    lease_duration,
+                    description,
+                )
+                .await
+            }
         }
-        Err(e) => {
-            error!("Failed to add port mapping: {}", e);
-            Err(anyhow::anyhow!("Failed to add port mapping: {}", e))
+    }
+
+    async fn remove_port(&self, protocol: PortMappingProtocol, external_port: u16) -> Result<()> {
+        match self {
+            Gateway2::Real(g) => g.remove_port(protocol, external_port).await,
+            #[cfg(test)]
+            Gateway2::Mock(m) => m.remove_port(protocol, external_port).await,
+        }
+    }
+
+    fn root_url(&self) -> String {
+        match self {
+            Gateway2::Real(g) => g.root_url(),
+            #[cfg(test)]
+            Gateway2::Mock(m) => m.root_url(),
+        }
+    }
+
+    fn local_addr(&self) -> SocketAddrV4 {
+        match self {
+            Gateway2::Real(g) => g.local_addr(),
+            #[cfg(test)]
+            Gateway2::Mock(m) => m.local_addr(),
         }
     }
 }
 
-pub fn is_wsl() -> bool {
-    Path::new("/proc/sys/fs/binfmt_misc/WSLInterop").exists()
+#[cfg_attr(test, mockall::automock)]
+#[async_trait]
+pub trait GatewaySearch {
+    async fn search_gateway(&self) -> Result<Gateway2>;
 }
 
-pub async fn setup_upnp(mut port: u16) -> Result<(u16, Vec<Box<dyn GatewayInterface>>)> {
+pub struct DefaultGatewaySearch;
+
+#[async_trait]
+impl GatewaySearch for DefaultGatewaySearch {
+    async fn search_gateway(&self) -> Result<Gateway2> {
+        let gateway = igd::aio::search_gateway(Default::default()).await?;
+        Ok(Gateway2::Real(GatewayWrapper::new(gateway)))
+    }
+}
+
+pub async fn try_setup_upnp(_port: u16, gateway_search: impl GatewaySearch) -> Result<Gateway2> {
+    let gateway = gateway_search.search_gateway().await?;
+
+    info!("found gateway: {:?}", gateway.root_url());
+
+    Ok(gateway)
+}
+
+pub async fn setup_upnp(port: u16) -> Result<(u16, Vec<Gateway2>)> {
     if is_wsl() {
         info!("WSL2 detected - skipping UPnP port mapping");
         return Ok((port, Vec::new()));
     }
+
     let mut gateways = Vec::new();
-    let mut attempts = 0;
-    let max_attempts = 10;
 
-    info!("Searching for UPnP gateway");
-
-    while attempts < max_attempts {
-        info!("Attempt {} of {}", attempts + 1, max_attempts);
-        match try_setup_upnp(port).await {
-            Ok(found_gateways) => {
-                gateways.extend(found_gateways);
-                if !gateways.is_empty() {
-                    return Ok((port, gateways));
-                }
-            }
-            Err(_) => {
-                port += 1;
-                attempts += 1;
-            }
-        }
+    let gateway_search = DefaultGatewaySearch;
+    if let Ok(gateway) = try_setup_upnp(port, gateway_search).await {
+        gateways.push(gateway);
     }
 
-    Err(anyhow::anyhow!(
-        "Failed to set up UPnP after multiple attempts"
-    ))
+    Ok((port, gateways))
 }
 
-pub async fn cleanup_upnp(port: u16, gateways: &[Box<dyn GatewayInterface>]) -> Result<()> {
+pub async fn cleanup_upnp(port: u16, gateways: Vec<Gateway2>) -> Result<()> {
     for gateway in gateways {
         if let Err(e) = gateway
             .remove_port(igd::PortMappingProtocol::TCP, port)
             .await
         {
-            error!("Failed to remove port mapping: {}", e);
+            error!("failed to remove port mapping: {}", e);
         }
     }
     Ok(())
 }
+
+fn is_wsl() -> bool {
+    Path::new("/proc/sys/fs/binfmt_misc/WSLInterop").exists()
+}
+
+#[cfg(test)]
+pub use mockall::automock;

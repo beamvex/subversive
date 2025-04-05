@@ -31,7 +31,7 @@ async fn handle_health_check_result(
     }
 
     // In survival mode, if we have no peers and no gateways, shut down
-    if survival_mode && peers.is_empty() && shutdown_state.get_gateways().is_empty() {
+    if survival_mode && peers.is_empty() && shutdown_state.gateways().is_empty() {
         info!("No peers or gateways available in survival mode, shutting down");
         shutdown_state.initiate_shutdown();
     }
@@ -62,7 +62,7 @@ pub async fn check_peer_health(
     }
 
     // In survival mode, if we have no peers and no gateways, shut down
-    if survival_mode && peers.is_empty() && shutdown_state.get_gateways().is_empty() {
+    if survival_mode && peers.is_empty() && shutdown_state.gateways().is_empty() {
         info!("No peers or gateways available in survival mode, shutting down");
         shutdown_state.initiate_shutdown();
     }

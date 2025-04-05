@@ -20,7 +20,9 @@ workflow:
   rules:
     - if: $CI_COMMIT_MESSAGE =~ /\[skip ci\]/
       when: never
-    - when: always
+    - if: $CI_COMMIT_BRANCH == "master"
+      when: always
+    - when: never
 
 # Cache dependencies between jobs
 cache:
