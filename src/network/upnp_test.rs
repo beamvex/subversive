@@ -77,9 +77,6 @@ mod tests {
             )
             .returning(|_, _, _, _, _| Ok(()));
         mock_gateway
-            .expect_local_addr()
-            .returning(|| "127.0.0.1:0".parse().unwrap());
-        mock_gateway
             .expect_root_url()
             .returning(|| "http://mock-gateway".to_string());
 
@@ -112,9 +109,6 @@ mod tests {
             .with(eq(PortMappingProtocol::TCP), eq(port))
             .returning(|_, _| Ok(()));
         mock_gateway
-            .expect_local_addr()
-            .returning(|| "127.0.0.1:0".parse().unwrap());
-        mock_gateway
             .expect_root_url()
             .returning(|| "http://mock-gateway".to_string());
 
@@ -138,9 +132,7 @@ mod tests {
             )
             .into())
         });
-        mock_gateway
-            .expect_local_addr()
-            .returning(|| "127.0.0.1:0".parse().unwrap());
+
         mock_gateway
             .expect_root_url()
             .returning(|| "http://mock-gateway".to_string());

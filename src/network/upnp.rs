@@ -25,8 +25,6 @@ pub trait IGateway: Send + Sync {
     async fn remove_port(&self, protocol: PortMappingProtocol, external_port: u16) -> Result<()>;
 
     fn root_url(&self) -> String;
-
-    fn local_addr(&self) -> SocketAddrV4;
 }
 
 #[derive(Clone)]
@@ -39,10 +37,6 @@ impl GatewayWrapper {
 
     pub fn root_url(&self) -> String {
         self.0.root_url.to_string()
-    }
-
-    pub fn local_addr(&self) -> SocketAddrV4 {
-        self.0.addr
     }
 }
 
@@ -74,10 +68,6 @@ impl IGateway for GatewayWrapper {
 
     fn root_url(&self) -> String {
         self.0.root_url.to_string()
-    }
-
-    fn local_addr(&self) -> SocketAddrV4 {
-        self.0.addr
     }
 }
 
@@ -144,14 +134,6 @@ impl IGateway for Gateway2 {
             Gateway2::Mock(m) => m.root_url(),
         }
     }
-
-    fn local_addr(&self) -> SocketAddrV4 {
-        match self {
-            Gateway2::Real(g) => g.local_addr(),
-            #[cfg(test)]
-            Gateway2::Mock(m) => m.local_addr(),
-        }
-    }
 }
 
 #[cfg_attr(test, mockall::automock)]
@@ -165,8 +147,9 @@ pub struct DefaultGatewaySearch;
 #[async_trait]
 impl GatewaySearch for DefaultGatewaySearch {
     async fn search_gateway(&self) -> Result<Gateway2> {
-        let gateway = igd::aio::search_gateway(Default::default()).await?;
-        Ok(Gateway2::Real(GatewayWrapper::new(gateway)))
+        Ok(Gateway2::Real(GatewayWrapper::new(
+            igd::aio::search_gateway(Default::default()).await?,
+        )))
     }
 }
 
@@ -201,8 +184,7 @@ pub async fn try_setup_upnp(port: u16, gateway_search: impl GatewaySearch) -> Re
 }
 
 pub async fn setup_upnp(port: u16) -> Result<(u16, Vec<Gateway2>)> {
-    let gateway_search = DefaultGatewaySearch;
-    setup_upnp_with_search(port, gateway_search).await
+    setup_upnp_with_search(port, DefaultGatewaySearch).await
 }
 
 pub async fn setup_upnp_with_search(
