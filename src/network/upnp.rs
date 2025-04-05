@@ -5,10 +5,11 @@ use igd::PortMappingProtocol;
 use log::{error, info};
 use std::net::SocketAddrV4;
 use std::path::Path;
+use std::sync::Arc;
 
-#[cfg_attr(test, mockall::automock(mock_new = false))]
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
-pub trait IGateway: Send + Sync + Clone {
+pub trait IGateway: Send + Sync {
     async fn add_port(
         &self,
         protocol: PortMappingProtocol,
@@ -77,11 +78,17 @@ impl IGateway for GatewayWrapper {
     }
 }
 
+#[cfg(test)]
 #[derive(Clone)]
 pub enum Gateway2 {
     Real(GatewayWrapper),
-    #[cfg(test)]
-    Mock(MockIGateway),
+    Mock(Arc<MockIGateway>),
+}
+
+#[cfg(not(test))]
+#[derive(Clone)]
+pub enum Gateway2 {
+    Real(GatewayWrapper),
 }
 
 #[async_trait]
@@ -160,7 +167,7 @@ impl GatewaySearch for DefaultGatewaySearch {
     }
 }
 
-pub async fn try_setup_upnp(port: u16, gateway_search: impl GatewaySearch) -> Result<Gateway2> {
+pub async fn try_setup_upnp(_port: u16, gateway_search: impl GatewaySearch) -> Result<Gateway2> {
     let gateway = gateway_search.search_gateway().await?;
 
     info!("found gateway: {:?}", gateway.root_url());
@@ -174,13 +181,11 @@ pub async fn setup_upnp(port: u16) -> Result<(u16, Vec<Gateway2>)> {
         return Ok((port, Vec::new()));
     }
 
-    let gateways = Vec::new();
+    let mut gateways = Vec::new();
 
     let gateway_search = DefaultGatewaySearch;
     if let Ok(gateway) = try_setup_upnp(port, gateway_search).await {
-        let mut gateways = Vec::new();
         gateways.push(gateway);
-        return Ok((port, gateways));
     }
 
     Ok((port, gateways))

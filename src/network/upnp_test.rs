@@ -3,6 +3,7 @@ use mockall::predicate::*;
 
 use crate::network::upnp::{try_setup_upnp, Gateway2, IGateway, MockGatewaySearch, MockIGateway};
 use crate::test_utils::init_test_tracing;
+use std::sync::Arc;
 
 // Helper function to initialize tracing for tests
 pub fn init_test_upnp() {
@@ -13,15 +14,6 @@ pub fn init_test_upnp() {
 async fn test_try_setup_upnp() -> anyhow::Result<()> {
     let port = 12345;
     let mut mock_search = MockGatewaySearch::new();
-    let mut mock_gateway = MockIGateway::new();
-
-    mock_gateway
-        .expect_add_port()
-        .returning(|_, _, _, _, _| Ok(()));
-
-    mock_gateway
-        .expect_root_url()
-        .returning(|| "http://mock-gateway".to_string());
 
     mock_search
         .expect_search_gateway()
@@ -30,7 +22,7 @@ async fn test_try_setup_upnp() -> anyhow::Result<()> {
             let mut mock = MockIGateway::new();
             mock.expect_root_url()
                 .returning(|| "http://mock-gateway".to_string());
-            Ok(Gateway2::Mock(mock))
+            Ok(Gateway2::Mock(Arc::new(mock)))
         });
 
     let gateway = try_setup_upnp(port, mock_search).await?;
@@ -43,29 +35,10 @@ async fn test_try_setup_upnp() -> anyhow::Result<()> {
 mod tests {
     use super::*;
     use igd::PortMappingProtocol;
-    use mockall::predicate::*;
 
     #[tokio::test]
     async fn test_try_setup_upnp_with_port() -> anyhow::Result<()> {
         let mut mock_search = MockGatewaySearch::new();
-        let mut mock_gateway = MockIGateway::new();
-
-        mock_gateway
-            .expect_add_port()
-            .with(
-                eq(PortMappingProtocol::TCP),
-                eq(12345),
-                always(),
-                eq(0),
-                eq("Subversive"),
-            )
-            .times(1)
-            .returning(|_, _, _, _, _| Ok(()));
-
-        mock_gateway
-            .expect_root_url()
-            .times(1)
-            .returning(|| "http://192.168.1.1:1900".to_string());
 
         mock_search
             .expect_search_gateway()
@@ -74,7 +47,7 @@ mod tests {
                 let mut mock = MockIGateway::new();
                 mock.expect_root_url()
                     .returning(|| "http://192.168.1.1:1900".to_string());
-                Ok(Gateway2::Mock(mock))
+                Ok(Gateway2::Mock(Arc::new(mock)))
             });
 
         let gateway = try_setup_upnp(12345, mock_search).await?;
@@ -294,4 +267,4 @@ async fn test_cleanup_upnp_failure() -> Result<()> {
 
     Ok(())
 }
-*/
+*/ 

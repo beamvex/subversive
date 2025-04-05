@@ -19,7 +19,6 @@ pub mod upnp_test;
 use discovery::get_external_ip;
 use dns::reverse_lookup;
 
-use igd::aio::Gateway;
 use crate::network::upnp::Gateway2;
 
 pub use peer::broadcast_to_peers;
@@ -28,8 +27,6 @@ pub use upnp::cleanup_upnp;
 use anyhow::Result;
 
 use crate::types::config::Config;
-
-use tracing::info;
 
 /// Set up network connectivity including external IP discovery and UPnP port mapping
 ///
