@@ -7,6 +7,8 @@ use std::net::SocketAddrV4;
 use std::path::Path;
 #[cfg(test)]
 use std::sync::Arc;
+use std::sync::OnceLock;
+use tokio::sync::Mutex;
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
@@ -168,23 +170,52 @@ impl GatewaySearch for DefaultGatewaySearch {
     }
 }
 
-pub async fn try_setup_upnp(_port: u16, gateway_search: impl GatewaySearch) -> Result<Gateway2> {
+pub async fn try_setup_upnp(port: u16, gateway_search: impl GatewaySearch) -> Result<Gateway2> {
     let gateway = gateway_search.search_gateway().await?;
+    let local_ipv4 = crate::network::local_ip::get_local_ipv4()?;
 
     info!("found gateway: {:?}", gateway.root_url());
 
-    Ok(gateway)
+    match gateway
+        .add_port(
+            igd::PortMappingProtocol::TCP,
+            port,
+            SocketAddrV4::new(local_ipv4, port),
+            0,
+            "P2P Network",
+        )
+        .await
+    {
+        Ok(()) => {
+            info!(
+                "Successfully added port mapping for port {} using IP {}",
+                port, local_ipv4
+            );
+            Ok(gateway)
+        }
+        Err(e) => {
+            error!("Failed to add port mapping: {}", e);
+            Err(anyhow::anyhow!("Failed to add port mapping: {}", e))
+        }
+    }
 }
 
 pub async fn setup_upnp(port: u16) -> Result<(u16, Vec<Gateway2>)> {
-    if is_wsl() {
+    let gateway_search = DefaultGatewaySearch;
+    setup_upnp_with_search(port, gateway_search).await
+}
+
+pub async fn setup_upnp_with_search(
+    port: u16,
+    gateway_search: impl GatewaySearch,
+) -> Result<(u16, Vec<Gateway2>)> {
+    if is_wsl().await {
         info!("WSL2 detected - skipping UPnP port mapping");
         return Ok((port, Vec::new()));
     }
 
     let mut gateways = Vec::new();
 
-    let gateway_search = DefaultGatewaySearch;
     if let Ok(gateway) = try_setup_upnp(port, gateway_search).await {
         gateways.push(gateway);
     }
@@ -204,8 +235,29 @@ pub async fn cleanup_upnp(port: u16, gateways: Vec<Gateway2>) -> Result<()> {
     Ok(())
 }
 
-fn is_wsl() -> bool {
-    Path::new("/proc/sys/fs/binfmt_misc/WSLInterop").exists()
+static WSL_PATH: OnceLock<Mutex<String>> = OnceLock::new();
+
+/// Initialize the WSL_PATH Mutex with the default path
+async fn init_wsl_path() -> &'static Mutex<String> {
+    let path =
+        WSL_PATH.get_or_init(|| Mutex::new("/proc/sys/fs/binfmt_misc/WSLInterop".to_string()));
+    info!("init WSL path: {}", path.lock().await.as_str());
+    path
+}
+
+/// Set a custom path for WSL detection (used for testing)
+#[cfg(test)]
+pub async fn set_wsl_path(path: &str) -> tokio::sync::MutexGuard<'_, String> {
+    info!("set WSL path: {}", path);
+    let mut guard = init_wsl_path().await.lock().await;
+    *guard = path.to_string();
+    guard
+}
+
+async fn is_wsl() -> bool {
+    let path = init_wsl_path().await.lock().await;
+    info!("WSL path: {}", path.as_str());
+    Path::new(path.as_str()).exists()
 }
 
 #[cfg(test)]
