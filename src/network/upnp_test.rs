@@ -1,5 +1,6 @@
 use crate::network::upnp::{try_setup_upnp, Gateway2, IGateway, MockGatewaySearch, MockIGateway};
 use crate::test_utils::init_test_tracing;
+use std::net::Ipv4Addr;
 use std::sync::Arc;
 
 // Helper function to initialize tracing for tests
@@ -53,26 +54,19 @@ mod tests {
     }
 }
 
-/*
 #[tokio::test]
-async fn test_try_setup_upnp_failure() -> Result<()> {
-    init_tracing();
+async fn test_try_setup_upnp_failure() -> anyhow::Result<()> {
+    init_test_tracing();
     let port = 8080;
     let _local_ip = Ipv4Addr::new(192, 168, 1, 100);
 
-    // Create a mock gateway search
-    let mut mock_search = MockGatewaySearch::new();
-    mock_search
-        .expect_search_gateway()
-        .times(1)
-        .returning(|| Ok(Gateway::new()));
-
     // Create a mock gateway that fails to add port
-    let mut mock_gateway = MockTestGateway::new();
+    let mut mock_gateway = MockIGateway::new();
     mock_gateway.expect_add_port().returning(|_, _, _, _, _| {
         Err(igd::AddPortError::RequestError(
             std::io::Error::new(std::io::ErrorKind::Other, "Failed to add port").into(),
-        ))
+        )
+        .into())
     });
     mock_gateway
         .expect_local_addr()
@@ -81,12 +75,22 @@ async fn test_try_setup_upnp_failure() -> Result<()> {
         .expect_root_url()
         .returning(|| "http://mock-gateway".to_string());
 
+    let mg = Gateway2::Mock(Arc::new(mock_gateway));
+
+    // Create a mock gateway search
+    let mut mock_search = MockGatewaySearch::new();
+    mock_search
+        .expect_search_gateway()
+        .times(1)
+        .returning(move || Ok(mg.clone()));
+
     let result = try_setup_upnp(port, mock_search).await;
     assert!(result.is_err());
 
     Ok(())
 }
 
+/*
 #[tokio::test]
 async fn test_setup_upnp_wsl() -> Result<()> {
     init_tracing();
