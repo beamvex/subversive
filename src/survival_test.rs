@@ -6,7 +6,6 @@ mod tests {
 
     use crate::{
         db::DbContext,
-        network::upnp::Gateway2,
         shutdown::ShutdownState,
         survival::{check_survival_status, start_survival_mode},
         types::{config::Config, health::PeerHealth, state::AppState},

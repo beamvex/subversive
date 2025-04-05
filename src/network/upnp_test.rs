@@ -1,6 +1,3 @@
-use anyhow::Result;
-use mockall::predicate::*;
-
 use crate::network::upnp::{try_setup_upnp, Gateway2, IGateway, MockGatewaySearch, MockIGateway};
 use crate::test_utils::init_test_tracing;
 use std::sync::Arc;
@@ -34,7 +31,6 @@ async fn test_try_setup_upnp() -> anyhow::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use igd::PortMappingProtocol;
 
     #[tokio::test]
     async fn test_try_setup_upnp_with_port() -> anyhow::Result<()> {
@@ -267,4 +263,4 @@ async fn test_cleanup_upnp_failure() -> Result<()> {
 
     Ok(())
 }
-*/ 
+*/

@@ -5,6 +5,7 @@ use igd::PortMappingProtocol;
 use log::{error, info};
 use std::net::SocketAddrV4;
 use std::path::Path;
+#[cfg(test)]
 use std::sync::Arc;
 
 #[cfg_attr(test, mockall::automock)]
