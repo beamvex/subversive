@@ -1,6 +1,6 @@
 use crate::network;
+use crate::network::upnp::Gateway2;
 use anyhow::Result;
-use igd::aio::Gateway;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tokio::task::JoinHandle;
@@ -11,14 +11,14 @@ pub struct ShutdownState {
     /// Port that the server is listening on
     port: u16,
     /// Gateway addresses
-    gateways: Arc<Vec<Gateway>>,
+    gateways: Arc<Vec<Gateway2>>,
     /// Whether shutdown has been initiated
     shutdown_initiated: Arc<AtomicBool>,
 }
 
 impl ShutdownState {
     /// Create a new shutdown state
-    pub fn new(port: u16, gateways: Vec<Gateway>) -> Self {
+    pub fn new(port: u16, gateways: Vec<Gateway2>) -> Self {
         Self {
             port,
             gateways: Arc::new(gateways),
@@ -32,8 +32,13 @@ impl ShutdownState {
     }
 
     /// Get the gateways
-    pub fn get_gateways(&self) -> Vec<Gateway> {
-        (&self.gateways).to_vec()
+    pub fn gateways(&self) -> Arc<Vec<Gateway2>> {
+        self.gateways.clone()
+    }
+
+    /// Get the shutdown initiated state
+    pub fn shutdown_initiated(&self) -> Arc<AtomicBool> {
+        self.shutdown_initiated.clone()
     }
 
     /// Initiate shutdown
@@ -49,7 +54,7 @@ impl ShutdownState {
     /// Clean up UPnP mappings and exit
     pub async fn shutdown(&self) {
         info!("Cleaning up UPnP mappings...");
-        if let Err(e) = network::cleanup_upnp(self.port, (&self.gateways).to_vec()).await {
+        if let Err(e) = network::upnp::cleanup_upnp(self.port, (*self.gateways).clone()).await {
             error!("Failed to clean up UPnP mappings: {}", e);
         }
         #[cfg(not(test))]
@@ -93,8 +98,8 @@ impl Clone for ShutdownState {
     fn clone(&self) -> Self {
         Self {
             port: self.port,
-            gateways: self.gateways.clone(),
-            shutdown_initiated: self.shutdown_initiated.clone(),
+            gateways: Arc::clone(&self.gateways),
+            shutdown_initiated: Arc::clone(&self.shutdown_initiated),
         }
     }
 }

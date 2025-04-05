@@ -20,6 +20,8 @@ use discovery::get_external_ip;
 use dns::reverse_lookup;
 
 use igd::aio::Gateway;
+use crate::network::upnp::Gateway2;
+
 pub use peer::broadcast_to_peers;
 pub use upnp::cleanup_upnp;
 
@@ -40,21 +42,20 @@ use tracing::info;
 /// * The actual port being used (may be different from requested if UPnP mapping fails)
 /// * The list of discovered UPnP gateways
 /// * The full address string in the format "<hostname>:<actual_port>"
-pub async fn setup_network(port: u16, config: &Config) -> Result<(u16, Vec<Gateway>, String)> {
+pub async fn setup_network(port: u16, config: &Config) -> Result<(u16, Vec<Gateway2>, String)> {
     // Get external IP and resolve hostname
     let host = config.get_hostname().unwrap_or_default();
     let own_address = format!("{}:{}", host, port);
-    info!("Server listening on internet endpoint: {}", own_address);
-
-    // Set up UPnP port mapping
 
     let (actual_port, gateways) = upnp::setup_upnp(port).await?;
-    info!("Using port {}", actual_port);
 
-    // After UPnP setup
     Ok((actual_port, gateways, own_address))
 }
 
 pub async fn get_hostname() -> Result<String> {
     reverse_lookup(&get_external_ip().await?).await
+}
+
+pub async fn cleanup_network(port: u16, gateways: Vec<Gateway2>) -> Result<()> {
+    upnp::cleanup_upnp(port, gateways).await
 }
