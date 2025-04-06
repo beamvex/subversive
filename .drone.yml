@@ -12,22 +12,22 @@ steps:
       # Install tarpaulin with specific version for stability
       - cargo install --target-dir /tmp/cargo --version 0.32.3 cargo-tarpaulin
       ## Run tarpaulin with better configuration
-      #- >
-      #  cargo tarpaulin
-      #  --all-features
-      #  --workspace
-      #  --timeout 120
-      #  --out Html
-      #  --out Xml
-      #  --out Json
-      #  --output-dir coverage
-      #  --fail-under 70
-      #  --exclude-files 'tests/*'
-      #  --exclude-files 'examples/*'
-      #  --exclude-files '**/*_test.rs'
-      #  --engine llvm || FAILED=true
-      - touch /tmp/cargo/duffinmuffin
-      - ls -ltrha
+      - >
+        cargo tarpaulin
+        --all-features
+        --workspace
+        --timeout 120
+        --out Html
+        --out Xml
+        --out Json
+        --output-dir coverage
+        --fail-under 70
+        --exclude-files 'tests/*'
+        --exclude-files 'examples/*'
+        --exclude-files '**/*_test.rs'
+        --engine llvm 
+        --target-dir /tmp/cargo || FAILED=true
+
     volumes:
       - name: cache-coverage
         path: /tmp/cargo
