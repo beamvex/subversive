@@ -26,7 +26,7 @@ steps:
         --exclude-files 'examples/*'
         --exclude-files '**/*_test.rs'
         --engine llvm || FAILED=true
-      - ls -ltrh
+      - ls -ltrha
     volumes:
       - name: cache-coverage
         path: /drone/src/.cargo
