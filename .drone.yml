@@ -6,8 +6,6 @@ steps:
   - name: coverage
     image: rust:1.85.1-slim
     commands:
-      - pwd
-      - find .
       - rustc --version
       - cargo --version
       - apt-get update && apt-get install -y libssl-dev pkg-config lld jq
@@ -28,3 +26,11 @@ steps:
         --exclude-files 'examples/*'
         --exclude-files '**/*_test.rs'
         --engine llvm || FAILED=true
+    volumes:
+      - name: coverage-cache
+        path: /drone/src/.cargo
+
+volumes:
+  - name: coverage-cache
+    host:
+      path: /tmp/coverage-cache
