@@ -6,6 +6,8 @@ steps:
   - name: coverage
     image: rust:1.85.1-slim
     commands:
+      - pwd
+      - find .
       - rustc --version
       - cargo --version
       - apt-get update && apt-get install -y libssl-dev pkg-config lld jq
