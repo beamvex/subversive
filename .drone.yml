@@ -27,10 +27,9 @@ steps:
         --exclude-files '**/*_test.rs'
         --engine llvm || FAILED=true
     volumes:
-      - name: coverage-cache
+      - name: cache
         path: /drone/src/.cargo
 
 volumes:
-  - name: coverage-cache
-    host:
-      path: /tmp/coverage-cache
+  - name: cache
+    temp: {}
