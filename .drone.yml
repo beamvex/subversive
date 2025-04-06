@@ -10,7 +10,7 @@ steps:
       - cargo --version
       - apt-get update && apt-get install -y libssl-dev pkg-config lld jq
       # Install tarpaulin with specific version for stability
-      #- cargo install --version 0.32.3 cargo-tarpaulin
+      - cargo install --target-dir /tmp/cargo --version 0.32.3 cargo-tarpaulin
       ## Run tarpaulin with better configuration
       #- >
       #  cargo tarpaulin
