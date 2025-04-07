@@ -40,13 +40,14 @@ steps:
       source: coverage/**/*
       target: /${DRONE_REPO_NAME}/${DRONE_BUILD_NUMBER}
       path_style: true
-      endpoint: http://minio:9000
+      endpoint:
+        from_secret: minio_endpoint
       access_key:
         from_secret: minio_access_key
       secret_key:
         from_secret: minio_secret_key
 
-volumes: 
+volumes:
   - name: cache-coverage
     host:
       path: /tmp/cache-coverage
