@@ -26,13 +26,14 @@ steps:
         --exclude-files 'examples/*'
         --exclude-files '**/*_test.rs'
         --engine llvm 
+        --skip-clean
         --target-dir /tmp/cargo || FAILED=true
 
     volumes:
       - name: cache-coverage
         path: /tmp/cargo
 
-volumes:
+volumes: 
   - name: cache-coverage
     host:
       path: /tmp/cache-coverage
