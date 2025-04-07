@@ -33,6 +33,19 @@ steps:
       - name: cache-coverage
         path: /tmp/cargo
 
+  - name: publish-coverage
+    image: plugins/s3
+    settings:
+      bucket: coverage
+      source: coverage/**/*
+      target: /${DRONE_REPO_NAME}/${DRONE_BUILD_NUMBER}
+      path_style: true
+      endpoint: http://minio:9000
+      access_key:
+        from_secret: minio_access_key
+      secret_key:
+        from_secret: minio_secret_key
+
 volumes: 
   - name: cache-coverage
     host:
