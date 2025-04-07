@@ -22,7 +22,10 @@ mod tests {
     #[test]
     fn test_get_local_ipv4() -> Result<()> {
         let ip = get_local_ipv4()?;
-        assert!(ip.is_private() || ip.is_loopback(), "Local IP should be private or loopback");
+        assert!(
+            ip.is_private() || ip.is_loopback(),
+            "Local IP should be private or loopback"
+        );
         Ok(())
     }
 }

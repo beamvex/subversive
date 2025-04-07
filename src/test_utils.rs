@@ -1,4 +1,4 @@
-use tracing::{Level};
+use tracing::Level;
 use tracing_subscriber::fmt::format::FmtSpan;
 
 /// Initialize tracing for tests with debug level output
