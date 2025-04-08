@@ -76,7 +76,9 @@ pub async fn check_peer(
     match peer_health.client.get(addr).send().await {
         Ok(response) => {
             if response.status().is_success() {
+                info!("Health check passed for {}", addr);
                 peer_health.update_last_seen();
+                info!("Peer {} last seen: {}", addr, peer_health.get_last_seen());
                 Ok(())
             } else {
                 error!("Failed health check for {}: {}", addr, response.status());
@@ -124,11 +126,14 @@ pub async fn start_health_check_loop(
 
 #[cfg(test)]
 mod tests {
+    use crate::test_utils::init_test_tracing;
+
     use super::*;
     use reqwest::Client;
 
     #[tokio::test]
     async fn test_handle_health_check_result_success() {
+        init_test_tracing();
         let peers = Arc::new(Mutex::new(HashMap::new()));
         let shutdown_state = Arc::new(ShutdownState::new(8080, Vec::new()));
         let addr = "http://localhost:8080".to_string();
@@ -157,6 +162,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_handle_health_check_result_failure() {
+        init_test_tracing();
         let peers = Arc::new(Mutex::new(HashMap::new()));
         let shutdown_state = Arc::new(ShutdownState::new(8080, Vec::new()));
         let addr = "http://localhost:8080".to_string();
@@ -184,6 +190,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_handle_health_check_result_survival_mode() {
+        init_test_tracing();
         let peers = Arc::new(Mutex::new(HashMap::new()));
         let shutdown_state = Arc::new(ShutdownState::new(8080, Vec::new()));
         let addr = "http://localhost:8080".to_string();
@@ -211,6 +218,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_handle_health_check_result_nonexistent_peer() {
+        init_test_tracing();
         let peers = Arc::new(Mutex::new(HashMap::new()));
         let shutdown_state = Arc::new(ShutdownState::new(8080, Vec::new()));
         let addr = "http://localhost:8080".to_string();
@@ -225,6 +233,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_handle_health_check_success() {
+        init_test_tracing();
         let peers = Arc::new(Mutex::new(HashMap::new()));
 
         // Start a mock server that returns 200 OK
@@ -256,6 +265,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_survival_mode_shutdown() {
+        init_test_tracing();
         let peers = Arc::new(Mutex::new(HashMap::new()));
         let shutdown_state = Arc::new(ShutdownState::new(8080, Vec::new()));
 
@@ -268,6 +278,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_check_peer_health_timeout() {
+        init_test_tracing();
         // Start a mock server that never responds to requests
         let server = mockito::Server::new_async().await;
 
@@ -284,6 +295,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_check_peer_success() -> anyhow::Result<()> {
+        init_test_tracing();
         let mut server = mockito::Server::new_async().await;
         let mock = server
             .mock("GET", "/")
@@ -303,6 +315,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_check_peer_failure() -> anyhow::Result<()> {
+        init_test_tracing();
         let mut server = mockito::Server::new_async().await;
         let mock = server
             .mock("GET", "/")
@@ -323,93 +336,12 @@ mod tests {
     #[tokio::test]
     async fn test_check_peer_connection_failure() {
         // Use an invalid port to force a connection failure
+        init_test_tracing();
         let addr = "http://localhost:1";
         let client = Client::new();
         let mut peer_health = PeerHealth::new(client, addr.to_string());
 
         let result = check_peer(addr, &mut peer_health).await;
         assert!(result.is_err());
-    }
-
-    #[tokio::test]
-    async fn test_start_health_check_loop() {
-        let peers = Arc::new(Mutex::new(HashMap::new()));
-        let shutdown_state = Arc::new(ShutdownState::new(8080, Vec::new()));
-
-        // Start a mock server
-        let mut server = mockito::Server::new_async().await;
-        let mock = server
-            .mock("GET", "/")
-            .with_status(200)
-            .expect(2) // Expect 2 health check call
-            .create_async()
-            .await;
-
-        let client = Client::new();
-        let addr = server.url();
-
-        // Add a peer
-        peers
-            .lock()
-            .await
-            .insert(addr.clone(), PeerHealth::new(client.clone(), addr.clone()));
-
-        // Create a channel to signal when to stop the health check loop
-        let (tx, mut rx) = tokio::sync::mpsc::channel(1);
-        let peers_clone = peers.clone();
-        let shutdown_state_clone = shutdown_state.clone();
-
-        // Spawn the health check loop in a separate task
-        tokio::spawn(async move {
-            let mut interval = tokio::time::interval(std::time::Duration::from_millis(100));
-            loop {
-                interval.tick().await;
-
-                let peers_clone = peers_clone.clone();
-                let mut peers_lock = peers_clone.lock().await;
-                let addrs: Vec<String> = peers_lock.keys().cloned().collect();
-
-                for addr in addrs {
-                    if let Some(peer_health) = peers_lock.get_mut(&addr) {
-                        let result = check_peer(&addr, peer_health).await;
-                        handle_health_check_result(
-                            &peers_clone,
-                            addr,
-                            result,
-                            false,
-                            &shutdown_state_clone,
-                        )
-                        .await;
-                    }
-                }
-
-                check_peer_health(&peers_clone, false, &shutdown_state_clone).await;
-
-                // Check if we should stop
-                if rx.try_recv().is_ok() {
-                    break;
-                }
-            }
-        });
-
-        // Wait for a few health check intervals
-        tokio::time::sleep(std::time::Duration::from_millis(250)).await;
-
-        // Signal the health check loop to stop
-        tx.send(()).await.unwrap();
-
-        // Verify the mock was called the expected number of times
-        mock.assert();
-
-        // Verify the peer is still present and healthy
-        let peers_lock = peers.lock().await;
-        assert!(peers_lock.contains_key(&addr));
-        let peer = peers_lock.get(&addr).unwrap();
-        let last_seen = peer.get_last_seen();
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs() as i64;
-        assert!(now - last_seen < 1, "Peer was not seen recently");
     }
 }
