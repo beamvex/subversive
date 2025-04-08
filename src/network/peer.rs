@@ -154,7 +154,9 @@ pub async fn remove_peer(app_state: Arc<AppState>, peer_addr: String) {
 
 /// Update a peer's last seen timestamp
 pub async fn update_peer_last_seen(app_state: Arc<AppState>, peer_addr: String) {
+    info!("Updating last seen for peer: {}", peer_addr);
     let mut peers = app_state.peers.lock().await;
+    info!("Peers: {:?}", peers);
     if let Some(peer_health) = peers.get_mut(&peer_addr) {
         peer_health.update_last_seen();
         debug!("Updated last seen for peer: {}", peer_addr);
