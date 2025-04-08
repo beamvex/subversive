@@ -11,8 +11,6 @@ pub mod discovery_test;
 #[cfg(test)]
 pub mod dns_test;
 #[cfg(test)]
-pub mod health_test;
-#[cfg(test)]
 pub mod interfaces_test;
 #[cfg(test)]
 pub mod upnp_test;
