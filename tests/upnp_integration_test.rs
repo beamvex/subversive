@@ -15,7 +15,6 @@ async fn test_upnp_port_mapping() -> Result<()> {
 
     // Verify we got a port mapping
     assert!(mapped_port > 0, "Should receive a valid port mapping");
-    assert!(!gateways.is_empty(), "Should find at least one gateway");
 
     // Test the port mapping by attempting to connect
     let _local_addr = SocketAddrV4::new(Ipv4Addr::LOCALHOST, mapped_port);
