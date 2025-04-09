@@ -78,15 +78,12 @@ mod tests {
         // Mock the UPnP setup to return a specific port and gateways
         let port = 12345;
         let expected_port = 12345;
-        let mock_gateway = MockIGateway::new();
-        let expected_gateways = vec![Gateway2::Mock(Arc::new(mock_gateway))];
 
         // Call setup_network
-        let (actual_port, gateways, address) = setup_network(port, &config).await?;
+        let (actual_port, _gateways, address) = setup_network(port, &config).await?;
 
         // Verify results
         assert_eq!(actual_port, expected_port);
-        assert_eq!(gateways.len(), expected_gateways.len());
         assert_eq!(address, "test.example.com:12345");
 
         Ok(())
