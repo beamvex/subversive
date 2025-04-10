@@ -12,8 +12,6 @@ pub mod discovery_test;
 pub mod dns_test;
 #[cfg(test)]
 pub mod interfaces_test;
-#[cfg(test)]
-pub mod upnp_test;
 
 use discovery::get_external_ip;
 use dns::reverse_lookup;

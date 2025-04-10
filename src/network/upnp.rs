@@ -244,3 +244,233 @@ async fn is_wsl() -> bool {
 
 #[cfg(test)]
 pub use mockall::automock;
+
+#[cfg(test)]
+mod tests {
+    use crate::network::cleanup_upnp;
+
+    #[cfg(test)]
+    use mockall::predicate::*;
+
+    use std::sync::Arc;
+
+    use tracing::info;
+
+    use crate::network::upnp::{
+        set_wsl_path, setup_upnp_with_search, try_setup_upnp, DefaultGatewaySearch, Gateway2,
+        GatewayWrapper, IGateway, MockGatewaySearch, MockIGateway,
+    };
+    use crate::test_utils::init_test_tracing;
+    use igd::PortMappingProtocol;
+
+    pub fn init_test_upnp() {
+        init_test_tracing();
+    }
+
+    #[tokio::test]
+    async fn test_try_setup_upnp() -> anyhow::Result<()> {
+        let port = 12345;
+        let mut mock_search = MockGatewaySearch::new();
+
+        mock_search
+            .expect_search_gateway()
+            .times(1)
+            .returning(move || {
+                let mut mock = MockIGateway::new();
+                mock.expect_root_url()
+                    .returning(|| "http://mock-gateway".to_string());
+                mock.expect_add_port().returning(|_, _, _, _, _| Ok(()));
+                Ok(Gateway2::Mock(Arc::new(mock)))
+            });
+
+        let gateway = try_setup_upnp(port, mock_search).await?;
+        assert_eq!(gateway.root_url(), "http://mock-gateway");
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_setup_upnp_wsl() -> anyhow::Result<()> {
+        init_test_upnp();
+        // Create a temporary file to simulate WSL environment
+        let temp_dir = tempfile::tempdir()?;
+        let wsl_path = temp_dir.path().join("WSLInterop");
+        std::fs::write(&wsl_path, "")?;
+
+        info!("WSL2 temp file {}", wsl_path.display());
+
+        let _ = set_wsl_path(wsl_path.display().to_string().as_str()).await;
+
+        let result = setup_upnp_with_search(8080, DefaultGatewaySearch).await?;
+        assert_eq!(result.1.len(), 0);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_setup_upnp_success() -> anyhow::Result<()> {
+        init_test_upnp();
+        let success_port = 8080;
+        let local_ipv4 = crate::network::local_ip::get_local_ipv4()?;
+
+        // Create a mock gateway that fails for the first port but succeeds for the second
+        let mut mock_gateway = MockIGateway::new();
+        mock_gateway
+            .expect_add_port()
+            .with(
+                eq(PortMappingProtocol::TCP),
+                eq(success_port),
+                eq(std::net::SocketAddrV4::new(local_ipv4, success_port)),
+                eq(0),
+                eq("P2P Network"),
+            )
+            .returning(|_, _, _, _, _| Ok(()));
+        mock_gateway
+            .expect_root_url()
+            .returning(|| "http://mock-gateway".to_string());
+
+        let mg = Gateway2::Mock(Arc::new(mock_gateway));
+
+        // Create a mock gateway search
+        let mut mock_search = MockGatewaySearch::new();
+        mock_search
+            .expect_search_gateway()
+            .returning(move || Ok(mg.clone()));
+
+        let result = setup_upnp_with_search(success_port, mock_search).await?;
+        let (port, gateways) = result;
+
+        assert_eq!(port, success_port);
+        assert_eq!(gateways.len(), 1);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_cleanup_upnp_success() -> anyhow::Result<()> {
+        init_test_upnp();
+        let port = 8080;
+
+        // Create a mock gateway
+        let mut mock_gateway = MockIGateway::new();
+        mock_gateway
+            .expect_remove_port()
+            .with(eq(PortMappingProtocol::TCP), eq(port))
+            .returning(|_, _| Ok(()));
+        mock_gateway
+            .expect_root_url()
+            .returning(|| "http://mock-gateway".to_string());
+
+        // Cleanup should succeed even if removing port fails
+        let gateways = vec![Gateway2::Mock(Arc::new(mock_gateway))];
+        cleanup_upnp(port, gateways).await?;
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_cleanup_upnp_failure() -> anyhow::Result<()> {
+        init_test_upnp();
+        let port = 8080;
+
+        // Create a mock gateway that fails to remove port
+        let mut mock_gateway = MockIGateway::new();
+        mock_gateway.expect_remove_port().returning(|_, _| {
+            Err(igd::RemovePortError::RequestError(
+                std::io::Error::new(std::io::ErrorKind::Other, "Failed to remove port").into(),
+            )
+            .into())
+        });
+
+        mock_gateway
+            .expect_root_url()
+            .returning(|| "http://mock-gateway".to_string());
+
+        // Cleanup should succeed even if removing port fails
+        let gateways = vec![Gateway2::Mock(Arc::new(mock_gateway))];
+        cleanup_upnp(port, gateways).await?;
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_try_setup_upnp_with_mockito() -> anyhow::Result<()> {
+        use mockito::Server;
+        use std::net::Ipv4Addr;
+
+        let mut server = Server::new();
+        let port = 12345;
+
+        // Mock the device description response
+        let device_desc = r#"<?xml version="1.0"?>
+        <root xmlns="urn:schemas-upnp-org:device-1-0">
+            <specVersion>
+                <major>1</major>
+                <minor>0</minor>
+            </specVersion>
+            <device>
+                <deviceType>urn:schemas-upnp-org:device:InternetGatewayDevice:1</deviceType>
+                <friendlyName>Mock Gateway</friendlyName>
+                <manufacturer>Mock Manufacturer</manufacturer>
+                <manufacturerURL>http://www.example.com</manufacturerURL>
+                <modelDescription>Mock Gateway Device</modelDescription>
+                <modelName>Mock Gateway</modelName>
+                <modelNumber>1.0</modelNumber>
+                <modelURL>http://www.example.com</modelURL>
+                <serialNumber>12345678</serialNumber>
+                <UDN>uuid:Mock-Gateway-1_0-12345678</UDN>
+                <serviceList>
+                    <service>
+                        <serviceType>urn:schemas-upnp-org:service:WANIPConnection:1</serviceType>
+                        <serviceId>urn:upnp-org:serviceId:WANIPConnection:1</serviceId>
+                        <controlURL>/upnp/control/WANIPConnection</controlURL>
+                        <eventSubURL>/upnp/event/WANIPConnection</eventSubURL>
+                        <SCPDURL>/WANIPConnection.xml</SCPDURL>
+                    </service>
+                </serviceList>
+            </device>
+        </root>"#;
+
+        // Mock the device description endpoint
+        let _m1 = server
+            .mock("GET", "/rootDesc.xml")
+            .with_status(200)
+            .with_header("content-type", "text/xml")
+            .with_body(device_desc);
+
+        // Mock the add port mapping endpoint
+        let _m2 = server.mock("POST", "/upnp/control/WANIPConnection")
+            .with_status(200)
+            .with_header("content-type", "text/xml")
+            .with_body(r#"<?xml version="1.0"?>
+                <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
+                    <s:Body>
+                        <u:AddPortMappingResponse xmlns:u="urn:schemas-upnp-org:service:WANIPConnection:1"/>
+                    </s:Body>
+                </s:Envelope>"#);
+
+        // Create a mock search that returns our mockito server URL
+        let mut mock_search = MockGatewaySearch::new();
+        let server_url = server.url();
+
+        mock_search
+            .expect_search_gateway()
+            .times(1)
+            .returning(move || {
+                let gateway = Gateway2::Real(GatewayWrapper::new(igd::aio::Gateway {
+                    addr: std::net::SocketAddrV4::new(std::net::Ipv4Addr::new(127, 0, 0, 1), 0),
+                    root_url: "http://mock-gateway".to_string(),
+                    control_url: "http://mock-gateway/upnp/control/WANIPConnection".to_string(),
+                    control_schema_url: "http://mock-gateway/upnp/event/WANIPConnection"
+                        .to_string(),
+                    control_schema: "http://schemas.upnp.org/wanipconnection/1-0".to_string(),
+                }));
+                Ok(gateway)
+            });
+
+        let gateway = try_setup_upnp(port, mock_search).await?;
+        assert!(gateway.root_url().contains(&server.url()));
+
+        Ok(())
+    }
+}

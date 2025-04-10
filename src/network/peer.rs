@@ -170,13 +170,18 @@ mod tests {
 
     use crate::{
         db::context::DbContext,
-        network::peer::connect_to_initial_peer,
+        network::peer::{
+            add_peer, add_peers, connect_to_initial_peer, get_peers, remove_peer,
+            update_peer_last_seen,
+        },
         shutdown::ShutdownState,
+        test_utils::init_test_tracing,
         types::{config::Config, peer::PeerInfo, state::AppState},
     };
     use mockito::Server;
     use std::{collections::HashMap, sync::Arc};
     use tokio::sync::Mutex;
+    use tracing::info;
 
     async fn setup_test_state(own_address: &str) -> Arc<AppState> {
         let mut config = Config::default_config();
@@ -335,5 +340,128 @@ mod tests {
         assert!(peers.contains_key(&peer_addr));
         assert!(peers.contains_key("https://peer1:8080"));
         assert!(!peers.contains_key(&own_addr));
+    }
+
+    use std::time::Duration;
+
+    #[tokio::test]
+    async fn test_add_peer() {
+        let state = setup_test_state("https://localhost:8080").await;
+        let peer_addr = "http://localhost:8080".to_string();
+
+        // Add a peer
+        add_peer(state.clone(), peer_addr.clone()).await;
+
+        // Verify peer was added
+        let peers = state.peers.lock().await;
+        assert!(peers.contains_key(&peer_addr));
+
+        // Try adding same peer again
+        drop(peers);
+        add_peer(state.clone(), peer_addr.clone()).await;
+
+        // Verify no duplicate was added
+        let peers = state.peers.lock().await;
+        assert_eq!(peers.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_add_peers() {
+        let state = setup_test_state("https://localhost:8080").await;
+        let peer_addrs = vec![
+            "http://localhost:8080".to_string(),
+            "http://localhost:8081".to_string(),
+            "http://localhost:8082".to_string(),
+        ];
+
+        // Add multiple peers
+        add_peers(state.clone(), peer_addrs.clone()).await;
+
+        // Verify all peers were added
+        let peers = state.peers.lock().await;
+        assert_eq!(peers.len(), 3);
+        for addr in peer_addrs {
+            assert!(peers.contains_key(&addr));
+        }
+    }
+
+    #[tokio::test]
+    async fn test_get_peers() {
+        let state = setup_test_state("https://localhost:8080").await;
+        let peer_addrs = vec![
+            "http://localhost:8080".to_string(),
+            "http://localhost:8081".to_string(),
+        ];
+
+        // Add peers
+        add_peers(state.clone(), peer_addrs.clone()).await;
+
+        // Get peers and verify
+        let result = get_peers(state.clone()).await;
+        assert_eq!(result.len(), 2);
+        for addr in peer_addrs {
+            assert!(result.contains(&addr));
+        }
+    }
+
+    #[tokio::test]
+    async fn test_remove_peer() {
+        let state = setup_test_state("https://localhost:8080").await;
+        let peer_addr = "http://localhost:8080".to_string();
+
+        // Add and then remove a peer
+        add_peer(state.clone(), peer_addr.clone()).await;
+        remove_peer(state.clone(), peer_addr.clone()).await;
+
+        // Verify peer was removed
+        let peers = state.peers.lock().await;
+        assert!(!peers.contains_key(&peer_addr));
+
+        // Try removing non-existent peer
+        drop(peers);
+        remove_peer(state.clone(), "http://nonexistent:8080".to_string()).await;
+        let peers = state.peers.lock().await;
+        assert_eq!(peers.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_update_peer_last_seen() {
+        init_test_tracing();
+        let state = setup_test_state("https://localhost:8080").await;
+        let peer_addr = "http://localhost:8080".to_string();
+
+        // Add a peer
+        add_peer(state.clone(), peer_addr.clone()).await;
+
+        // Get initial last seen time
+        let peers = state.peers.lock().await;
+        let initial_last_seen = peers.get(&peer_addr).unwrap().last_seen;
+        drop(peers);
+
+        // Wait a moment
+        tokio::time::sleep(Duration::from_millis(1000)).await;
+
+        // Update last seen
+        update_peer_last_seen(state.clone(), peer_addr.clone()).await;
+
+        // Verify last seen was updated
+        let peers = state.peers.lock().await;
+        let new_last_seen = peers.get(&peer_addr).unwrap().last_seen;
+        info!(
+            "Initial last seen: {}, new last seen: {}",
+            initial_last_seen, new_last_seen
+        );
+        assert!(new_last_seen > initial_last_seen);
+    }
+
+    #[tokio::test]
+    async fn test_update_peer_last_seen_non_existent() {
+        init_test_tracing();
+        let state = setup_test_state("https://localhost:8080").await;
+        // Try updating non-existent peer
+        update_peer_last_seen(state.clone(), "http://nonexistent:8080".to_string()).await;
+        // Should not panic or affect existing peers
+        let peers = state.peers.lock().await;
+        assert_eq!(peers.len(), 0);
     }
 }
