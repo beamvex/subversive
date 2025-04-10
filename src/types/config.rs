@@ -457,4 +457,36 @@ mod tests {
         assert_eq!(config.database, Some("p2p_network.db".to_string())); // Default value
         assert_eq!(config.log_level, Some("info".to_string())); // Default value
     }
+
+    #[tokio::test]
+    async fn test_load_config_missing_file() {
+        init_test_tracing();
+
+        let inject_args = Args {
+            port: Some(8080),
+            peer: None,
+            database: None,
+            name: Some("test_node".to_string()),
+            hostname: None,
+            log_level: None,
+            config: Some("/path/to/missing/config.json".to_string()),
+            survival_mode: None,
+            noip_hostname: None,
+            noip_username: None,
+            noip_password: None,
+            opendns_hostname: None,
+            opendns_username: None,
+            opendns_password: None,
+            opendns_network: None,
+        };
+
+        // Load the configuration
+        let config = Config::load(inject_args).await;
+
+        // Verify that values come from CLI and defaults
+        assert_eq!(config.port, Some(8080)); // From CLI
+        assert_eq!(config.name, Some("test_node".to_string())); // From CLI
+        assert_eq!(config.database, Some("p2p_network.db".to_string())); // Default value
+        assert_eq!(config.log_level, Some("info".to_string())); // Default value
+    }
 }
