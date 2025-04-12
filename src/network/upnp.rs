@@ -27,7 +27,7 @@ pub trait IGateway: Send + Sync {
     fn root_url(&self) -> String;
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct GatewayWrapper(Gateway);
 
 impl GatewayWrapper {
@@ -72,14 +72,14 @@ impl IGateway for GatewayWrapper {
 }
 
 #[cfg(test)]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Gateway2 {
     Real(GatewayWrapper),
     Mock(Arc<MockIGateway>),
 }
 
 #[cfg(not(test))]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Gateway2 {
     Real(GatewayWrapper),
 }
@@ -252,6 +252,8 @@ mod tests {
     #[cfg(test)]
     use mockall::predicate::*;
 
+    use std::net::{SocketAddrV4, ToSocketAddrs};
+    use std::os::unix::net::SocketAddr;
     use std::sync::Arc;
 
     use tracing::info;
@@ -395,81 +397,234 @@ mod tests {
 
     #[tokio::test]
     async fn test_try_setup_upnp_with_mockito() -> anyhow::Result<()> {
+        init_test_upnp();
         use mockito::Server;
-        use std::net::Ipv4Addr;
 
-        let mut server = Server::new();
+        let mut server = Server::new_async().await;
         let port = 12345;
 
         // Mock the device description response
         let device_desc = r#"<?xml version="1.0"?>
-        <root xmlns="urn:schemas-upnp-org:device-1-0">
-            <specVersion>
-                <major>1</major>
-                <minor>0</minor>
-            </specVersion>
-            <device>
-                <deviceType>urn:schemas-upnp-org:device:InternetGatewayDevice:1</deviceType>
-                <friendlyName>Mock Gateway</friendlyName>
-                <manufacturer>Mock Manufacturer</manufacturer>
-                <manufacturerURL>http://www.example.com</manufacturerURL>
-                <modelDescription>Mock Gateway Device</modelDescription>
-                <modelName>Mock Gateway</modelName>
-                <modelNumber>1.0</modelNumber>
-                <modelURL>http://www.example.com</modelURL>
-                <serialNumber>12345678</serialNumber>
-                <UDN>uuid:Mock-Gateway-1_0-12345678</UDN>
-                <serviceList>
-                    <service>
-                        <serviceType>urn:schemas-upnp-org:service:WANIPConnection:1</serviceType>
-                        <serviceId>urn:upnp-org:serviceId:WANIPConnection:1</serviceId>
-                        <controlURL>/upnp/control/WANIPConnection</controlURL>
-                        <eventSubURL>/upnp/event/WANIPConnection</eventSubURL>
-                        <SCPDURL>/WANIPConnection.xml</SCPDURL>
-                    </service>
-                </serviceList>
-            </device>
-        </root>"#;
+<root xmlns="urn:schemas-upnp-org:device-1-0">
+    <specVersion>
+        <major>1</major>
+        <minor>0</minor>
+    </specVersion>
+    <device>
+        <deviceType>urn:schemas-upnp-org:device:InternetGatewayDevice:1</deviceType>
+        <friendlyName>Mock Gateway</friendlyName>
+        <manufacturer>Mock Manufacturer</manufacturer>
+        <serviceList>
+            <service>
+                <serviceType>urn:schemas-upnp-org:service:WANIPConnection:1</serviceType>
+                <serviceId>urn:upnp-org:serviceId:WANIPConn1</serviceId>
+                <SCPDURL>/WANIPConnection.xml</SCPDURL>
+                <controlURL>/upnp/control/WANIPConnection</controlURL>
+                <eventSubURL>/upnp/event/WANIPConnection</eventSubURL>
+            </service>
+        </serviceList>
+    </device>
+</root>"#;
 
-        // Mock the device description endpoint
         let _m1 = server
             .mock("GET", "/rootDesc.xml")
             .with_status(200)
             .with_header("content-type", "text/xml")
-            .with_body(device_desc);
+            .with_header("server", "Linux/3.14.0 UPnP/1.0")
+            .with_body(device_desc)
+            .create();
 
-        // Mock the add port mapping endpoint
-        let _m2 = server.mock("POST", "/upnp/control/WANIPConnection")
+        // Mock the service description
+        let service_desc = r#"<?xml version="1.0"?>
+<scpd xmlns="urn:schemas-upnp-org:service-1-0">
+    <specVersion>
+        <major>1</major>
+        <minor>0</minor>
+    </specVersion>
+    <actionList>
+        <action>
+            <name>AddPortMapping</name>
+            <argumentList>
+                <argument>
+                    <name>NewRemoteHost</name>
+                    <direction>in</direction>
+                    <relatedStateVariable>RemoteHost</relatedStateVariable>
+                </argument>
+                <argument>
+                    <name>NewExternalPort</name>
+                    <direction>in</direction>
+                    <relatedStateVariable>ExternalPort</relatedStateVariable>
+                </argument>
+                <argument>
+                    <name>NewProtocol</name>
+                    <direction>in</direction>
+                    <relatedStateVariable>PortMappingProtocol</relatedStateVariable>
+                </argument>
+                <argument>
+                    <name>NewInternalPort</name>
+                    <direction>in</direction>
+                    <relatedStateVariable>InternalPort</relatedStateVariable>
+                </argument>
+                <argument>
+                    <name>NewInternalClient</name>
+                    <direction>in</direction>
+                    <relatedStateVariable>InternalClient</relatedStateVariable>
+                </argument>
+                <argument>
+                    <name>NewEnabled</name>
+                    <direction>in</direction>
+                    <relatedStateVariable>PortMappingEnabled</relatedStateVariable>
+                </argument>
+                <argument>
+                    <name>NewPortMappingDescription</name>
+                    <direction>in</direction>
+                    <relatedStateVariable>PortMappingDescription</relatedStateVariable>
+                </argument>
+                <argument>
+                    <name>NewLeaseDuration</name>
+                    <direction>in</direction>
+                    <relatedStateVariable>PortMappingLeaseDuration</relatedStateVariable>
+                </argument>
+            </argumentList>
+        </action>
+        <action>
+            <name>DeletePortMapping</name>
+            <argumentList>
+                <argument>
+                    <name>NewRemoteHost</name>
+                    <direction>in</direction>
+                    <relatedStateVariable>RemoteHost</relatedStateVariable>
+                </argument>
+                <argument>
+                    <name>NewExternalPort</name>
+                    <direction>in</direction>
+                    <relatedStateVariable>ExternalPort</relatedStateVariable>
+                </argument>
+                <argument>
+                    <name>NewProtocol</name>
+                    <direction>in</direction>
+                    <relatedStateVariable>PortMappingProtocol</relatedStateVariable>
+                </argument>
+            </argumentList>
+        </action>
+    </actionList>
+    <serviceStateTable>
+        <stateVariable sendEvents="no">
+            <name>RemoteHost</name>
+            <dataType>string</dataType>
+        </stateVariable>
+        <stateVariable sendEvents="no">
+            <name>ExternalPort</name>
+            <dataType>ui2</dataType>
+        </stateVariable>
+        <stateVariable sendEvents="no">
+            <name>PortMappingProtocol</name>
+            <dataType>string</dataType>
+            <allowedValueList>
+                <allowedValue>TCP</allowedValue>
+                <allowedValue>UDP</allowedValue>
+            </allowedValueList>
+        </stateVariable>
+        <stateVariable sendEvents="no">
+            <name>InternalPort</name>
+            <dataType>ui2</dataType>
+        </stateVariable>
+        <stateVariable sendEvents="no">
+            <name>InternalClient</name>
+            <dataType>string</dataType>
+        </stateVariable>
+        <stateVariable sendEvents="no">
+            <name>PortMappingEnabled</name>
+            <dataType>boolean</dataType>
+        </stateVariable>
+        <stateVariable sendEvents="no">
+            <name>PortMappingDescription</name>
+            <dataType>string</dataType>
+        </stateVariable>
+        <stateVariable sendEvents="no">
+            <name>PortMappingLeaseDuration</name>
+            <dataType>ui4</dataType>
+        </stateVariable>
+    </serviceStateTable>
+</scpd>"#;
+
+        let _m2 = server
+            .mock("GET", "/WANIPConnection.xml")
             .with_status(200)
             .with_header("content-type", "text/xml")
-            .with_body(r#"<?xml version="1.0"?>
-                <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
-                    <s:Body>
-                        <u:AddPortMappingResponse xmlns:u="urn:schemas-upnp-org:service:WANIPConnection:1"/>
-                    </s:Body>
-                </s:Envelope>"#);
+            .with_header("server", "Linux/3.14.0 UPnP/1.0")
+            .with_body(service_desc)
+            .create();
+
+        // Mock the add port mapping endpoint
+        let _m3 = server
+            .mock("POST", "/upnp/control/WANIPConnection")
+            .match_header("content-type", "text/xml")
+            .match_header(
+                "soapaction",
+                "\"urn:schemas-upnp-org:service:WANIPConnection:1#AddPortMapping\"",
+            )
+            .match_body(mockito::Matcher::Any)
+            .with_status(500)
+            .with_header("content-type", "text/xml; charset=\"utf-8\"")
+            .with_header("ext", "")
+            .with_header("server", "Linux/3.14.0 UPnP/1.0")
+            .with_body(
+                r#"<?xml version="1.0"?>
+<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
+    <s:Body>
+        <s:Fault>
+            <faultcode>s:Client</faultcode>
+            <faultstring>UPnPError</faultstring>
+            <detail>
+                <UPnPError xmlns="urn:schemas-upnp-org:control-1-0">
+                    <errorCode>401</errorCode>
+                    <errorDescription>Invalid Action</errorDescription>
+                </UPnPError>
+            </detail>
+        </s:Fault>
+    </s:Body>
+</s:Envelope>"#,
+            )
+            .create();
 
         // Create a mock search that returns our mockito server URL
-        let mut mock_search = MockGatewaySearch::new();
         let server_url = server.url();
+        let server_address = server.socket_address();
+        let server_ipv4 = SocketAddrV4::new(
+            server_address.ip().to_string().parse().unwrap(),
+            server_address.port(),
+        );
 
+        let mut mock_search = MockGatewaySearch::new();
         mock_search
             .expect_search_gateway()
             .times(1)
             .returning(move || {
                 let gateway = Gateway2::Real(GatewayWrapper::new(igd::aio::Gateway {
-                    addr: std::net::SocketAddrV4::new(std::net::Ipv4Addr::new(127, 0, 0, 1), 0),
-                    root_url: "http://mock-gateway".to_string(),
-                    control_url: "http://mock-gateway/upnp/control/WANIPConnection".to_string(),
-                    control_schema_url: "http://mock-gateway/upnp/event/WANIPConnection"
-                        .to_string(),
-                    control_schema: "http://schemas.upnp.org/wanipconnection/1-0".to_string(),
+                    addr: server_ipv4,
+                    root_url: server_url.clone(),
+                    control_url: format!("{}/upnp/control/WANIPConnection", server_url),
+                    control_schema_url: format!("{}/WANIPConnection.xml", server_url),
+                    control_schema: {
+                        let mut schema = std::collections::HashMap::new();
+                        schema.insert(
+                            "urn:schemas-upnp-org:service:WANIPConnection:1".to_string(),
+                            vec![
+                                "AddPortMapping".to_string(),
+                                "DeletePortMapping".to_string(),
+                            ],
+                        );
+                        schema
+                    },
                 }));
                 Ok(gateway)
             });
 
-        let gateway = try_setup_upnp(port, mock_search).await?;
-        assert!(gateway.root_url().contains(&server.url()));
+        let result = try_setup_upnp(port, mock_search).await;
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("Failed to add port mapping"));
 
         Ok(())
     }
