@@ -1,9 +1,15 @@
-use crate::types::{health::PeerHealth, peer::PeerInfo, state::AppState};
-use anyhow::Result;
-use reqwest::Client;
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
+use std::sync::Arc;
 use tokio::sync::Mutex;
-use tracing::{debug, error, info};
+use reqwest::Client;
+use tracing::{debug, info};
+use anyhow::Result;
+use subversive_types::{
+    health::PeerHealth,
+    peer::PeerInfo,
+    state::AppState,
+    message::Message,
+};
 
 /// Initialize connection to an initial peer
 ///
@@ -75,7 +81,7 @@ pub async fn connect_to_initial_peer(state: Arc<AppState>) -> Result<()> {
 /// * `source` - The source of the message (to avoid sending back to sender)
 /// * `peers` - Map of peer addresses to their HTTP clients
 pub async fn broadcast_to_peers(
-    message: crate::types::message::Message,
+    message: Message,
     source: &str,
     peers: &Arc<Mutex<HashMap<String, PeerHealth>>>,
 ) -> Result<()> {
@@ -106,63 +112,65 @@ pub async fn broadcast_to_peers(
 }
 
 /// Add a new peer to the network
-pub async fn add_peer(app_state: Arc<AppState>, peer_addr: String) {
-    let mut peers = app_state.peers.lock().await;
-
-    // Skip if we already know about this peer
-    if peers.contains_key(&peer_addr) {
-        debug!("Peer {} already known", peer_addr);
-        return;
+pub async fn add_peer(state: Arc<AppState>, address: String) -> Result<(), String> {
+    let mut peers = state.peers.lock().await;
+    if !peers.contains_key(&address) {
+        let client = Client::new();
+        let peer_health = PeerHealth::new(client, address.clone());
+        peers.insert(address, peer_health);
     }
-
-    info!("Adding new peer: {}", peer_addr);
-
-    // Create a new HTTP client for this peer
-    let client = Client::new();
-
-    // Create a new peer health tracker
-    let peer_health = PeerHealth::new(client, peer_addr.clone());
-
-    // Add the peer to our list
-    peers.insert(peer_addr.clone(), peer_health);
-
-    info!("Successfully added peer: {}", peer_addr);
+    Ok(())
 }
 
 /// Add multiple peers to the network
-pub async fn add_peers(app_state: Arc<AppState>, peer_addrs: Vec<String>) {
+pub async fn add_peers(state: Arc<AppState>, peer_addrs: Vec<String>) -> Result<(), String> {
     for peer_addr in peer_addrs {
-        add_peer(app_state.clone(), peer_addr).await;
+        add_peer(state.clone(), peer_addr).await?;
     }
+    Ok(())
 }
 
 /// Get all known peers
-pub async fn get_peers(app_state: Arc<AppState>) -> Vec<String> {
-    let peers = app_state.peers.lock().await;
-    peers.keys().cloned().collect()
+pub async fn get_peers(state: Arc<AppState>) -> Result<Vec<String>, String> {
+    let peers = state.peers.lock().await;
+    Ok(peers.keys().cloned().collect())
 }
 
 /// Remove a peer from the network
-pub async fn remove_peer(app_state: Arc<AppState>, peer_addr: String) {
-    let mut peers = app_state.peers.lock().await;
-    if peers.remove(&peer_addr).is_some() {
-        info!("Removed peer: {}", peer_addr);
+pub async fn remove_peer(state: Arc<AppState>, address: String) -> Result<(), String> {
+    let mut peers = state.peers.lock().await;
+    if peers.remove(&address).is_some() {
+        info!("Removed peer: {}", address);
     } else {
-        debug!("Peer {} not found", peer_addr);
+        debug!("Peer {} not found", address);
     }
+    Ok(())
 }
 
 /// Update a peer's last seen timestamp
 pub async fn update_peer_last_seen(app_state: Arc<AppState>, peer_addr: String) {
     info!("Updating last seen for peer: {}", peer_addr);
     let mut peers = app_state.peers.lock().await;
-    info!("Peers: {:?}", peers);
     if let Some(peer_health) = peers.get_mut(&peer_addr) {
         peer_health.update_last_seen();
         debug!("Updated last seen for peer: {}", peer_addr);
     } else {
         debug!("Peer {} not found", peer_addr);
     }
+}
+
+/// Get peer info from address
+pub async fn get_peer_info(address: &str) -> Result<PeerInfo, String> {
+    let parts: Vec<&str> = address.split(':').collect();
+    if parts.len() != 2 {
+        return Err("Invalid address format".to_string());
+    }
+
+    let port = parts[1].parse::<u16>().map_err(|e| e.to_string())?;
+    Ok(PeerInfo {
+        address: parts[0].to_string(),
+        port,
+    })
 }
 
 #[cfg(test)]
@@ -176,7 +184,7 @@ mod tests {
         },
         shutdown::ShutdownState,
         test_utils::init_test_tracing,
-        types::{config::Config, peer::PeerInfo, state::AppState},
+        types::{config::Config, state::AppState},
     };
     use mockito::Server;
     use std::{collections::HashMap, sync::Arc};
@@ -350,7 +358,7 @@ mod tests {
         let peer_addr = "http://localhost:8080".to_string();
 
         // Add a peer
-        add_peer(state.clone(), peer_addr.clone()).await;
+        add_peer(state.clone(), peer_addr.clone()).await.unwrap();
 
         // Verify peer was added
         let peers = state.peers.lock().await;
@@ -358,7 +366,7 @@ mod tests {
 
         // Try adding same peer again
         drop(peers);
-        add_peer(state.clone(), peer_addr.clone()).await;
+        add_peer(state.clone(), peer_addr.clone()).await.unwrap();
 
         // Verify no duplicate was added
         let peers = state.peers.lock().await;
@@ -375,7 +383,7 @@ mod tests {
         ];
 
         // Add multiple peers
-        add_peers(state.clone(), peer_addrs.clone()).await;
+        add_peers(state.clone(), peer_addrs.clone()).await.unwrap();
 
         // Verify all peers were added
         let peers = state.peers.lock().await;
@@ -394,10 +402,10 @@ mod tests {
         ];
 
         // Add peers
-        add_peers(state.clone(), peer_addrs.clone()).await;
+        add_peers(state.clone(), peer_addrs.clone()).await.unwrap();
 
         // Get peers and verify
-        let result = get_peers(state.clone()).await;
+        let result = get_peers(state.clone()).await.unwrap();
         assert_eq!(result.len(), 2);
         for addr in peer_addrs {
             assert!(result.contains(&addr));
@@ -410,8 +418,8 @@ mod tests {
         let peer_addr = "http://localhost:8080".to_string();
 
         // Add and then remove a peer
-        add_peer(state.clone(), peer_addr.clone()).await;
-        remove_peer(state.clone(), peer_addr.clone()).await;
+        add_peer(state.clone(), peer_addr.clone()).await.unwrap();
+        remove_peer(state.clone(), peer_addr.clone()).await.unwrap();
 
         // Verify peer was removed
         let peers = state.peers.lock().await;
@@ -419,7 +427,7 @@ mod tests {
 
         // Try removing non-existent peer
         drop(peers);
-        remove_peer(state.clone(), "http://nonexistent:8080".to_string()).await;
+        remove_peer(state.clone(), "http://nonexistent:8080".to_string()).await.unwrap();
         let peers = state.peers.lock().await;
         assert_eq!(peers.len(), 0);
     }
@@ -431,7 +439,7 @@ mod tests {
         let peer_addr = "http://localhost:8080".to_string();
 
         // Add a peer
-        add_peer(state.clone(), peer_addr.clone()).await;
+        add_peer(state.clone(), peer_addr.clone()).await.unwrap();
 
         // Get initial last seen time
         let peers = state.peers.lock().await;

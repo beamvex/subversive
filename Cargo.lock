@@ -2661,6 +2661,7 @@ dependencies = [
  "serde_yaml",
  "sha2",
  "subversive-network",
+ "subversive-types",
  "tempfile",
  "test-log",
  "tokio",
@@ -2677,19 +2678,23 @@ name = "subversive-network"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-trait",
- "dns-lookup",
- "igd",
- "local-ip-address",
- "log",
  "mockall",
  "mockito",
  "reqwest 0.11.27",
  "serde",
- "serde_json",
+ "subversive-types",
  "tempfile",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "subversive-types"
+version = "0.1.0"
+dependencies = [
+ "reqwest 0.11.27",
+ "serde",
+ "tokio",
 ]
 
 [[package]]

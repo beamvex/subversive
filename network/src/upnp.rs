@@ -10,6 +10,8 @@ use std::sync::Arc;
 use std::sync::OnceLock;
 use tokio::sync::Mutex;
 
+use crate::local_ip;
+
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait IGateway: Send + Sync {
@@ -155,7 +157,7 @@ impl GatewaySearch for DefaultGatewaySearch {
 
 pub async fn try_setup_upnp(port: u16, gateway_search: impl GatewaySearch) -> Result<Gateway2> {
     let gateway = gateway_search.search_gateway().await?;
-    let local_ipv4 = crate::network::local_ip::get_local_ipv4()?;
+    let local_ipv4 = local_ip::get_local_ipv4()?;
 
     info!("found gateway: {:?}", gateway.root_url());
 
@@ -312,7 +314,7 @@ mod tests {
     async fn test_setup_upnp_success() -> anyhow::Result<()> {
         init_test_upnp();
         let success_port = 8080;
-        let local_ipv4 = crate::network::local_ip::get_local_ipv4()?;
+        let local_ipv4 = local_ip::get_local_ipv4()?;
 
         // Create a mock gateway that fails for the first port but succeeds for the second
         let mut mock_gateway = MockIGateway::new();

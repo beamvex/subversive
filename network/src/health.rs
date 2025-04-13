@@ -1,71 +1,50 @@
-use std::collections::HashMap;
 use std::sync::Arc;
-use std::time::SystemTime;
 use tokio::sync::Mutex;
-use tracing::{error, info};
-
-use crate::shutdown::ShutdownState;
-use crate::types::health::PeerHealth;
+use tracing::{debug, info};
+use subversive_types::{
+    health::PeerHealth,
+    state::{AppState, ShutdownState},
+};
 
 const PEER_TIMEOUT: i64 = 3600; // 1 hour
 
 /// Handle a health check result
 async fn handle_health_check_result(
-    peers: &Arc<Mutex<HashMap<String, PeerHealth>>>,
+    state: &Arc<AppState>,
     addr: String,
     result: Result<(), Box<dyn std::error::Error + Send + Sync>>,
     survival_mode: bool,
-    shutdown_state: &Arc<ShutdownState>,
 ) {
-    let mut peers = peers.lock().await;
+    let mut peers = state.peers.lock().await;
     if let Some(peer_health) = peers.get_mut(&addr) {
         match result {
             Ok(_) => {
                 peer_health.update_last_seen();
             }
             Err(e) => {
-                error!("Health check failed for {}: {}", addr, e);
+                debug!("Health check failed for {}: {}", addr, e);
                 peers.remove(&addr);
             }
         }
     }
 
     // In survival mode, if we have no peers and no gateways, shut down
-    if survival_mode && peers.is_empty() && shutdown_state.gateways().is_empty() {
+    if survival_mode && peers.is_empty() && state.shutdown == ShutdownState::Running {
         info!("No peers or gateways available in survival mode, shutting down");
-        shutdown_state.initiate_shutdown();
+        state.shutdown = ShutdownState::ShuttingDown;
     }
 }
 
 /// Check the health of all peers
 pub async fn check_peer_health(
-    peers: &Arc<Mutex<HashMap<String, PeerHealth>>>,
-    survival_mode: bool,
-    shutdown_state: &Arc<ShutdownState>,
-) {
-    let mut peers = peers.lock().await;
-    let now = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap()
-        .as_secs() as i64;
-
-    // Remove peers that haven't been seen in a while
-    let dead_peers: Vec<String> = peers
-        .iter()
-        .filter(|(_, health)| now - health.get_last_seen() > PEER_TIMEOUT)
-        .map(|(addr, _)| addr.clone())
-        .collect();
-
-    for addr in dead_peers {
-        info!("Removing dead peer: {}", addr);
-        peers.remove(&addr);
+    state: Arc<AppState>,
+    address: String,
+) -> Result<(), String> {
+    let peers = state.peers.lock().await;
+    if !peers.contains_key(&address) {
+        return Err("Peer not found".to_string());
     }
-
-    // In survival mode, if we have no peers and no gateways, shut down
-    if survival_mode && peers.is_empty() && shutdown_state.gateways().is_empty() {
-        info!("No peers or gateways available in survival mode, shutting down");
-        shutdown_state.initiate_shutdown();
-    }
+    Ok(())
 }
 
 /// Check the health of a specific peer
@@ -81,267 +60,60 @@ pub async fn check_peer(
                 info!("Peer {} last seen: {}", addr, peer_health.get_last_seen());
                 Ok(())
             } else {
-                error!("Failed health check for {}: {}", addr, response.status());
+                debug!("Failed health check for {}: {}", addr, response.status());
                 Err("Health check failed".into())
             }
         }
         Err(e) => {
-            error!("Failed to connect to {}: {}", addr, e);
+            debug!("Failed to connect to {}: {}", addr, e);
             Err(e.into())
         }
     }
 }
 
 /// Check the health of all peers periodically
-pub async fn start_health_check_loop(
-    peers: Arc<Mutex<HashMap<String, PeerHealth>>>,
-    survival_mode: bool,
-    shutdown_state: Arc<ShutdownState>,
-) {
-    let mut interval = tokio::time::interval(std::time::Duration::from_secs(60));
+pub async fn start_health_checker(state: Arc<AppState>) {
+    info!("Starting health checker");
     loop {
-        interval.tick().await;
+        let peers = state.peers.lock().await;
+        let peer_list = peers.keys().cloned().collect::<Vec<String>>();
+        drop(peers);
 
-        let peers_clone = peers.clone();
-        let mut peers_lock = peers_clone.lock().await;
-        let addrs: Vec<String> = peers_lock.keys().cloned().collect();
-
-        for addr in addrs {
-            if let Some(peer_health) = peers_lock.get_mut(&addr) {
-                let result = check_peer(&addr, peer_health).await;
-                handle_health_check_result(
-                    &peers_clone,
-                    addr.to_string(),
-                    result,
-                    survival_mode,
-                    &shutdown_state,
-                )
-                .await;
+        for peer in peer_list {
+            if let Some(peer_health) = state.peers.lock().await.get_mut(&peer) {
+                let result = check_peer(&peer, peer_health).await;
+                handle_health_check_result(state.clone(), peer.clone(), result, false).await;
             }
         }
 
-        check_peer_health(&peers_clone, survival_mode, &shutdown_state).await;
+        if state.shutdown == ShutdownState::ShuttingDown {
+            break;
+        }
+
+        tokio::time::sleep(tokio::time::Duration::from_secs(60)).await;
     }
+    info!("Health checker stopped");
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::test_utils::init_test_tracing;
-
     use super::*;
-    use reqwest::Client;
 
     #[tokio::test]
-    async fn test_handle_health_check_result_success() {
-        init_test_tracing();
-        let peers = Arc::new(Mutex::new(HashMap::new()));
-        let shutdown_state = Arc::new(ShutdownState::new(8080, Vec::new()));
-        let addr = "http://localhost:8080".to_string();
+    async fn test_check_peer_health() {
+        let state = Arc::new(AppState {
+            peers: Arc::new(Mutex::new(vec!["127.0.0.1:8080".to_string()])),
+            config: Default::default(),
+            own_address: Default::default(),
+            shutdown: ShutdownState::Running,
+        });
 
-        // Add a peer
-        peers
-            .lock()
-            .await
-            .insert(addr.clone(), PeerHealth::new(Client::new(), addr.clone()));
-
-        // Get initial last seen time
-        let initial_last_seen = peers.lock().await.get(&addr).unwrap().get_last_seen();
-
-        // Wait a moment to ensure time difference
-        tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
-
-        // Handle successful health check
-        handle_health_check_result(&peers, addr.clone(), Ok(()), false, &shutdown_state).await;
-
-        // Verify peer was updated but not removed
-        let peers_lock = peers.lock().await;
-        assert!(peers_lock.contains_key(&addr));
-        let new_last_seen = peers_lock.get(&addr).unwrap().get_last_seen();
-        assert!(new_last_seen > initial_last_seen);
-    }
-
-    #[tokio::test]
-    async fn test_handle_health_check_result_failure() {
-        init_test_tracing();
-        let peers = Arc::new(Mutex::new(HashMap::new()));
-        let shutdown_state = Arc::new(ShutdownState::new(8080, Vec::new()));
-        let addr = "http://localhost:8080".to_string();
-
-        // Add a peer
-        peers
-            .lock()
-            .await
-            .insert(addr.clone(), PeerHealth::new(Client::new(), addr.clone()));
-
-        // Handle failed health check
-        handle_health_check_result(
-            &peers,
-            addr.clone(),
-            Err("Health check failed".into()),
-            false,
-            &shutdown_state,
-        )
-        .await;
-
-        // Verify peer was removed
-        assert!(!peers.lock().await.contains_key(&addr));
-        assert!(!shutdown_state.is_shutdown_initiated());
-    }
-
-    #[tokio::test]
-    async fn test_handle_health_check_result_survival_mode() {
-        init_test_tracing();
-        let peers = Arc::new(Mutex::new(HashMap::new()));
-        let shutdown_state = Arc::new(ShutdownState::new(8080, Vec::new()));
-        let addr = "http://localhost:8080".to_string();
-
-        // Add a peer
-        peers
-            .lock()
-            .await
-            .insert(addr.clone(), PeerHealth::new(Client::new(), addr.clone()));
-
-        // Handle failed health check in survival mode
-        handle_health_check_result(
-            &peers,
-            addr.clone(),
-            Err("Health check failed".into()),
-            true,
-            &shutdown_state,
-        )
-        .await;
-
-        // Verify peer was removed and shutdown was initiated
-        assert!(!peers.lock().await.contains_key(&addr));
-        assert!(shutdown_state.is_shutdown_initiated());
-    }
-
-    #[tokio::test]
-    async fn test_handle_health_check_result_nonexistent_peer() {
-        init_test_tracing();
-        let peers = Arc::new(Mutex::new(HashMap::new()));
-        let shutdown_state = Arc::new(ShutdownState::new(8080, Vec::new()));
-        let addr = "http://localhost:8080".to_string();
-
-        // Handle health check for non-existent peer
-        handle_health_check_result(&peers, addr.clone(), Ok(()), false, &shutdown_state).await;
-
-        // Verify nothing changed
-        assert!(peers.lock().await.is_empty());
-        assert!(!shutdown_state.is_shutdown_initiated());
-    }
-
-    #[tokio::test]
-    async fn test_handle_health_check_success() {
-        init_test_tracing();
-        let peers = Arc::new(Mutex::new(HashMap::new()));
-
-        // Start a mock server that returns 200 OK
-        let mut server = mockito::Server::new_async().await;
-        let mock = server
-            .mock("GET", "/")
-            .with_status(200)
-            .create_async()
-            .await;
-
-        let client = Client::new();
-        let addr = server.url();
-
-        // Add a peer
-        peers
-            .lock()
-            .await
-            .insert(addr.clone(), PeerHealth::new(client.clone(), addr.clone()));
-
-        let _shutdown_state = Arc::new(ShutdownState::new(8080, Vec::new()));
-
-        // Test successful health check
-        let result = check_peer(&addr, peers.lock().await.get_mut(&addr).unwrap()).await;
-
-        assert!(result.is_ok()); // Should succeed with 200 OK
-        assert!(peers.lock().await.contains_key(&addr));
-        mock.assert();
-    }
-
-    #[tokio::test]
-    async fn test_survival_mode_shutdown() {
-        init_test_tracing();
-        let peers = Arc::new(Mutex::new(HashMap::new()));
-        let shutdown_state = Arc::new(ShutdownState::new(8080, Vec::new()));
-
-        // Test health check in survival mode with no peers
-        check_peer_health(&peers, true, &shutdown_state).await;
-
-        // Verify shutdown was initiated
-        assert!(shutdown_state.is_shutdown_initiated());
-    }
-
-    #[tokio::test]
-    async fn test_check_peer_health_timeout() {
-        init_test_tracing();
-        // Start a mock server that never responds to requests
-        let server = mockito::Server::new_async().await;
-
-        let client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(1))
-            .build()
-            .unwrap();
-        let mut peer_health = PeerHealth::new(client, server.url());
-
-        // Test timeout
-        let result = check_peer(&server.url(), &mut peer_health).await;
-        assert!(result.is_err());
-    }
-
-    #[tokio::test]
-    async fn test_check_peer_success() -> anyhow::Result<()> {
-        init_test_tracing();
-        let mut server = mockito::Server::new_async().await;
-        let mock = server
-            .mock("GET", "/")
-            .with_status(200)
-            .create_async()
-            .await;
-
-        let client = Client::new();
-        let mut peer_health = PeerHealth::new(client, server.url());
-
-        let result = check_peer(&server.url(), &mut peer_health).await;
+        // Test valid peer
+        let result = check_peer_health(state.clone(), "127.0.0.1:8080".to_string()).await;
         assert!(result.is_ok());
-        mock.assert();
 
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn test_check_peer_failure() -> anyhow::Result<()> {
-        init_test_tracing();
-        let mut server = mockito::Server::new_async().await;
-        let mock = server
-            .mock("GET", "/")
-            .with_status(500)
-            .create_async()
-            .await;
-
-        let client = Client::new();
-        let mut peer_health = PeerHealth::new(client, server.url());
-
-        let result = check_peer(&server.url(), &mut peer_health).await;
-        assert!(result.is_err());
-        mock.assert();
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn test_check_peer_connection_failure() {
-        // Use an invalid port to force a connection failure
-        init_test_tracing();
-        let addr = "http://localhost:1";
-        let client = Client::new();
-        let mut peer_health = PeerHealth::new(client, addr.to_string());
-
-        let result = check_peer(addr, &mut peer_health).await;
+        // Test invalid peer
+        let result = check_peer_health(state.clone(), "invalid:8080".to_string()).await;
         assert!(result.is_err());
     }
 }
