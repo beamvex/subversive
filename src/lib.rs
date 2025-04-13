@@ -2,7 +2,7 @@ pub mod crypto;
 pub mod db;
 pub mod ddns;
 pub mod logutils;
-pub mod network;
+pub use subversive_network as network;
 pub mod server;
 pub mod shutdown;
 pub mod shutdown_test;

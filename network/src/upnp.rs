@@ -252,8 +252,7 @@ mod tests {
     #[cfg(test)]
     use mockall::predicate::*;
 
-    use std::net::{SocketAddrV4, ToSocketAddrs};
-    use std::os::unix::net::SocketAddr;
+    use std::net::SocketAddrV4;
     use std::sync::Arc;
 
     use tracing::info;

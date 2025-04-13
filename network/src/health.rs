@@ -111,7 +111,7 @@ pub async fn start_health_check_loop(
                 let result = check_peer(&addr, peer_health).await;
                 handle_health_check_result(
                     &peers_clone,
-                    addr,
+                    addr.to_string(),
                     result,
                     survival_mode,
                     &shutdown_state,
