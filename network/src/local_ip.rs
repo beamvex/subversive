@@ -1,7 +1,6 @@
 use anyhow::Result;
-use local_ip_address::local_ip;
-use log::info;
 use std::net::Ipv4Addr;
+use tracing::info;
 
 /// Get the local IPv4 address of this machine
 pub fn get_local_ipv4() -> Result<Ipv4Addr> {
