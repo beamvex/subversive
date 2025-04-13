@@ -1,12 +1,12 @@
 use anyhow::Result;
-#[cfg(not(test))]
-use clap::Parser;
-use rand::{thread_rng, Rng};
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use tokio::fs;
 use tracing::{debug, error, info};
+use subversive_utils::logutils::update_tracing;
 
-use crate::{args::Args, logutils::update_tracing, network};
+use crate::args::Args;
+use crate::network;
 
 /// Configuration for the P2P network application
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -53,7 +53,7 @@ impl Config {
     pub fn default_config() -> Self {
         Self {
             port: Some({
-                let mut rng = thread_rng();
+                let mut rng = rand::thread_rng();
                 rng.gen_range(10000..=65535)
             }),
             peer: None,
@@ -206,12 +206,10 @@ impl Config {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        test_utils::init_test_tracing,
-        types::{args::Args, config::Config},
-    };
-    use std::fs;
+    use super::*;
+    use subversive_utils::test_utils::init_test_tracing;
     use tempfile::NamedTempFile;
+    use std::fs;
 
     #[tokio::test]
     async fn test_default_config() {

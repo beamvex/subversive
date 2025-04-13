@@ -3,9 +3,8 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 use crate::{
-    db::DbContext,
-    shutdown::ShutdownState,
-    types::{config::Config, health::PeerHealth},
+    config::Config,
+    health::PeerHealth,
 };
 
 /// Shared application state

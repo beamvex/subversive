@@ -1,66 +1,66 @@
 use clap::Parser;
 
-/// Command line arguments for the P2P network application
-#[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
+/// Command line arguments
+#[derive(Parser, Debug, Clone)]
+#[clap(author, version, about)]
 pub struct Args {
-    /// Port to listen on for P2P communication (defaults to random port between 10000-65535)
-    #[arg(short, long)]
+    /// Port to listen on for P2P communication
+    #[clap(short, long)]
     pub port: Option<u16>,
 
     /// Initial peer to connect to
-    #[arg(short('e'), long)]
+    #[clap(short, long)]
     pub peer: Option<String>,
 
-    /// Database file name (defaults to p2p_network.db)
-    #[arg(short, long)]
+    /// Database file name
+    #[clap(short, long)]
     pub database: Option<String>,
 
     /// Custom name for HTTP access logs
-    #[arg(short, long)]
+    #[clap(short, long)]
     pub name: Option<String>,
 
     /// Hostname to use for the server (defaults to external IP)
-    #[arg(short('H'), long)]
+    #[clap(short = 'H', long)]
     pub hostname: Option<String>,
 
-    /// Path to YAML configuration file
-    #[arg(short, long)]
+    /// Path to config file
+    #[clap(short, long)]
     pub config: Option<String>,
 
-    /// Enable post-apocalyptic survival mode
-    #[arg(long)]
-    pub survival_mode: Option<bool>,
-
-    /// Log level (trace, debug, info, warn, error)
-    #[arg(short('l'), long, default_value = "info")]
-    pub log_level: Option<String>,
-
     /// No-IP hostname (e.g., example.ddns.net)
-    #[arg(long)]
+    #[clap(long)]
     pub noip_hostname: Option<String>,
 
     /// No-IP username
-    #[arg(long)]
+    #[clap(long)]
     pub noip_username: Option<String>,
 
     /// No-IP password
-    #[arg(long)]
+    #[clap(long)]
     pub noip_password: Option<String>,
 
     /// OpenDNS hostname
-    #[arg(long)]
+    #[clap(long)]
     pub opendns_hostname: Option<String>,
 
     /// OpenDNS username
-    #[arg(long)]
+    #[clap(long)]
     pub opendns_username: Option<String>,
 
     /// OpenDNS password
-    #[arg(long)]
+    #[clap(long)]
     pub opendns_password: Option<String>,
 
     /// OpenDNS network label
-    #[arg(long)]
+    #[clap(long)]
     pub opendns_network: Option<String>,
+
+    /// Enable post-apocalyptic survival mode
+    #[clap(long)]
+    pub survival_mode: Option<bool>,
+
+    /// Log level (trace, debug, info, warn, error)
+    #[clap(short = 'L', long, default_value = "info")]
+    pub log_level: Option<String>,
 }

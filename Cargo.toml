@@ -2,7 +2,8 @@
 members = [
     ".",
     "network",
-    "types"
+    "types",
+    "utils"
 ]
 
 [package]
@@ -64,3 +65,8 @@ tower = { version = "0.4", features = ["util"] }
 hyper = { version = "0.14", features = ["full"] }
 test-log = "0.2.17"
 cargo-tarpaulin = "0.32.3"
+
+[workspace.dependencies]
+subversive-types = { path = "types" }
+subversive-network = { path = "network" }
+subversive-utils = { path = "utils" }
