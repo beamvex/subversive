@@ -5,9 +5,9 @@ use std::time::SystemTime;
 #[derive(Debug)]
 pub struct PeerHealth {
     /// HTTP client for peer communication
-    pub(crate) client: Client,
+    pub client: Client,
     /// Last time we received a message from this peer
-    pub(crate) last_seen: i64,
+    pub last_seen: i64,
 }
 
 impl PeerHealth {
