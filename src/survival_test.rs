@@ -2,10 +2,10 @@
 mod tests {
     use std::collections::HashMap;
     use std::sync::Arc;
+    use subversive_database::context::DbContext;
     use tokio::sync::Mutex;
 
     use crate::{
-        db::DbContext,
         shutdown::ShutdownState,
         survival::{check_survival_status, start_survival_mode},
         types::{config::Config, health::PeerHealth, state::AppState},

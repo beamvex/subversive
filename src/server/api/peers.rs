@@ -66,6 +66,7 @@ impl Peers {
             .keys()
             .map(|addr| PeerInfo {
                 address: addr.clone(),
+                port: 0,
             })
             .collect();
 
@@ -79,6 +80,7 @@ impl Peers {
             .keys()
             .map(|addr| PeerInfo {
                 address: addr.clone(),
+                port: 0,
             })
             .collect();
 
@@ -101,7 +103,10 @@ impl Peers {
             .unwrap_or_default();
         let peer_info: Vec<PeerInfo> = peers
             .into_iter()
-            .map(|p| PeerInfo { address: p.address })
+            .map(|p| PeerInfo {
+                address: p.address,
+                port: 0,
+            })
             .collect();
 
         Json(peer_info)
@@ -132,7 +137,10 @@ impl Peers {
             .unwrap_or_default();
         let peer_info: Vec<PeerInfo> = peers
             .into_iter()
-            .map(|p| PeerInfo { address: p.address })
+            .map(|p| PeerInfo {
+                address: p.address,
+                port: 0,
+            })
             .collect();
 
         Json(peer_info)

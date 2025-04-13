@@ -4,11 +4,11 @@ use std::sync::Arc;
 use tracing::info;
 
 use subversive::{
-    db::DbContext,
     server,
     shutdown::ShutdownState,
     types::{args::Args, config::Config, state::AppState},
 };
+use subversive_database::context::DbContext;
 
 #[tokio::main]
 async fn main() -> Result<()> {
