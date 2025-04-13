@@ -2,10 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use crate::{
-    config::Config,
-    health::PeerHealth,
-};
+use crate::{config::Config, db::DbContext, health::PeerHealth, shutdown::ShutdownState};
 
 /// Shared application state
 pub struct AppState {

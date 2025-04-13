@@ -1,9 +1,11 @@
 use anyhow::Result;
+#[cfg(not(test))]
+use clap::Parser;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
+use subversive_utils::logutils::update_tracing;
 use tokio::fs;
 use tracing::{debug, error, info};
-use subversive_utils::logutils::update_tracing;
 
 use crate::args::Args;
 use crate::network;
@@ -53,8 +55,8 @@ impl Config {
     pub fn default_config() -> Self {
         Self {
             port: Some({
-                let mut rng = rand::thread_rng();
-                rng.gen_range(10000..=65535)
+                let mut rng = rand::rng();
+                rng.random_range(10000..=65535)
             }),
             peer: None,
             database: Some("p2p_network.db".to_string()),
@@ -207,9 +209,9 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
     use subversive_utils::test_utils::init_test_tracing;
     use tempfile::NamedTempFile;
-    use std::fs;
 
     #[tokio::test]
     async fn test_default_config() {

@@ -1,7 +1,7 @@
 use clap::Parser;
 
 /// Command line arguments
-#[derive(Parser, Debug, Clone)]
+#[derive(Debug, Clone, Parser)]
 #[clap(author, version, about)]
 pub struct Args {
     /// Port to listen on for P2P communication
