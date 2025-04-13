@@ -2,13 +2,13 @@ use anyhow::Result;
 use async_trait::async_trait;
 use igd::aio::Gateway;
 use igd::PortMappingProtocol;
-use log::{error, info};
 use std::net::SocketAddrV4;
 use std::path::Path;
 #[cfg(test)]
 use std::sync::Arc;
 use std::sync::OnceLock;
 use tokio::sync::Mutex;
+use tracing::{error, info};
 
 use crate::local_ip;
 

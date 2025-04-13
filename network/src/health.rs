@@ -1,10 +1,10 @@
 use std::sync::Arc;
-use tokio::sync::Mutex;
-use tracing::{debug, info};
 use subversive_types::{
     health::PeerHealth,
     state::{AppState, ShutdownState},
 };
+use tokio::sync::Mutex;
+use tracing::{debug, info};
 
 const PEER_TIMEOUT: i64 = 3600; // 1 hour
 
@@ -36,10 +36,7 @@ async fn handle_health_check_result(
 }
 
 /// Check the health of all peers
-pub async fn check_peer_health(
-    state: Arc<AppState>,
-    address: String,
-) -> Result<(), String> {
+pub async fn check_peer_health(state: Arc<AppState>, address: String) -> Result<(), String> {
     let peers = state.peers.lock().await;
     if !peers.contains_key(&address) {
         return Err("Peer not found".to_string());
@@ -97,15 +94,21 @@ pub async fn start_health_checker(state: Arc<AppState>) {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
+    use subversive_types::{config::Config, db::DbContext};
+
     use super::*;
 
     #[tokio::test]
     async fn test_check_peer_health() {
         let state = Arc::new(AppState {
-            peers: Arc::new(Mutex::new(vec!["127.0.0.1:8080".to_string()])),
-            config: Default::default(),
+            peers: Arc::new(Mutex::new(HashMap::new())),
+            config: Config::default_config(),
             own_address: Default::default(),
             shutdown: ShutdownState::Running,
+            db: Arc::new(DbContext::new_memory().await.unwrap()),
+            actual_port: 8080,
         });
 
         // Test valid peer

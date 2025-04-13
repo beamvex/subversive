@@ -1,15 +1,10 @@
+use anyhow::Result;
+use reqwest::Client;
 use std::collections::HashMap;
 use std::sync::Arc;
+use subversive_types::{health::PeerHealth, message::Message, peer::PeerInfo, state::AppState};
 use tokio::sync::Mutex;
-use reqwest::Client;
-use tracing::{debug, info};
-use anyhow::Result;
-use subversive_types::{
-    health::PeerHealth,
-    peer::PeerInfo,
-    state::AppState,
-    message::Message,
-};
+use tracing::{debug, error, info};
 
 /// Initialize connection to an initial peer
 ///
@@ -427,7 +422,9 @@ mod tests {
 
         // Try removing non-existent peer
         drop(peers);
-        remove_peer(state.clone(), "http://nonexistent:8080".to_string()).await.unwrap();
+        remove_peer(state.clone(), "http://nonexistent:8080".to_string())
+            .await
+            .unwrap();
         let peers = state.peers.lock().await;
         assert_eq!(peers.len(), 0);
     }
