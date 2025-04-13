@@ -1,29 +1,43 @@
-use serde::{Deserialize, Serialize};
-use std::time::SystemTime;
 use reqwest::Client;
+use std::time::SystemTime;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Health status of a peer
+#[derive(Debug)]
 pub struct PeerHealth {
-    pub last_seen: SystemTime,
-    pub consecutive_failures: u32,
-    #[serde(skip)]
-    pub client: Client,
+    /// HTTP client for peer communication
+    pub(crate) client: Client,
+    /// Last time we received a message from this peer
+    pub(crate) last_seen: i64,
 }
 
 impl PeerHealth {
-    pub fn new(client: Client, base_url: String) -> Self {
+    /// Create a new peer health tracker
+    pub fn new(client: Client, _: String) -> Self {
         Self {
-            last_seen: SystemTime::now(),
-            consecutive_failures: 0,
             client,
+            last_seen: SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .unwrap()
+                .as_secs() as i64,
         }
     }
 
+    /// Update the last seen timestamp
     pub fn update_last_seen(&mut self) {
-        self.last_seen = SystemTime::now();
+        self.last_seen = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64;
     }
 
-    pub fn get_last_seen(&self) -> SystemTime {
+    /// Get the last seen timestamp
+    pub fn get_last_seen(&self) -> i64 {
         self.last_seen
+    }
+
+    /// Record a failure for this peer
+    pub fn record_failure(&mut self) {
+        // Set last_seen to 0 to mark as unhealthy
+        self.last_seen = 0;
     }
 }

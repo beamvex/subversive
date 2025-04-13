@@ -1,19 +1,25 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use crate::config::Config;
-use crate::peer::PeerInfo;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum ShutdownState {
-    Running,
-    ShuttingDown,
-    Stopped,
-}
+use crate::{
+    db::DbContext,
+    shutdown::ShutdownState,
+    types::{config::Config, health::PeerHealth},
+};
 
-#[derive(Debug)]
+/// Shared application state
 pub struct AppState {
-    pub peers: Arc<Mutex<Vec<String>>>,
+    /// Map of peer addresses to their health status
+    pub peers: Arc<Mutex<HashMap<String, PeerHealth>>>,
+    /// Database context
+    pub db: Arc<DbContext>,
+    /// Our own address that peers can use to connect to us
+    pub own_address: String,
+    /// Shared shutdown state for cleanup
+    pub shutdown: Arc<ShutdownState>,
+    /// Configuration
     pub config: Config,
-    pub own_address: PeerInfo,
-    pub shutdown: ShutdownState,
+    /// Actual port number
+    pub actual_port: u16,
 }
