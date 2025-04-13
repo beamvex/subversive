@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use tokio::fs;
 use tracing::{debug, error, info};
 
-use crate::{logutils::update_tracing, network, types::args::Args};
+use crate::{args::Args, logutils::update_tracing, network};
 
 /// Configuration for the P2P network application
 #[derive(Debug, Serialize, Deserialize, Clone)]
