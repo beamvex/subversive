@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::db::DbContext;
+    use crate::context::DbContext;
     use std::time::{SystemTime, UNIX_EPOCH};
 
     fn get_current_timestamp() -> i64 {

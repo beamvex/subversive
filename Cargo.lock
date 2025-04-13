@@ -2672,8 +2672,10 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "sha2",
+ "subversive-database",
  "subversive-network",
  "subversive-types",
+ "subversive-utils",
  "tempfile",
  "test-log",
  "tokio",
@@ -2683,6 +2685,19 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "uuid",
+]
+
+[[package]]
+name = "subversive-database"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]
