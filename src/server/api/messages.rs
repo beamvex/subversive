@@ -7,8 +7,8 @@ use axum::{
 use serde::Deserialize;
 use std::{sync::Arc, time::SystemTime};
 
-use crate::network::broadcast_to_peers;
 use crate::types::{message::Message, state::AppState};
+use subversive_network::peer::broadcast_to_peers;
 
 /// Messages API module
 pub struct Messages;

@@ -3,10 +3,8 @@ use std::time::SystemTime;
 use tokio::time::{self, Duration};
 use tracing::{error, info, warn};
 
-use crate::{
-    network::broadcast_to_peers,
-    types::{health::PeerHealth, message::Message, state::AppState},
-};
+use crate::types::{health::PeerHealth, message::Message, state::AppState};
+use subversive_network::peer::broadcast_to_peers;
 
 const SURVIVAL_CHECK_INTERVAL: u64 = 300; // 5 minutes
 const RECONNECT_ATTEMPT_INTERVAL: u64 = 60; // 1 minute

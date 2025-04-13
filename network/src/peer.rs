@@ -26,6 +26,7 @@ pub async fn connect_to_initial_peer(state: Arc<AppState>) -> Result<()> {
         let mut peers = state.peers.lock().await;
         let peer_info = PeerInfo {
             address: own_address.clone(),
+            port: state.actual_port,
         };
 
         // Send connection request to peer

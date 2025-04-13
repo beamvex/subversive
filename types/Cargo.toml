@@ -13,6 +13,7 @@ anyhow = "1.0.97"
 clap = { version = "4.5.36", features = ["derive"] }
 serde_yaml = "0.9"
 subversive-utils = { path = "../utils" }
+subversive-database = { path = "../database" }
 
 [dev-dependencies]
 tempfile = "3.10"

@@ -7,8 +7,8 @@ use axum::{
 use std::sync::Arc;
 use std::time::SystemTime;
 
-use crate::network::broadcast_to_peers;
 use crate::types::{health::PeerHealth, message::Message, peer::PeerInfo, state::AppState};
+use subversive_network::peer::broadcast_to_peers;
 
 /// Peers API module
 pub struct Peers;

@@ -5,7 +5,6 @@ pub use subversive_types as types;
 pub use subversive_utils as utils;
 
 pub mod crypto;
-pub mod db;
 pub mod ddns;
 pub mod logutils;
 pub mod server;

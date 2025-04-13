@@ -1,9 +1,5 @@
 use std::sync::Arc;
-use subversive_types::{
-    health::PeerHealth,
-    state::{AppState, ShutdownState},
-};
-use tokio::sync::Mutex;
+use subversive_types::{health::PeerHealth, shutdown::ShutdownState, state::AppState};
 use tracing::{debug, info};
 
 const PEER_TIMEOUT: i64 = 3600; // 1 hour
@@ -29,9 +25,9 @@ async fn handle_health_check_result(
     }
 
     // In survival mode, if we have no peers and no gateways, shut down
-    if survival_mode && peers.is_empty() && state.shutdown == ShutdownState::Running {
+    if survival_mode && peers.is_empty() && state.shutdown.is_shutting_down() {
         info!("No peers or gateways available in survival mode, shutting down");
-        state.shutdown = ShutdownState::ShuttingDown;
+        state.shutdown.initiate_shutdown();
     }
 }
 
@@ -79,11 +75,11 @@ pub async fn start_health_checker(state: Arc<AppState>) {
         for peer in peer_list {
             if let Some(peer_health) = state.peers.lock().await.get_mut(&peer) {
                 let result = check_peer(&peer, peer_health).await;
-                handle_health_check_result(state.clone(), peer.clone(), result, false).await;
+                handle_health_check_result(&state, peer.clone(), result, false).await;
             }
         }
 
-        if state.shutdown == ShutdownState::ShuttingDown {
+        if state.shutdown.is_shutting_down() {
             break;
         }
 

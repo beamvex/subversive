@@ -2729,6 +2729,7 @@ dependencies = [
  "reqwest 0.11.27",
  "serde",
  "serde_yaml",
+ "subversive-database",
  "subversive-utils",
  "tempfile",
  "tokio",
