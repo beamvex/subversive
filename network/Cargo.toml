@@ -15,6 +15,7 @@ local-ip-address = "0.6.3"
 igd = { version = "0.12", features = ["aio"] }
 serde_json = "1.0"
 async-trait = "0.1.88"
+subversive-utils = { path = "../utils" }
 
 [dev-dependencies]
 mockall = "0.13.1"

@@ -172,28 +172,25 @@ pub async fn get_peer_info(address: &str) -> Result<PeerInfo, String> {
 #[cfg(test)]
 mod tests {
 
-    use crate::{
-        db::context::DbContext,
-        network::peer::{
-            add_peer, add_peers, connect_to_initial_peer, get_peers, remove_peer,
-            update_peer_last_seen,
-        },
-        shutdown::ShutdownState,
-        test_utils::init_test_tracing,
-        types::{config::Config, state::AppState},
-    };
     use mockito::Server;
     use std::{collections::HashMap, sync::Arc};
+    use subversive_database::context::DbContext;
+    use subversive_types::{config::Config, peer::PeerInfo, state::AppState};
+    use subversive_utils::test_utils::init_test_tracing;
     use tokio::sync::Mutex;
     use tracing::info;
+
+    use std::time::Duration;
+
+    use crate::peer::{
+        add_peer, add_peers, connect_to_initial_peer, get_peers, remove_peer, update_peer_last_seen,
+    };
 
     async fn setup_test_state(own_address: &str) -> Arc<AppState> {
         let mut config = Config::default_config();
         config.hostname = Some(own_address.to_string());
 
         let port = 8080;
-        let gateways = Vec::new();
-        let shutdown = Arc::new(ShutdownState::new(port, gateways));
 
         Arc::new(AppState {
             config,
@@ -201,7 +198,6 @@ mod tests {
             peers: Arc::new(Mutex::new(HashMap::new())),
             db: Arc::new(DbContext::new_memory().await.unwrap()),
             actual_port: port,
-            shutdown,
         })
     }
 
@@ -222,9 +218,11 @@ mod tests {
         let known_peers = vec![
             PeerInfo {
                 address: "https://peer1:8080".to_string(),
+                port: 8080,
             },
             PeerInfo {
                 address: "https://peer2:8080".to_string(),
+                port: 8080,
             },
         ];
 
@@ -239,17 +237,12 @@ mod tests {
         let mut config = Config::default_config();
         config.peer = Some(peer_addr.clone());
 
-        let port = 8080;
-        let gateways = Vec::new();
-        let shutdown = Arc::new(ShutdownState::new(port, gateways));
-
         let state = Arc::new(AppState {
             config,
             own_address: own_addr.clone(),
             peers: Arc::new(Mutex::new(HashMap::new())),
             db: Arc::new(DbContext::new_memory().await.unwrap()),
             actual_port: 8080,
-            shutdown,
         });
 
         let result = connect_to_initial_peer(state.clone()).await;
@@ -276,17 +269,12 @@ mod tests {
         let mut config = Config::default_config();
         config.peer = Some(peer_addr);
 
-        let port = 8080;
-        let gateways = Vec::new();
-        let shutdown = Arc::new(ShutdownState::new(port, gateways));
-
         let state = Arc::new(AppState {
             config,
             own_address: "https://localhost:8080".to_string(),
             peers: Arc::new(Mutex::new(HashMap::new())),
             db: Arc::new(DbContext::new_memory().await.unwrap()),
             actual_port: 8080,
-            shutdown,
         });
 
         let result = connect_to_initial_peer(state.clone()).await;
@@ -306,9 +294,11 @@ mod tests {
         let known_peers = vec![
             PeerInfo {
                 address: own_addr.clone(),
+                port: 8080,
             },
             PeerInfo {
                 address: "https://peer1:8080".to_string(),
+                port: 8080,
             },
         ];
 
@@ -323,17 +313,12 @@ mod tests {
         let mut config = Config::default_config();
         config.peer = Some(peer_addr.clone());
 
-        let port = 8080;
-        let gateways = Vec::new();
-        let shutdown = Arc::new(ShutdownState::new(port, gateways));
-
         let state = Arc::new(AppState {
             config,
             own_address: own_addr.clone(),
             peers: Arc::new(Mutex::new(HashMap::new())),
             db: Arc::new(DbContext::new_memory().await.unwrap()),
             actual_port: 8080,
-            shutdown,
         });
 
         let result = connect_to_initial_peer(state.clone()).await;
@@ -345,8 +330,6 @@ mod tests {
         assert!(peers.contains_key("https://peer1:8080"));
         assert!(!peers.contains_key(&own_addr));
     }
-
-    use std::time::Duration;
 
     #[tokio::test]
     async fn test_add_peer() {

@@ -249,7 +249,6 @@ pub use mockall::automock;
 
 #[cfg(test)]
 mod tests {
-    use crate::network::cleanup_upnp;
 
     #[cfg(test)]
     use mockall::predicate::*;
@@ -259,12 +258,14 @@ mod tests {
 
     use tracing::info;
 
-    use crate::network::upnp::{
+    use crate::upnp::{
         set_wsl_path, setup_upnp_with_search, try_setup_upnp, DefaultGatewaySearch, Gateway2,
         GatewayWrapper, IGateway, MockGatewaySearch, MockIGateway,
     };
-    use crate::test_utils::init_test_tracing;
     use igd::PortMappingProtocol;
+    use subversive_utils::test_utils::init_test_tracing;
+
+    use crate::{local_ip::get_local_ipv4, upnp::cleanup_upnp};
 
     pub fn init_test_upnp() {
         init_test_tracing();
@@ -314,7 +315,7 @@ mod tests {
     async fn test_setup_upnp_success() -> anyhow::Result<()> {
         init_test_upnp();
         let success_port = 8080;
-        let local_ipv4 = local_ip::get_local_ipv4()?;
+        let local_ipv4 = get_local_ipv4().unwrap();
 
         // Create a mock gateway that fails for the first port but succeeds for the second
         let mut mock_gateway = MockIGateway::new();
