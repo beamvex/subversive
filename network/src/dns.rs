@@ -1,6 +1,7 @@
 use std::net::IpAddr;
-use subversive_types::peer::PeerInfo;
 use tracing::{debug, error};
+
+use crate::peer::PeerInfo;
 
 pub async fn reverse_lookup(addr: &str) -> Result<String, String> {
     // Parse the IP address

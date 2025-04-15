@@ -2,9 +2,18 @@ use anyhow::Result;
 use reqwest::Client;
 use std::collections::HashMap;
 use std::sync::Arc;
-use subversive_types::{health::PeerHealth, message::Message, peer::PeerInfo, state::AppState};
 use tokio::sync::Mutex;
 use tracing::{debug, error, info};
+
+use serde::{Deserialize, Serialize};
+
+/// Information about a peer in the network
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PeerInfo {
+    /// Network address of the peer
+    pub address: String,
+    pub port: u16,
+}
 
 /// Initialize connection to an initial peer
 ///
@@ -175,7 +184,6 @@ mod tests {
     use mockito::Server;
     use std::{collections::HashMap, sync::Arc};
     use subversive_database::context::DbContext;
-    use subversive_types::{config::Config, peer::PeerInfo, state::AppState};
     use subversive_utils::test_utils::init_test_tracing;
     use tokio::sync::Mutex;
     use tracing::info;

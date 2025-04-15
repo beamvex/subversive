@@ -3,7 +3,7 @@ use std::sync::Arc;
 use subversive_database::context::DbContext;
 use tokio::sync::Mutex;
 
-use crate::{config::Config, health::PeerHealth};
+use crate::config::Config;
 
 /// Shared application state
 pub struct AppState {
