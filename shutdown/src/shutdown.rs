@@ -1,8 +1,7 @@
-use crate::network;
-use crate::network::upnp::Gateway2;
 use anyhow::Result;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use subversive_network::upnp::{cleanup_upnp, Gateway2};
 use tokio::task::JoinHandle;
 use tracing::{error, info};
 
@@ -54,7 +53,7 @@ impl ShutdownState {
     /// Clean up UPnP mappings and exit
     pub async fn shutdown(&self) {
         info!("Cleaning up UPnP mappings...");
-        if let Err(e) = network::upnp::cleanup_upnp(self.port, (*self.gateways).clone()).await {
+        if let Err(e) = cleanup_upnp(self.port, (*self.gateways).clone()).await {
             error!("Failed to clean up UPnP mappings: {}", e);
         }
         #[cfg(not(test))]

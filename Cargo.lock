@@ -2723,6 +2723,13 @@ dependencies = [
 [[package]]
 name = "subversive-shutdown"
 version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "subversive-network",
+ "subversive-types",
+ "tokio",
+ "tracing",
+]
 
 [[package]]
 name = "subversive-types"
