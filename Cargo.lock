@@ -2735,6 +2735,7 @@ dependencies = [
  "serde",
  "serde_yaml",
  "subversive-database",
+ "subversive-network",
  "subversive-utils",
  "tempfile",
  "tokio",

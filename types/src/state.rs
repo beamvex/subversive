@@ -4,6 +4,7 @@ use subversive_database::context::DbContext;
 use tokio::sync::Mutex;
 
 use crate::config::Config;
+use subversive_network::health::PeerHealth;
 
 /// Shared application state
 pub struct AppState {
