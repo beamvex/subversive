@@ -2714,7 +2714,6 @@ dependencies = [
  "serde",
  "serde_json",
  "subversive-database",
- "subversive-types",
  "subversive-utils",
  "tempfile",
  "tokio",
