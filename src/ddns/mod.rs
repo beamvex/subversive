@@ -66,8 +66,9 @@ mod tests {
     use mockall::automock;
 
     use crate::ddns::config_ddns;
+    use crate::ddns::start_ddns_updater;
     use crate::types::config::Config;
-    use crate::{ddns::start_ddns_updater, test_utils::init_test_tracing};
+    use subversive_utils::test_utils::init_test_tracing;
 
     use super::provider::{DdnsProvider, UpdateDns};
     use anyhow::Result;

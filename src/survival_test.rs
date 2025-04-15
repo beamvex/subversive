@@ -6,7 +6,6 @@ mod tests {
     use tokio::sync::Mutex;
 
     use crate::{
-        shutdown::ShutdownState,
         survival::{check_survival_status, start_survival_mode},
         types::{config::Config, health::PeerHealth, state::AppState},
     };
@@ -15,15 +14,12 @@ mod tests {
     async fn test_survival_mode_start() {
         let config = Config::default_config();
         let peers = Arc::new(Mutex::new(HashMap::new()));
-        let gateways = Vec::new();
-        let shutdown = Arc::new(ShutdownState::new(12345, gateways));
         let db = Arc::new(DbContext::new_memory().await.unwrap());
         let app_state = Arc::new(AppState {
             config,
             peers: peers.clone(),
             db,
             own_address: "http://localhost:12345".to_string(),
-            shutdown,
             actual_port: 12345,
         });
 
@@ -49,15 +45,12 @@ mod tests {
     async fn test_survival_mode_no_peers() {
         let config = Config::default_config();
         let peers = Arc::new(Mutex::new(HashMap::new()));
-        let gateways = Vec::new();
-        let shutdown = Arc::new(ShutdownState::new(12345, gateways));
         let db = Arc::new(DbContext::new_memory().await.unwrap());
         let app_state = Arc::new(AppState {
             config,
             peers: peers.clone(),
             db,
             own_address: "http://localhost:12345".to_string(),
-            shutdown,
             actual_port: 12345,
         });
 
@@ -81,15 +74,12 @@ mod tests {
             PeerHealth::new(reqwest::Client::new(), "http://localhost:8081".to_string()),
         );
         let peers = Arc::new(Mutex::new(peers_map));
-        let gateways = Vec::new();
-        let shutdown = Arc::new(ShutdownState::new(12345, gateways));
         let db = Arc::new(DbContext::new_memory().await.unwrap());
         let app_state = Arc::new(AppState {
             config,
             peers: peers.clone(),
             db,
             own_address: "http://localhost:12345".to_string(),
-            shutdown,
             actual_port: 12345,
         });
 
@@ -109,15 +99,12 @@ mod tests {
         peer.record_failure();
         peers_map.insert("http://localhost:8080".to_string(), peer);
         let peers = Arc::new(Mutex::new(peers_map));
-        let gateways = Vec::new();
-        let shutdown = Arc::new(ShutdownState::new(12345, gateways));
         let db = Arc::new(DbContext::new_memory().await.unwrap());
         let app_state = Arc::new(AppState {
             config,
             peers: peers.clone(),
             db,
             own_address: "http://localhost:12345".to_string(),
-            shutdown,
             actual_port: 12345,
         });
 

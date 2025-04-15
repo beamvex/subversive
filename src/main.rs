@@ -5,7 +5,6 @@ use tracing::info;
 
 use subversive::{
     server,
-    shutdown::ShutdownState,
     types::{args::Args, config::Config, state::AppState},
 };
 use subversive_database::context::DbContext;
@@ -26,10 +25,6 @@ async fn main() -> Result<()> {
         actual_port: port,
         config: config.clone(),
         own_address: format!("https://localhost:{}", port),
-        shutdown: Arc::new(ShutdownState::new(
-            port,
-            Vec::new(), // No gateways for now
-        )),
     });
 
     let server_handle = tokio::spawn(server::spawn_server(app_state.clone()));

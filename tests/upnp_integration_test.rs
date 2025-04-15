@@ -2,7 +2,7 @@ use anyhow::Result;
 use std::net::{Ipv4Addr, SocketAddrV4};
 use std::time::Duration;
 use subversive::network::upnp::{cleanup_upnp, setup_upnp};
-use subversive::test_utils::init_test_tracing;
+use subversive_utils::test_utils::init_test_tracing;
 
 #[tokio::test]
 async fn test_upnp_port_mapping() -> Result<()> {

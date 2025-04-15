@@ -23,9 +23,8 @@ async fn handle_health_check_result(
     }
 
     // In survival mode, if we have no peers and no gateways, shut down
-    if survival_mode && peers.is_empty() && state.shutdown.is_shutting_down() {
+    if survival_mode && peers.is_empty() {
         info!("No peers or gateways available in survival mode, shutting down");
-        state.shutdown.initiate_shutdown();
     }
 }
 
@@ -77,10 +76,6 @@ pub async fn start_health_checker(state: Arc<AppState>) {
             }
         }
 
-        if state.shutdown.is_shutting_down() {
-            break;
-        }
-
         tokio::time::sleep(tokio::time::Duration::from_secs(60)).await;
     }
     info!("Health checker stopped");
@@ -91,7 +86,7 @@ mod tests {
     use std::collections::HashMap;
 
     use subversive_database::context::DbContext;
-    use subversive_types::{config::Config, shutdown::ShutdownState};
+    use subversive_types::config::Config;
     use tokio::sync::Mutex;
 
     use super::*;
@@ -102,7 +97,6 @@ mod tests {
             peers: Arc::new(Mutex::new(HashMap::new())),
             config: Config::default_config(),
             own_address: Default::default(),
-            shutdown: ShutdownState::Running,
             db: Arc::new(DbContext::new_memory().await.unwrap()),
             actual_port: 8080,
         });
