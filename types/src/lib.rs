@@ -4,5 +4,4 @@ pub mod health;
 pub mod message;
 pub mod network;
 pub mod peer;
-pub mod shutdown;
 pub mod state;

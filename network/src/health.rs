@@ -1,8 +1,6 @@
 use std::sync::Arc;
-use subversive_types::{health::PeerHealth, shutdown::ShutdownState, state::AppState};
+use subversive_types::{health::PeerHealth, state::AppState};
 use tracing::{debug, info};
-
-const PEER_TIMEOUT: i64 = 3600; // 1 hour
 
 /// Handle a health check result
 async fn handle_health_check_result(
@@ -92,7 +90,9 @@ pub async fn start_health_checker(state: Arc<AppState>) {
 mod tests {
     use std::collections::HashMap;
 
-    use subversive_types::{config::Config, db::DbContext};
+    use subversive_database::context::DbContext;
+    use subversive_types::{config::Config, shutdown::ShutdownState};
+    use tokio::sync::Mutex;
 
     use super::*;
 

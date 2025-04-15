@@ -6,11 +6,8 @@ pub use subversive_utils as utils;
 
 pub mod crypto;
 pub mod ddns;
-pub mod logutils;
+
 pub mod server;
-pub mod shutdown;
-pub mod shutdown_test;
+
 pub mod survival;
 pub mod survival_test;
-
-pub mod test_utils;

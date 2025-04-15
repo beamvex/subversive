@@ -4,7 +4,8 @@ members = [
     "database",
     "network",
     "types",
-    "utils"
+    "utils",
+    "shutdown",
 ]
 
 [package]
