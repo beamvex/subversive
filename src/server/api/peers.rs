@@ -7,8 +7,9 @@ use axum::{
 use std::sync::Arc;
 use std::time::SystemTime;
 
-use crate::types::{health::PeerHealth, message::Message, peer::PeerInfo, state::AppState};
-use subversive_network::peer::broadcast_to_peers;
+use crate::types::{message::Message, state::AppState};
+
+use subversive_network::{health::PeerHealth, peer::PeerInfo};
 
 /// Peers API module
 pub struct Peers;
@@ -56,9 +57,6 @@ impl Peers {
         let msg = Message::NewPeer {
             addr: peer_addr.clone(),
         };
-        if let Err(e) = broadcast_to_peers(msg, "local", &state.peers).await {
-            tracing::error!("Failed to broadcast new peer: {}", e);
-        }
 
         // Return list of known peers
         let peers = state.peers.lock().await;

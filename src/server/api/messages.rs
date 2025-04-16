@@ -8,7 +8,6 @@ use serde::Deserialize;
 use std::{sync::Arc, time::SystemTime};
 
 use crate::types::{message::Message, state::AppState};
-use subversive_network::peer::broadcast_to_peers;
 
 /// Messages API module
 pub struct Messages;
@@ -71,11 +70,6 @@ impl Messages {
         {
             tracing::error!("Failed to save message to database: {}", e);
             return Json(());
-        }
-
-        // Broadcast message to peers
-        if let Err(e) = broadcast_to_peers(message, "local", &state.peers).await {
-            tracing::error!("Failed to broadcast message: {}", e);
         }
 
         Json(())

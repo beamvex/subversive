@@ -10,4 +10,3 @@ pub mod ddns;
 pub mod server;
 
 pub mod survival;
-pub mod survival_test;
