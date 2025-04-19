@@ -1,5 +1,7 @@
 use anyhow::Result;
+use once_cell::sync::Lazy;
 use std::net::Ipv4Addr;
+use std::sync::Mutex;
 
 /// Get the network interfaces of the machine
 ///
@@ -40,11 +42,14 @@ mod tests {
     use std::{env, fs};
 
     use anyhow::Result;
+    use once_cell::sync::Lazy;
+    use tokio::sync::Mutex;
 
     use crate::interfaces::get_network_interfaces;
 
     static MOCK_SETUP: Once = Once::new();
     const MOCK_IP_COMMAND: &str = "ip";
+    static PATH_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
     fn setup_mock_ip_command() -> Result<()> {
         MOCK_SETUP.call_once(|| {
@@ -98,7 +103,8 @@ fi"#;
     }
 
     #[test]
-    fn test_get_network_interfaces_no_interfaces() -> Result<()> {
+    async fn test_get_network_interfaces_no_interfaces() -> Result<()> {
+        let _lock = PATH_MUTEX.lock().await.unwrap();
         // Create a temporary command that outputs no interfaces
         let temp_dir = env::temp_dir();
         let mock_path = temp_dir.join("ip");
@@ -128,6 +134,7 @@ fi"#;
 
     #[test]
     fn test_get_network_interfaces_invalid_output() -> Result<()> {
+        let _lock = PATH_MUTEX.lock().unwrap();
         // Create a temporary command that outputs invalid interface data
         let temp_dir = env::temp_dir();
         let mock_path = temp_dir.join("ip");
@@ -157,6 +164,7 @@ fi"#;
 
     #[test]
     fn test_get_network_interfaces_command_not_found() {
+        let _lock = PATH_MUTEX.lock().unwrap();
         // Set PATH to a non-existent directory
         let old_path = env::var("PATH").unwrap_or_default();
         env::set_var("PATH", "/nonexistent");
