@@ -64,6 +64,7 @@ pub async fn get_peer_info(addr: &str) -> Result<PeerInfo, String> {
 mod tests {
     use super::*;
     use crate::dns::reverse_lookup;
+    use subversive_utils::test_utils::init_test_tracing;
     use test_log::test;
     use tracing::info;
 
@@ -150,19 +151,21 @@ mod tests {
 
     #[test(tokio::test)]
     async fn test_reverse_lookup_ipv6_unspecified() {
+        init_test_tracing();
         info!("test_reverse_lookup_ipv6_unspecified");
         let result = reverse_lookup("::").await;
         assert!(result.is_ok());
         let hostname = result.unwrap();
         assert!(
-            hostname == "::",
-            "Expected :: to be returned, got: {}",
+            hostname == "unspecified",
+            "Expected :: to be resolved to 'unspecified', got: {}",
             hostname
         );
     }
 
     #[test(tokio::test)]
     async fn test_reverse_lookup_private_network() {
+        init_test_tracing();
         info!("test_reverse_lookup_private_network");
         let test_ip = "192.168.1.1";
         let result = reverse_lookup(test_ip).await;
@@ -177,6 +180,7 @@ mod tests {
 
     #[test(tokio::test)]
     async fn test_reverse_lookup_link_local() {
+        init_test_tracing();
         info!("test_reverse_lookup_link_local");
         let ipv4_ll = "169.254.1.1";
         let ipv6_ll = "fe80::1";
@@ -202,12 +206,13 @@ mod tests {
 
     #[test(tokio::test)]
     async fn test_reverse_lookup_special_purpose() {
+        init_test_tracing();
         info!("test_reverse_lookup_special_purpose");
         let cases = vec![
-            ("0.0.0.0", None),                            // Unspecified IPv4
-            ("255.255.255.255", None),                    // Broadcast IPv4
-            ("224.0.0.1", Some("all-systems.mcast.net")), // IPv4 multicast all hosts
-            ("ff02::1", Some("ip6-allnodes")),            // IPv6 multicast all nodes
+            ("0.0.0.0", Some("unspecified")),       // Unspecified IPv4
+            ("255.255.255.255", Some("broadcast")), // Broadcast IPv4
+            ("224.0.0.1", Some("multicast")),       // IPv4 multicast all hosts
+            ("ff02::1", Some("multicast")),         // IPv6 multicast all nodes
         ];
 
         for (ip, expected_hostname) in cases {
