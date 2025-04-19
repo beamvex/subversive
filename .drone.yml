@@ -6,6 +6,9 @@ steps:
   - name: build-coverage-image
     image: docker:dind
     privileged: true
+    volumes:
+      - name: dockersock
+        path: /var/run/docker.sock
     commands:
       - docker build -f Dockerfile.coverage -t myorg/rust-coverage:latest .
 
@@ -71,3 +74,6 @@ volumes:
   - name: cache-coverage
     host:
       path: /tmp/cache-coverage
+  - name: dockersock
+    host:
+      path: /var/run/docker.sock
