@@ -10,10 +10,11 @@ steps:
       - name: dockersock
         path: /var/run/docker.sock
     commands:
-      - docker build -f Dockerfile.coverage -t myorg/rust-coverage:latest .
+      - docker build -f Dockerfile.coverage -t localhost:5000/rust-coverage:latest .
+      - docker push localhost:5000/rust-coverage:latest
 
   - name: coverage
-    image: myorg/rust-coverage:latest
+    image: localhost:5000/rust-coverage:latest
     commands:
       - rustc --version
       - cargo --version
