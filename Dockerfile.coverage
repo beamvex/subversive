@@ -4,6 +4,6 @@ RUN apt-get update && \
     apt-get install -y libssl-dev pkg-config lld jq python3-pip python3-venv 
 RUN cargo install --version 0.32.3 cargo-tarpaulin 
 RUN python3 -m venv /opt/venv 
-RUN /opt/venv/bin/pip install cobertura-merge
+RUN /opt/venv/bin/pip install merge-cobertura
 
 ENV PATH="/opt/venv/bin:$PATH"
