@@ -19,9 +19,10 @@ steps:
           pkg=$(echo "$pkginfo" | jq -r .name)
           manifest=$(echo "$pkginfo" | jq -r .manifest_path)
           pkgdir=$(dirname "$manifest")
-          # Build exclusion list of other packages
-          exclude_pkgs=$(jq -r --arg pkg "$pkg" 'select(.name != $pkg) | .name' /tmp/packages.json | xargs -I{} echo --exclude {})
-          echo "Running coverage for $pkg in $pkgdir, excluding: $exclude_pkgs"
+          # Build exclusion list of other package src dirs
+          exclude_files=$(jq -r --arg pkg "$pkg" 'select(.name != $pkg) | .manifest_path' /tmp/packages.json | \
+            xargs -I{} dirname {} | xargs -I{} echo --exclude-files '{}/src/*' | xargs)
+          echo "Running coverage for $pkg in $pkgdir, excluding: $exclude_files"
           cd "$pkgdir"
           cargo tarpaulin \
             --all-features \
@@ -38,7 +39,7 @@ steps:
             --skip-clean \
             --ignore-config \
             --target-dir /tmp/cargo \
-            $exclude_pkgs || FAILED=true
+            $exclude_files || FAILED=true
           cd "$OLDPWD"
         done
 
