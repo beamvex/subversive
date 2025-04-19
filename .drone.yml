@@ -51,7 +51,7 @@ steps:
           cd "$OLDPWD"
         done
       - find coverage -name 'cobertura.xml' > cobertura-files.txt
-      - merge-cobertura @cobertura-files.txt > coverage/merged-cobertura.xml
+      - merge-cobertura $(cat cobertura-files.txt) > coverage/merged-cobertura.xml
 
     volumes:
       - name: cache-coverage
