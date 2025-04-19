@@ -31,7 +31,7 @@ steps:
           --skip-clean \
           --ignore-config \
           --target-dir /tmp/cargo \
-          --out-dir coverage \
+          --output-dir coverage \
           --workspace || FAILED=true
 
     volumes:
