@@ -53,6 +53,7 @@ steps:
       - find coverage -name 'cobertura.xml' > cobertura-files.txt
       - merge-cobertura $(cat cobertura-files.txt) > coverage/merged-cobertura.xml
       - pycobertura show --format html --output coverage/coverage.html coverage/merged-cobertura.xml
+      - pycobertura show --format markdown coverage/merged-cobertura.xml
 
     volumes:
       - name: cache-coverage
