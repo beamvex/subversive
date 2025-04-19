@@ -35,8 +35,8 @@ steps:
               --exclude-files '**/*_test.rs' \
               --engine llvm \
               --skip-clean \
-              --target-dir /tmp/cargo \
-              -p "$pkg" || FAILED=true
+              --ignore-config \
+              --target-dir /tmp/cargo || FAILED=true
             cd "$OLDPWD"
           done
 
