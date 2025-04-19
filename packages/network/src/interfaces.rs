@@ -28,3 +28,144 @@ pub fn get_network_interfaces() -> Result<Vec<Ipv4Addr>> {
 
     Ok(addresses)
 }
+
+#[cfg(test)]
+mod tests {
+    #![allow(unused_imports)]
+
+    use std::net::Ipv4Addr;
+    use std::os::unix::fs::PermissionsExt;
+    use std::process::Command;
+    use std::sync::Once;
+    use std::{env, fs};
+
+    use anyhow::Result;
+
+    use crate::interfaces::get_network_interfaces;
+
+    static MOCK_SETUP: Once = Once::new();
+    const MOCK_IP_COMMAND: &str = "ip";
+
+    fn setup_mock_ip_command() -> Result<()> {
+        MOCK_SETUP.call_once(|| {
+            // Create a temporary mock ip command that outputs test data
+            let mock_script = r#"#!/bin/sh
+if [ "$1" = "addr" ] && [ "$2" = "show" ]; then
+cat << 'EOF'
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether 00:15:5d:01:ca:05 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.1.100/24 brd 192.168.1.255 scope global eth0
+       valid_lft forever preferred_lft forever
+3: wlan0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default qlen 1000
+    link/ether 00:15:5d:01:ca:06 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.2.50/24 brd 192.168.2.255 scope global dynamic wlan0
+       valid_lft 86389sec preferred_lft 86389sec
+EOF
+fi"#;
+
+            let temp_dir = env::temp_dir();
+            let mock_path = temp_dir.join(MOCK_IP_COMMAND);
+            fs::write(&mock_path, mock_script).expect("Failed to write mock script");
+            fs::set_permissions(&mock_path, fs::Permissions::from_mode(0o755))
+                .expect("Failed to set mock script permissions");
+
+            // Add temp directory to PATH for this test
+            let old_path = env::var("PATH").unwrap_or_default();
+            env::set_var(
+                "PATH",
+                format!("{}:{}", temp_dir.to_string_lossy(), old_path),
+            );
+        });
+        Ok(())
+    }
+
+    #[test]
+    fn test_get_network_interfaces_success() -> Result<()> {
+        setup_mock_ip_command()?;
+
+        let interfaces = get_network_interfaces()?;
+
+        assert_eq!(interfaces.len(), 3);
+        assert!(interfaces.contains(&"127.0.0.1".parse()?));
+        assert!(interfaces.contains(&"192.168.1.100".parse()?));
+        assert!(interfaces.contains(&"192.168.2.50".parse()?));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_get_network_interfaces_no_interfaces() -> Result<()> {
+        // Create a temporary command that outputs no interfaces
+        let temp_dir = env::temp_dir();
+        let mock_path = temp_dir.join("ip");
+        let mock_script = r#"#!/bin/sh
+if [ "$1" = "addr" ] && [ "$2" = "show" ]; then
+    echo ""
+fi"#;
+
+        fs::write(&mock_path, mock_script)?;
+        fs::set_permissions(&mock_path, fs::Permissions::from_mode(0o755))?;
+
+        // Temporarily override PATH
+        let old_path = env::var("PATH").unwrap_or_default();
+        env::set_var(
+            "PATH",
+            format!("{}:{}", temp_dir.to_string_lossy(), old_path),
+        );
+
+        let interfaces = get_network_interfaces()?;
+
+        // Restore PATH
+        env::set_var("PATH", old_path);
+
+        assert!(interfaces.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn test_get_network_interfaces_invalid_output() -> Result<()> {
+        // Create a temporary command that outputs invalid interface data
+        let temp_dir = env::temp_dir();
+        let mock_path = temp_dir.join("ip");
+        let mock_script = r#"#!/bin/sh
+if [ "$1" = "addr" ] && [ "$2" = "show" ]; then
+    echo "invalid data format"
+fi"#;
+
+        fs::write(&mock_path, mock_script)?;
+        fs::set_permissions(&mock_path, fs::Permissions::from_mode(0o755))?;
+
+        // Temporarily override PATH
+        let old_path = env::var("PATH").unwrap_or_default();
+        env::set_var(
+            "PATH",
+            format!("{}:{}", temp_dir.to_string_lossy(), old_path),
+        );
+
+        let interfaces = get_network_interfaces()?;
+
+        // Restore PATH
+        env::set_var("PATH", old_path);
+
+        assert!(interfaces.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn test_get_network_interfaces_command_not_found() {
+        // Set PATH to a non-existent directory
+        let old_path = env::var("PATH").unwrap_or_default();
+        env::set_var("PATH", "/nonexistent");
+
+        let result = get_network_interfaces();
+
+        // Restore PATH
+        env::set_var("PATH", old_path);
+
+        assert!(result.is_err());
+    }
+}

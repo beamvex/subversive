@@ -2716,6 +2716,7 @@ dependencies = [
  "subversive-database",
  "subversive-utils",
  "tempfile",
+ "test-log",
  "tokio",
  "tracing",
 ]
