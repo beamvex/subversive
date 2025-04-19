@@ -20,40 +20,18 @@ steps:
       - cargo --version
       # List workspace members and run tarpaulin for each
       - |
-        set -e
-        mkdir -p coverage
-        cargo metadata --no-deps --format-version 1 | jq -c '.packages[] | {name: .name, manifest_path: .manifest_path}' > /tmp/packages.json
-        jq -c '.' /tmp/packages.json | while read pkginfo; do
-          pkg=$(echo "$pkginfo" | jq -r .name)
-          manifest=$(echo "$pkginfo" | jq -r .manifest_path)
-          pkgdir=$(dirname "$manifest")
-          # Build exclusion list of other package src dirs
-          exclude_files=$(jq -r --arg pkg "$pkg" 'select(.name != $pkg) | .manifest_path' /tmp/packages.json | \
-            xargs -I{} dirname {} | xargs -I{} echo --exclude-files '{}/src/*' | xargs)
-          echo "Running coverage for $pkg in $pkgdir, excluding: $exclude_files"
-          cd "$pkgdir"
-          cargo tarpaulin \
-            --all-features \
-            --timeout 120 \
-            --out Html \
-            --out Xml \
-            --out Json \
-            --output-dir "$OLDPWD/coverage/$pkg" \
-            --fail-under 70 \
-            --exclude-files 'tests/*' \
-            --exclude-files 'examples/*' \
-            --exclude-files '**/*_test.rs' \
-            --engine llvm \
-            --skip-clean \
-            --ignore-config \
-            --target-dir /tmp/cargo \
-            $exclude_files || FAILED=true
-          cd "$OLDPWD"
-        done
-      - find coverage -name 'cobertura.xml' > cobertura-files.txt
-      - merge-cobertura $(cat cobertura-files.txt) > coverage/merged-cobertura.xml
-      - pycobertura show --format html --output coverage/coverage.html coverage/merged-cobertura.xml
-      - pycobertura show --format markdown coverage/merged-cobertura.xml
+        cargo tarpaulin \
+          --all-features \
+          --timeout 120 \
+          --out Html \
+          --out Xml \
+          --out Json \
+          --fail-under 70 \
+          --engine llvm \
+          --skip-clean \
+          --ignore-config \
+          --target-dir /tmp/cargo \
+          --workspace || FAILED=true
 
     volumes:
       - name: cache-coverage
