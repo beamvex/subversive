@@ -42,6 +42,12 @@ steps:
             $exclude_files || FAILED=true
           cd "$OLDPWD"
         done
+      # Merge cobertura.xml files and generate combined HTML report
+      - apt-get update && apt-get install -y python3-pip
+      - pip3 install cobertura-merge
+      - find coverage -name 'cobertura.xml' > cobertura-files.txt
+      - cobertura-merge @cobertura-files.txt -o coverage/merged-cobertura.xml
+      # Optionally, you can use a tool like cobertura2html or similar to convert merged-cobertura.xml to HTML
 
     volumes:
       - name: cache-coverage
