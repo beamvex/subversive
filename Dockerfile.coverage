@@ -1,6 +1,9 @@
 FROM rust:1.85.1-slim
 
 RUN apt-get update && \
-    apt-get install -y libssl-dev pkg-config lld jq python3-pip && \
+    apt-get install -y libssl-dev pkg-config lld jq python3-pip python3-venv && \
     cargo install --version 0.32.3 cargo-tarpaulin && \
-    pip3 install cobertura-merge
+    python3 -m venv /opt/venv && \
+    /opt/venv/bin/pip install cobertura-merge
+
+ENV PATH="/opt/venv/bin:$PATH"
