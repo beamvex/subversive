@@ -5,5 +5,6 @@ RUN apt-get update && \
 RUN cargo install --version 0.32.3 cargo-tarpaulin 
 RUN python3 -m venv /opt/venv 
 RUN /opt/venv/bin/pip install merge-cobertura
+RUN /opt/venv/bin/pip install pycobertura 
 
 ENV PATH="/opt/venv/bin:$PATH"
