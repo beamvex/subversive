@@ -14,24 +14,31 @@ steps:
       - |
         set -e
         mkdir -p coverage
-        for pkg in $(cargo metadata --no-deps --format-version 1 | jq -r '.packages[].name'); do
-          echo "Running coverage for $pkg"
-          cargo tarpaulin \
-            --all-features \
-            --timeout 120 \
-            --out Html \
-            --out Xml \
-            --out Json \
-            --output-dir coverage/$pkg \
-            --fail-under 70 \
-            --exclude-files 'tests/*' \
-            --exclude-files 'examples/*' \
-            --exclude-files '**/*_test.rs' \
-            --engine llvm \
-            --skip-clean \
-            --target-dir /tmp/cargo \
-            -p "$pkg" || FAILED=true
-        done
+        cargo metadata --no-deps --format-version 1 | \
+          jq -c '.packages[] | {name: .name, manifest_path: .manifest_path}' | \
+          while read pkginfo; do
+            pkg=$(echo "$pkginfo" | jq -r .name)
+            manifest=$(echo "$pkginfo" | jq -r .manifest_path)
+            pkgdir=$(dirname "$manifest")
+            echo "Running coverage for $pkg in $pkgdir"
+            cd "$pkgdir"
+            cargo tarpaulin \
+              --all-features \
+              --timeout 120 \
+              --out Html \
+              --out Xml \
+              --out Json \
+              --output-dir "$OLDPWD/coverage/$pkg" \
+              --fail-under 70 \
+              --exclude-files 'tests/*' \
+              --exclude-files 'examples/*' \
+              --exclude-files '**/*_test.rs' \
+              --engine llvm \
+              --skip-clean \
+              --target-dir /tmp/cargo \
+              -p "$pkg" || FAILED=true
+            cd "$OLDPWD"
+          done
 
     volumes:
       - name: cache-coverage
