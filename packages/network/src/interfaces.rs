@@ -102,9 +102,9 @@ fi"#;
         Ok(())
     }
 
-    #[test]
+    #[tokio::test]
     async fn test_get_network_interfaces_no_interfaces() -> Result<()> {
-        let _lock = PATH_MUTEX.lock().await.unwrap();
+        let _lock = PATH_MUTEX.lock().await;
         // Create a temporary command that outputs no interfaces
         let temp_dir = env::temp_dir();
         let mock_path = temp_dir.join("ip");
@@ -132,9 +132,9 @@ fi"#;
         Ok(())
     }
 
-    #[test]
-    fn test_get_network_interfaces_invalid_output() -> Result<()> {
-        let _lock = PATH_MUTEX.lock().unwrap();
+    #[tokio::test]
+    async fn test_get_network_interfaces_invalid_output() -> Result<()> {
+        let _lock = PATH_MUTEX.lock().await;
         // Create a temporary command that outputs invalid interface data
         let temp_dir = env::temp_dir();
         let mock_path = temp_dir.join("ip");
@@ -162,9 +162,9 @@ fi"#;
         Ok(())
     }
 
-    #[test]
-    fn test_get_network_interfaces_command_not_found() {
-        let _lock = PATH_MUTEX.lock().unwrap();
+    #[tokio::test]
+    async fn test_get_network_interfaces_command_not_found() {
+        let _lock = PATH_MUTEX.lock().await;
         // Set PATH to a non-existent directory
         let old_path = env::var("PATH").unwrap_or_default();
         env::set_var("PATH", "/nonexistent");
