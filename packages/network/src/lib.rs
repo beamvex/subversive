@@ -6,9 +6,6 @@ pub mod local_ip;
 pub mod peer;
 pub mod upnp;
 
-use discovery::get_external_ip;
-use dns::reverse_lookup;
-
 use anyhow::Result;
 use upnp::Gateway2;
 
@@ -35,19 +32,12 @@ pub async fn setup_network(
     Ok((actual_port, gateways, own_address))
 }
 
-pub async fn get_hostname() -> Result<String> {
-    reverse_lookup(&get_external_ip().await?)
-        .await
-        .map_err(anyhow::Error::msg)
-}
-
 pub async fn cleanup_network(port: u16, gateways: Vec<Gateway2>) -> Result<()> {
     upnp::cleanup_upnp(port, gateways).await
 }
 
 #[cfg(test)]
 mod tests {
-    use std::net::IpAddr;
     use std::sync::Arc;
 
     use crate::upnp::{Gateway2, MockIGateway};
@@ -87,20 +77,6 @@ mod tests {
         // Verify results
         assert_eq!(actual_port, port);
         assert_eq!(address, format!(":{}", port));
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn test_get_hostname() -> Result<()> {
-        init_test_tracing();
-
-        // Mock external IP to be a known value
-        let hostname = get_hostname().await?;
-
-        // Verify the hostname is not empty and is a valid domain or IP
-        assert!(!hostname.is_empty());
-        assert!(hostname.parse::<IpAddr>().is_ok() || hostname.contains('.'));
 
         Ok(())
     }

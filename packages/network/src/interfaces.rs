@@ -88,9 +88,10 @@ fi"#;
         Ok(())
     }
 
-    #[test]
-    fn test_get_network_interfaces_success() -> Result<()> {
-        setup_mock_ip_command()?;
+    #[tokio::test]
+    async fn test_get_network_interfaces_success() -> Result<()> {
+        let _lock = PATH_MUTEX.lock().await;
+        let _ = setup_mock_ip_command();
 
         let interfaces = get_network_interfaces()?;
 
