@@ -17,6 +17,7 @@ async-trait = "0.1.88"
 subversive-utils = { path = "../utils" }
 test-log = "0.2.17"
 once_cell = "1.21.3"
+tempfile = "3.2"
 
 [dev-dependencies]
 mockall = "0.13.1"

@@ -1,7 +1,5 @@
 use anyhow::Result;
-use once_cell::sync::Lazy;
 use std::net::Ipv4Addr;
-use std::sync::Mutex;
 
 /// Get the network interfaces of the machine
 ///
@@ -43,7 +41,9 @@ mod tests {
 
     use anyhow::Result;
     use once_cell::sync::Lazy;
+    use subversive_utils::test_utils::init_test_tracing;
     use tokio::sync::Mutex;
+    use tracing::info;
 
     use crate::interfaces::get_network_interfaces;
 
@@ -105,14 +105,13 @@ fi"#;
     #[tokio::test]
     async fn test_get_network_interfaces_no_interfaces() -> Result<()> {
         let _lock = PATH_MUTEX.lock().await;
-        // Create a temporary command that outputs no interfaces
-        let temp_dir = env::temp_dir();
-        let mock_path = temp_dir.join("ip");
+        // Use a unique temp dir for the mock
+        let temp_dir = tempfile::TempDir::new()?;
+        let mock_path = temp_dir.path().join("ip");
         let mock_script = r#"#!/bin/sh
 if [ "$1" = "addr" ] && [ "$2" = "show" ]; then
     echo ""
 fi"#;
-
         fs::write(&mock_path, mock_script)?;
         fs::set_permissions(&mock_path, fs::Permissions::from_mode(0o755))?;
 
@@ -120,13 +119,14 @@ fi"#;
         let old_path = env::var("PATH").unwrap_or_default();
         env::set_var(
             "PATH",
-            format!("{}:{}", temp_dir.to_string_lossy(), old_path),
+            format!("{}:{}", temp_dir.path().to_string_lossy(), old_path),
         );
 
         let interfaces = get_network_interfaces()?;
 
         // Restore PATH
         env::set_var("PATH", old_path);
+        // temp_dir is dropped here, cleaning up the mock
 
         assert!(interfaces.is_empty());
         Ok(())
@@ -135,14 +135,13 @@ fi"#;
     #[tokio::test]
     async fn test_get_network_interfaces_invalid_output() -> Result<()> {
         let _lock = PATH_MUTEX.lock().await;
-        // Create a temporary command that outputs invalid interface data
-        let temp_dir = env::temp_dir();
-        let mock_path = temp_dir.join("ip");
+        // Use a unique temp dir for the mock
+        let temp_dir = tempfile::TempDir::new()?;
+        let mock_path = temp_dir.path().join("ip");
         let mock_script = r#"#!/bin/sh
 if [ "$1" = "addr" ] && [ "$2" = "show" ]; then
     echo "invalid data format"
 fi"#;
-
         fs::write(&mock_path, mock_script)?;
         fs::set_permissions(&mock_path, fs::Permissions::from_mode(0o755))?;
 
@@ -150,13 +149,14 @@ fi"#;
         let old_path = env::var("PATH").unwrap_or_default();
         env::set_var(
             "PATH",
-            format!("{}:{}", temp_dir.to_string_lossy(), old_path),
+            format!("{}:{}", temp_dir.path().to_string_lossy(), old_path),
         );
 
         let interfaces = get_network_interfaces()?;
 
         // Restore PATH
         env::set_var("PATH", old_path);
+        // temp_dir is dropped here, cleaning up the mock
 
         assert!(interfaces.is_empty());
         Ok(())
@@ -164,15 +164,23 @@ fi"#;
 
     #[tokio::test]
     async fn test_get_network_interfaces_command_not_found() {
+        init_test_tracing();
         let _lock = PATH_MUTEX.lock().await;
-        // Set PATH to a non-existent directory
+        // Use a unique temp dir for the mock (but don't create an ip mock)
+        let temp_dir = tempfile::TempDir::new().unwrap();
         let old_path = env::var("PATH").unwrap_or_default();
-        env::set_var("PATH", "/nonexistent");
+        info!("Old PATH: {}", old_path);
+        // Set PATH to ONLY the empty temp dir
+        env::set_var("PATH", temp_dir.path());
+        info!("New PATH: {}", env::var("PATH").unwrap_or_default());
 
         let result = get_network_interfaces();
 
         // Restore PATH
         env::set_var("PATH", old_path);
+        // temp_dir is dropped here
+
+        info!("Result: {:?}", result);
 
         assert!(result.is_err());
     }
