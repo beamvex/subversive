@@ -168,4 +168,36 @@ mod tests {
         // In test mode, shutdown() should clean up UPnP but not exit
         shutdown.shutdown().await;
     }
+
+    #[tokio::test]
+    async fn test_shutdown_state_accessors_and_flags() {
+        let port = 4242;
+        let gateways = vec![];
+        let shutdown = ShutdownState::new(port, gateways.clone());
+
+        // Test port accessory
+        assert_eq!(shutdown.port(), port);
+        // Test gateways accessor (Arc points to same data)
+        assert_eq!(&*shutdown.gateways(), &gateways);
+        // Test shutdown_initiated accessor (should start as false)
+        assert_eq!(
+            shutdown
+                .shutdown_initiated()
+                .load(std::sync::atomic::Ordering::SeqCst),
+            false
+        );
+        // Test is_shutdown_initiated (should start as false)
+        assert!(!shutdown.is_shutdown_initiated());
+
+        // Initiate shutdown
+        shutdown.initiate_shutdown();
+        // Now shutdown_initiated and is_shutdown_initiated should be true
+        assert_eq!(
+            shutdown
+                .shutdown_initiated()
+                .load(std::sync::atomic::Ordering::SeqCst),
+            true
+        );
+        assert!(shutdown.is_shutdown_initiated());
+    }
 }

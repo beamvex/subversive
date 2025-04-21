@@ -29,7 +29,7 @@ pub trait IGateway: Send + Sync {
     fn root_url(&self) -> String;
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct GatewayWrapper(Gateway);
 
 impl GatewayWrapper {
@@ -74,14 +74,14 @@ impl IGateway for GatewayWrapper {
 }
 
 #[cfg(test)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Gateway2 {
     Real(GatewayWrapper),
     Mock(Arc<MockIGateway>),
 }
 
 #[cfg(not(test))]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Gateway2 {
     Real(GatewayWrapper),
 }
