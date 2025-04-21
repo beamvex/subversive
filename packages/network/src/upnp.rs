@@ -74,7 +74,7 @@ impl IGateway for GatewayWrapper {
 }
 
 #[cfg(test)]
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug)]
 pub enum Gateway2 {
     Real(GatewayWrapper),
     Mock(Arc<MockIGateway>),
