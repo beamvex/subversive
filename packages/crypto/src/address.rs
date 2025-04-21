@@ -1,3 +1,4 @@
+// Moved from src/crypto/address.rs
 use base58::ToBase58;
 use rand::rngs::OsRng;
 use ripemd::Ripemd160;
@@ -59,12 +60,12 @@ impl Address {
         let sha256_result = sha256_hasher.finalize();
 
         // RIPEMD160
-        let mut ripemd_hasher = Ripemd160::new();
-        ripemd_hasher.update(sha256_result);
-        let ripemd_result = ripemd_hasher.finalize();
+        let mut ripemd160_hasher = Ripemd160::new();
+        ripemd160_hasher.update(sha256_result);
+        let ripemd160_result = ripemd160_hasher.finalize();
 
-        // Base58 encode
-        ripemd_result.to_base58()
+        // Encode as base58
+        ripemd160_result.to_base58()
     }
 
     pub fn get_private_key(&self) -> &SecretKey {
@@ -78,4 +79,39 @@ impl Address {
     pub fn get_public_address(&self) -> &str {
         &self.public_address
     }
+}
+
+// Adapted from src/crypto/address_test.rs
+
+use base58::FromBase58;
+use subversive_crypto::address::Address;
+
+#[test]
+fn test_address_generation() {
+    let address = Address::new();
+
+    // Check that private key exists
+    assert!(!address.get_private_key().as_ref().is_empty());
+
+    // Check that public key exists
+    assert!(!address.get_public_key().serialize().is_empty());
+
+    // Check that public address is valid base58
+    let public_address = address.get_public_address();
+    assert!(!public_address.is_empty());
+    assert!(public_address.from_base58().is_ok());
+}
+
+#[test]
+fn test_address_from_private_key() {
+    let original = Address::new();
+    let private_key = *original.get_private_key();
+
+    let restored = Address::from_private_key(private_key);
+
+    assert_eq!(original.get_public_address(), restored.get_public_address());
+    assert_eq!(
+        original.get_public_key().serialize(),
+        restored.get_public_key().serialize()
+    );
 }

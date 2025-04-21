@@ -6,6 +6,7 @@ members = [
     "./packages/types",
     "./packages/utils",
     "./packages/shutdown",
+    "./packages/crypto",
 ]
 
 [package]
