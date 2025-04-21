@@ -1,13 +1,13 @@
 // Moved from src/crypto/address.rs
 use base58::ToBase58;
+use ed25519_dalek::{SecretKey, SigningKey, VerifyingKey, PUBLIC_KEY_LENGTH, SECRET_KEY_LENGTH};
 use rand::rngs::OsRng;
 use ripemd::Ripemd160;
-use secp256k1::{PublicKey, Secp256k1, SecretKey};
 use sha2::{Digest, Sha256};
 
 pub struct Address {
-    private_key: SecretKey,
-    public_key: PublicKey,
+    private_key: SigningKey,
+    public_key: VerifyingKey,
     public_address: String,
 }
 
@@ -19,60 +19,43 @@ impl Default for Address {
 
 impl Address {
     pub fn new() -> Self {
-        let secp = Secp256k1::new();
-        let mut rng = OsRng;
-
-        // Generate private key
-        let private_key = SecretKey::new(&mut rng);
-
-        // Generate public key
-        let public_key = PublicKey::from_secret_key(&secp, &private_key);
-
-        // Generate public address
-        let public_address = Self::generate_address(&public_key);
-
+        let mut csprng = OsRng;
+        let signing_key = SigningKey::random(&mut csprng);
+        let verifying_key = signing_key.verifying_key();
+        let public_address = Self::generate_address(&verifying_key);
         Self {
-            private_key,
-            public_key,
+            private_key: signing_key,
+            public_key: verifying_key,
             public_address,
         }
     }
 
-    pub fn from_private_key(private_key: SecretKey) -> Self {
-        let secp = Secp256k1::new();
-        let public_key = PublicKey::from_secret_key(&secp, &private_key);
-        let public_address = Self::generate_address(&public_key);
-
+    pub fn from_private_key(private_key: SigningKey) -> Self {
+        let verifying_key = private_key.verifying_key();
+        let public_address = Self::generate_address(&verifying_key);
         Self {
             private_key,
-            public_key,
+            public_key: verifying_key,
             public_address,
         }
     }
 
-    fn generate_address(public_key: &PublicKey) -> String {
-        // Serialize public key
-        let pub_key_serialized = public_key.serialize_uncompressed();
-
-        // SHA256
+    fn generate_address(public_key: &VerifyingKey) -> String {
+        let pub_key_bytes = public_key.to_bytes();
         let mut sha256_hasher = Sha256::new();
-        sha256_hasher.update(pub_key_serialized);
+        sha256_hasher.update(pub_key_bytes);
         let sha256_result = sha256_hasher.finalize();
-
-        // RIPEMD160
         let mut ripemd160_hasher = Ripemd160::new();
         ripemd160_hasher.update(sha256_result);
         let ripemd160_result = ripemd160_hasher.finalize();
-
-        // Encode as base58
         ripemd160_result.to_base58()
     }
 
-    pub fn get_private_key(&self) -> &SecretKey {
+    pub fn get_private_key(&self) -> &SigningKey {
         &self.private_key
     }
 
-    pub fn get_public_key(&self) -> &PublicKey {
+    pub fn get_public_key(&self) -> &VerifyingKey {
         &self.public_key
     }
 
@@ -81,37 +64,40 @@ impl Address {
     }
 }
 
-// Adapted from src/crypto/address_test.rs
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use base58::FromBase58;
+    use subversive_utils::test_utils::init_test_tracing;
+    use tracing::info;
 
-use base58::FromBase58;
-use subversive_crypto::address::Address;
+    #[test]
+    fn test_address_generation() {
+        init_test_tracing();
+        let address = Address::new();
+        info!(
+            "Address: {} {:?} {:?}",
+            address.get_public_address(),
+            address.get_private_key().to_bytes(),
+            address.get_public_key().to_bytes()
+        );
+        assert!(!address.get_private_key().to_bytes().is_empty());
+        assert!(!address.get_public_key().to_bytes().is_empty());
+        let public_address = address.get_public_address();
+        assert!(!public_address.is_empty());
+        assert!(public_address.from_base58().is_ok());
+    }
 
-#[test]
-fn test_address_generation() {
-    let address = Address::new();
-
-    // Check that private key exists
-    assert!(!address.get_private_key().as_ref().is_empty());
-
-    // Check that public key exists
-    assert!(!address.get_public_key().serialize().is_empty());
-
-    // Check that public address is valid base58
-    let public_address = address.get_public_address();
-    assert!(!public_address.is_empty());
-    assert!(public_address.from_base58().is_ok());
-}
-
-#[test]
-fn test_address_from_private_key() {
-    let original = Address::new();
-    let private_key = *original.get_private_key();
-
-    let restored = Address::from_private_key(private_key);
-
-    assert_eq!(original.get_public_address(), restored.get_public_address());
-    assert_eq!(
-        original.get_public_key().serialize(),
-        restored.get_public_key().serialize()
-    );
+    #[test]
+    fn test_address_from_private_key() {
+        init_test_tracing();
+        let original = Address::new();
+        let private_key = original.get_private_key().clone();
+        let restored = Address::from_private_key(private_key);
+        assert_eq!(original.get_public_address(), restored.get_public_address());
+        assert_eq!(
+            original.get_public_key().to_bytes(),
+            restored.get_public_key().to_bytes()
+        );
+    }
 }
