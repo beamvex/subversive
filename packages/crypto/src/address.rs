@@ -77,10 +77,10 @@ mod tests {
         init_test_tracing();
         let address = Address::new();
         info!(
-            "Address: {} {:?} {:?}",
+            "Address: {} {} {}",
             address.get_public_address(),
-            address.get_private_key().to_bytes(),
-            address.get_public_key().to_bytes()
+            address.get_private_key().to_bytes().to_base58(),
+            address.get_public_key().to_bytes().to_base58()
         );
         assert!(!address.get_private_key().to_bytes().is_empty());
         assert!(!address.get_public_key().to_bytes().is_empty());
