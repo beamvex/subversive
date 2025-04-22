@@ -5,8 +5,6 @@ use base58::{FromBase58, ToBase58};
 
 use ed25519_dalek::{ed25519::signature::SignerMut, SigningKey, VerifyingKey};
 use rand::rngs::OsRng;
-use ripemd::Ripemd160;
-use sha2::{Digest, Sha256};
 
 pub struct Address {
     private_key: Option<SigningKey>,
@@ -67,14 +65,7 @@ impl Address {
     }
 
     fn generate_address(public_key: &VerifyingKey) -> String {
-        let pub_key_bytes = public_key.to_bytes();
-        let mut sha256_hasher = Sha256::new();
-        sha256_hasher.update(pub_key_bytes);
-        let sha256_result = sha256_hasher.finalize();
-        let mut ripemd160_hasher = Ripemd160::new();
-        ripemd160_hasher.update(sha256_result);
-        let ripemd160_result = ripemd160_hasher.finalize();
-        ripemd160_result.to_base58()
+        public_key.to_bytes().to_base58()
     }
 
     pub fn get_private_key(&self) -> Option<&SigningKey> {
