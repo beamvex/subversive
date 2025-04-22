@@ -1,6 +1,7 @@
 // Moved from src/crypto/address.rs
 use base58::ToBase58;
-use ed25519_dalek::{SecretKey, SigningKey, VerifyingKey, PUBLIC_KEY_LENGTH, SECRET_KEY_LENGTH};
+
+use ed25519_dalek::{SigningKey, VerifyingKey};
 use rand::rngs::OsRng;
 use ripemd::Ripemd160;
 use sha2::{Digest, Sha256};
@@ -20,7 +21,7 @@ impl Default for Address {
 impl Address {
     pub fn new() -> Self {
         let mut csprng = OsRng;
-        let signing_key = SigningKey::random(&mut csprng);
+        let signing_key: SigningKey = SigningKey::generate(&mut csprng);
         let verifying_key = signing_key.verifying_key();
         let public_address = Self::generate_address(&verifying_key);
         Self {
