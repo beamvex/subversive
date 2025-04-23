@@ -47,9 +47,18 @@ impl Address {
             .from_base58()
             .map_err(|_| "Invalid base58 address")?;
 
+        // Ensure we have exactly 32 bytes for the public key
+        if decoded.len() != 32 {
+            return Err("Invalid public key length");
+        }
+
+        // Convert Vec<u8> to [u8; 32]
+        let mut bytes = [0u8; 32];
+        bytes.copy_from_slice(&decoded);
+
         // Convert to VerifyingKey
         let public_key =
-            VerifyingKey::from_bytes(&decoded).map_err(|_| "Invalid public key bytes")?;
+            VerifyingKey::from_bytes(&bytes).map_err(|_| "Invalid public key bytes")?;
 
         // Verify the address matches what we would generate
         let generated_address = Self::generate_address(&public_key);
@@ -81,7 +90,7 @@ impl Address {
     }
 
     pub fn sign(&mut self, message: &str) -> Result<String, &'static str> {
-        if let Some(key) = &self.private_key {
+        if let Some(ref mut key) = self.private_key {
             let signature = key.sign(message.as_bytes());
             Ok(signature.to_string())
         } else {
