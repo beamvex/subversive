@@ -5,13 +5,36 @@ use serde::{Deserialize, Serialize};
 use crate::address::Address;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Transaction {
-    /// Sender's address
-    from: String,
+pub struct Output {
     /// Recipient's address
     to: String,
     /// Amount to transfer
     amount: u64,
+}
+
+impl Output {
+    pub fn new(to: &str, amount: u64) -> Self {
+        Self {
+            to: to.to_string(),
+            amount,
+        }
+    }
+
+    pub fn to(&self) -> &str {
+        &self.to
+    }
+
+    pub fn amount(&self) -> u64 {
+        self.amount
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Transaction {
+    /// Sender's address
+    from: String,
+    /// List of outputs (recipient and amount pairs)
+    outputs: Vec<Output>,
     /// Unix timestamp when the transaction was created
     timestamp: u64,
     /// Optional message/memo
@@ -21,7 +44,7 @@ pub struct Transaction {
 }
 
 impl Transaction {
-    pub fn new(from: &str, to: &str, amount: u64, memo: Option<String>) -> Self {
+    pub fn new(from: &str, outputs: Vec<Output>, memo: Option<String>) -> Self {
         let timestamp = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .unwrap()
@@ -29,21 +52,29 @@ impl Transaction {
 
         Self {
             from: from.to_string(),
-            to: to.to_string(),
-            amount,
+            outputs,
             timestamp,
             memo,
             signature: None,
         }
     }
 
+    /// Get the total amount of the transaction
+    pub fn total_amount(&self) -> u64 {
+        self.outputs.iter().map(|output| output.amount).sum()
+    }
+
     /// Get the transaction data that will be signed
     fn get_signing_data(&self) -> String {
+        let outputs_data: Vec<String> = self.outputs
+            .iter()
+            .map(|output| format!("{}:{}", output.to, output.amount))
+            .collect();
+        
         format!(
-            "{}:{}:{}:{}:{}",
+            "{}:{}:{}:{}",
             self.from,
-            self.to,
-            self.amount,
+            outputs_data.join(","),
             self.timestamp,
             self.memo.as_deref().unwrap_or("")
         )
@@ -82,12 +113,8 @@ impl Transaction {
         &self.from
     }
 
-    pub fn to(&self) -> &str {
-        &self.to
-    }
-
-    pub fn amount(&self) -> u64 {
-        self.amount
+    pub fn outputs(&self) -> &[Output] {
+        &self.outputs
     }
 
     pub fn timestamp(&self) -> u64 {
@@ -113,19 +140,26 @@ mod tests {
     #[test]
     fn test_transaction_signing_and_verification() {
         init_test_tracing();
-        
-        // Create sender and receiver addresses
-        let mut sender = Address::new();
-        let receiver = Address::new();
 
-        // Create a transaction
+        // Create sender and receivers
+        let mut sender = Address::new();
+        let receiver1 = Address::new();
+        let receiver2 = Address::new();
+
+        // Create outputs
+        let outputs = vec![
+            Output::new(receiver1.get_public_address(), 1000),
+            Output::new(receiver2.get_public_address(), 500),
+        ];
+
+        // Create a transaction with multiple outputs
         let mut tx = Transaction::new(
             sender.get_public_address(),
-            receiver.get_public_address(),
-            1000,
-            Some("Test transfer".to_string()),
+            outputs,
+            Some("Multi-output transfer".to_string()),
         );
         info!("Created transaction: {:?}", tx);
+        assert_eq!(tx.total_amount(), 1500);
 
         // Sign the transaction
         assert!(tx.sign(&mut sender).is_ok());
@@ -134,24 +168,25 @@ mod tests {
         // Verify the signature
         assert!(tx.verify());
 
-        // Verify that tampering invalidates the signature
+        // Verify that tampering with any output invalidates the signature
         let mut tampered_tx = tx.clone();
-        tampered_tx.amount = 2000;
+        tampered_tx.outputs[0].amount = 2000;
         assert!(!tampered_tx.verify());
     }
 
     #[test]
     fn test_transaction_validation() {
         init_test_tracing();
-        
+
         let mut sender = Address::new();
         let receiver = Address::new();
         let mut wrong_signer = Address::new();
 
+        let outputs = vec![Output::new(receiver.get_public_address(), 1000)];
+
         let mut tx = Transaction::new(
             sender.get_public_address(),
-            receiver.get_public_address(),
-            1000,
+            outputs,
             None,
         );
 
