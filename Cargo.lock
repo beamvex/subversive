@@ -2855,6 +2855,7 @@ dependencies = [
  "rand 0.8.5",
  "ripemd",
  "secp256k1 0.30.0",
+ "serde",
  "sha2",
  "subversive-utils",
  "tracing",
