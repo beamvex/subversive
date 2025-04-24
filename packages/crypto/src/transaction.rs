@@ -4,6 +4,34 @@ use serde::{Deserialize, Serialize};
 
 use crate::address::Address;
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Account {
+    /// The address associated with this account
+    pub address: String,
+    /// The current balance of the account
+    pub balance: u64,
+}
+
+impl Account {
+    /// Create a new account with the given address and initial balance
+    pub fn new(address: String, initial_balance: u64) -> Self {
+        Self {
+            address,
+            balance: initial_balance,
+        }
+    }
+
+    /// Get the account's address
+    pub fn address(&self) -> &str {
+        &self.address
+    }
+
+    /// Get the current balance
+    pub fn balance(&self) -> u64 {
+        self.balance
+    }
+}
+
 const PROCESSOR_FEE_PERCENTAGE: u64 = 10;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -68,11 +96,12 @@ impl Transaction {
 
     /// Get the transaction data that will be signed
     fn get_signing_data(&self) -> String {
-        let outputs_data: Vec<String> = self.outputs
+        let outputs_data: Vec<String> = self
+            .outputs
             .iter()
             .map(|output| format!("{}:{}", output.to, output.amount))
             .collect();
-        
+
         format!(
             "{}:{}:{}:{}",
             self.from,
@@ -289,11 +318,7 @@ mod tests {
 
         let outputs = vec![Output::new(receiver.get_public_address(), 1000)];
 
-        let mut tx = Transaction::new(
-            sender.get_public_address(),
-            outputs,
-            None,
-        );
+        let mut tx = Transaction::new(sender.get_public_address(), outputs, None);
 
         // Test signing with wrong address
         assert!(tx.sign(&mut wrong_signer).is_err());
@@ -317,17 +342,20 @@ mod tests {
         // Create and sign process transaction
         let mut processor = Address::new();
         let mut process_tx = ProcessTransaction::new(tx, processor.get_public_address());
-        
+
         // Verify fee calculation
         assert_eq!(process_tx.fee(), 100); // 10% of 1000
-        
+
         // Sign and verify
         assert!(process_tx.sign(&mut processor).is_ok());
         assert!(process_tx.verify());
-        
+
         // Test validation rules
         let mut wrong_processor = Address::new();
-        let mut process_tx2 = ProcessTransaction::new(process_tx.transaction().clone(), processor.get_public_address());
+        let mut process_tx2 = ProcessTransaction::new(
+            process_tx.transaction().clone(),
+            processor.get_public_address(),
+        );
         assert!(process_tx2.sign(&mut wrong_processor).is_err());
     }
 }
