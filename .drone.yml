@@ -48,8 +48,8 @@ steps:
       password:
         from_secret: ssh_password
       port: 22
-      source: coverage/
-      target: coverage/${DRONE_REPO_NAME}/${DRONE_BUILD_NUMBER}
+      src_dir: coverage/
+      dest_dir: coverage/${DRONE_REPO_NAME}/${DRONE_BUILD_NUMBER}
       strip_components: 1
 
 volumes:
