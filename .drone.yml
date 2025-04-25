@@ -45,9 +45,10 @@ steps:
     settings:
       hostname:
         from_secret: ssh_host
-      secrets:
-        - from_secret: ssh_username
-        - from_secret: ssh_password
+      username:
+        from_secret: ssh_username
+      password:
+        from_secret: ssh_password
       src_dir: coverage/
       dest_dir: coverage/${DRONE_REPO_NAME}/${DRONE_BUILD_NUMBER}
       strip_components: 1
