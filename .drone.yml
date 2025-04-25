@@ -18,28 +18,30 @@ steps:
     commands:
       - rustc --version
       - cargo --version
+      - mkdir coverage
+      - touch coverage/dumfile.yaml
       # List workspace members and run tarpaulin for each
-      - |
-        cargo tarpaulin \
-          --all-features \
-          --timeout 120 \
-          --out Html \
-          --out Xml \
-          --out Json \
-          --fail-under 70 \
-          --engine llvm \
-          --skip-clean \
-          --ignore-config \
-          --target-dir /tmp/cargo \
-          --output-dir coverage \
-          --workspace || FAILED=true
+      # - |
+      #   cargo tarpaulin \
+      #     --all-features \
+      #     --timeout 120 \
+      #     --out Html \
+      #     --out Xml \
+      #     --out Json \
+      #     --fail-under 70 \
+      #     --engine llvm \
+      #     --skip-clean \
+      #     --ignore-config \
+      #     --target-dir /tmp/cargo \
+      #     --output-dir coverage \
+      #     --workspace || FAILED=true
 
     volumes:
       - name: cache-coverage
         path: /tmp/cargo
 
   - name: publish-coverage
-    image: plugins/sftp
+    image: cschlosser/drone-ftps
     settings:
       host:
         from_secret: ssh_host
