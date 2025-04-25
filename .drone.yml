@@ -39,18 +39,19 @@ steps:
         path: /tmp/cargo
 
   - name: publish-coverage
-    image: plugins/s3
+    image: appleboy/drone-sftp-sync
     settings:
-      bucket: coverage
-      source: coverage/**/*
-      target: /${DRONE_REPO_NAME}/${DRONE_BUILD_NUMBER}
-      path_style: true
-      endpoint:
-        from_secret: minio_endpoint
-      access_key:
-        from_secret: minio_access_key
-      secret_key:
-        from_secret: minio_secret_key
+      host:
+        from_secret: ssh_host
+      username:
+        from_secret: ssh_username
+      password:
+        from_secret: ssh_password
+      port: 22
+      source: coverage/
+      target: coverage/${DRONE_REPO_NAME}/${DRONE_BUILD_NUMBER}
+      strip_components: 1
+      overwrite: true
 
 volumes:
   - name: cache-coverage
