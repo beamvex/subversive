@@ -25,26 +25,25 @@ steps:
     commands:
       - rustc --version
       - cargo --version
-      - mkdir coverage
-      - touch coverage/dumfile.yaml
+      - # List workspace members and run tarpaulin for each
+      - |
+        cargo tarpaulin \
+          --all-features \
+          --timeout 120 \
+          --out Html \
+          --out Xml \
+          --out Json \
+          --fail-under 70 \
+          --engine llvm \
+          --skip-clean \
+          --ignore-config \
+          --target-dir /tmp/cargo \
+          --output-dir coverage/${DRONE_REPO_NAME}/${DRONE_BUILD_NUMBER} \
+          --workspace || FAILED=true
       - mkdir -p ~/.ssh
       - ssh-keyscan -H $SSH_HOST >> ~/.ssh/known_hosts
       - sshpass -p "$SSH_PASSWORD" scp -r coverage/ $SSH_USER@$SSH_HOST:~/
-      # List workspace members and run tarpaulin for each
-      # - |
-      #   cargo tarpaulin \
-      #     --all-features \
-      #     --timeout 120 \
-      #     --out Html \
-      #     --out Xml \
-      #     --out Json \
-      #     --fail-under 70 \
-      #     --engine llvm \
-      #     --skip-clean \
-      #     --ignore-config \
-      #     --target-dir /tmp/cargo \
-      #     --output-dir coverage \
-      #     --workspace || FAILED=true
+      
 
     volumes:
       - name: cache-coverage
