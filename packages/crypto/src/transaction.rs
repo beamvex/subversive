@@ -1,63 +1,7 @@
-use std::time::SystemTime;
-
-use serde::{Deserialize, Serialize};
-
 use crate::address::Address;
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Account {
-    /// The address associated with this account
-    pub address: String,
-    /// The current balance of the account
-    pub balance: u64,
-}
-
-impl Account {
-    /// Create a new account with the given address and initial balance
-    pub fn new(address: String, initial_balance: u64) -> Self {
-        Self {
-            address,
-            balance: initial_balance,
-        }
-    }
-
-    /// Get the account's address
-    pub fn address(&self) -> &str {
-        &self.address
-    }
-
-    /// Get the current balance
-    pub fn balance(&self) -> u64 {
-        self.balance
-    }
-}
-
-const PROCESSOR_FEE_PERCENTAGE: u64 = 10;
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Output {
-    /// Recipient's address
-    to: String,
-    /// Amount to transfer
-    amount: u64,
-}
-
-impl Output {
-    pub fn new(to: &str, amount: u64) -> Self {
-        Self {
-            to: to.to_string(),
-            amount,
-        }
-    }
-
-    pub fn to(&self) -> &str {
-        &self.to
-    }
-
-    pub fn amount(&self) -> u64 {
-        self.amount
-    }
-}
+use crate::output::Output;
+use serde::{Deserialize, Serialize};
+use std::time::SystemTime;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Transaction {
@@ -91,15 +35,15 @@ impl Transaction {
 
     /// Get the total amount of the transaction
     pub fn total_amount(&self) -> u64 {
-        self.outputs.iter().map(|output| output.amount).sum()
+        self.outputs.iter().map(|output| output.amount()).sum()
     }
 
     /// Get the transaction data that will be signed
-    fn get_signing_data(&self) -> String {
+    pub(crate) fn get_signing_data(&self) -> String {
         let outputs_data: Vec<String> = self
             .outputs
             .iter()
-            .map(|output| format!("{}:{}", output.to, output.amount))
+            .map(|output| format!("{}:{}", output.to(), output.amount()))
             .collect();
 
         format!(
@@ -161,109 +105,6 @@ impl Transaction {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ProcessTransaction {
-    /// The original transaction
-    transaction: Transaction,
-    /// Address of the processor
-    processor: String,
-    /// Processor's fee (10% of total transaction amount)
-    fee: u64,
-    /// Unix timestamp when the process transaction was created
-    timestamp: u64,
-    /// Processor's signature
-    signature: Option<String>,
-}
-
-impl ProcessTransaction {
-    pub fn new(transaction: Transaction, processor: &str) -> Self {
-        let timestamp = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
-
-        let fee = (transaction.total_amount() * PROCESSOR_FEE_PERCENTAGE) / 100;
-
-        Self {
-            transaction,
-            processor: processor.to_string(),
-            fee,
-            timestamp,
-            signature: None,
-        }
-    }
-
-    /// Get the process transaction data that will be signed
-    fn get_signing_data(&self) -> String {
-        format!(
-            "{}:{}:{}:{}",
-            self.transaction.get_signing_data(),
-            self.processor,
-            self.fee,
-            self.timestamp,
-        )
-    }
-
-    /// Sign the process transaction with the processor's address
-    pub fn sign(&mut self, processor: &mut Address) -> Result<(), &'static str> {
-        if self.signature.is_some() {
-            return Err("Process transaction already signed");
-        }
-
-        if processor.get_public_address() != self.processor {
-            return Err("Signer address doesn't match processor");
-        }
-
-        // Verify that the original transaction is signed
-        if !self.transaction.verify() {
-            return Err("Original transaction signature is invalid");
-        }
-
-        let signing_data = self.get_signing_data();
-        let signature = processor.sign(&signing_data)?;
-        self.signature = Some(signature);
-        Ok(())
-    }
-
-    /// Verify both the original transaction and process transaction signatures
-    pub fn verify(&self) -> bool {
-        if let Some(signature) = &self.signature {
-            // Verify original transaction first
-            if !self.transaction.verify() {
-                return false;
-            }
-
-            // Create a public-only address from the processor's address
-            if let Ok(processor_address) = Address::from_public_address(&self.processor) {
-                let signing_data = self.get_signing_data();
-                return processor_address.verify(&signing_data, signature);
-            }
-        }
-        false
-    }
-
-    // Getters
-    pub fn transaction(&self) -> &Transaction {
-        &self.transaction
-    }
-
-    pub fn processor(&self) -> &str {
-        &self.processor
-    }
-
-    pub fn fee(&self) -> u64 {
-        self.fee
-    }
-
-    pub fn timestamp(&self) -> u64 {
-        self.timestamp
-    }
-
-    pub fn signature(&self) -> Option<&str> {
-        self.signature.as_deref()
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -304,7 +145,7 @@ mod tests {
 
         // Verify that tampering with any output invalidates the signature
         let mut tampered_tx = tx.clone();
-        tampered_tx.outputs[0].amount = 2000;
+        tampered_tx.outputs[0] = Output::new(receiver1.get_public_address(), 2000);
         assert!(!tampered_tx.verify());
     }
 
@@ -326,36 +167,5 @@ mod tests {
         // Test double signing
         assert!(tx.sign(&mut sender).is_ok());
         assert!(tx.sign(&mut sender).is_err());
-    }
-
-    #[test]
-    fn test_process_transaction() {
-        init_test_tracing();
-
-        // Create original transaction
-        let mut sender = Address::new();
-        let receiver = Address::new();
-        let outputs = vec![Output::new(receiver.get_public_address(), 1000)];
-        let mut tx = Transaction::new(sender.get_public_address(), outputs, None);
-        assert!(tx.sign(&mut sender).is_ok());
-
-        // Create and sign process transaction
-        let mut processor = Address::new();
-        let mut process_tx = ProcessTransaction::new(tx, processor.get_public_address());
-
-        // Verify fee calculation
-        assert_eq!(process_tx.fee(), 100); // 10% of 1000
-
-        // Sign and verify
-        assert!(process_tx.sign(&mut processor).is_ok());
-        assert!(process_tx.verify());
-
-        // Test validation rules
-        let mut wrong_processor = Address::new();
-        let mut process_tx2 = ProcessTransaction::new(
-            process_tx.transaction().clone(),
-            processor.get_public_address(),
-        );
-        assert!(process_tx2.sign(&mut wrong_processor).is_err());
     }
 }
