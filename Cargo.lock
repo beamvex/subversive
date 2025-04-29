@@ -2862,6 +2862,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "subversive-currency-engine"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "subversive-crypto",
+ "thiserror 1.0.69",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "subversive-database"
 version = "0.1.0"
 dependencies = [
