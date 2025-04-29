@@ -1,36 +1,32 @@
-use crate::{types::*, Result};
-use subversive_crypto::address::Address;
-use std::collections::HashMap;
-use tokio::sync::RwLock;
+use anyhow::Context;
+use std::sync::Arc;
+use subversive_crypto::{account::Account, address::Address};
+use subversive_database::context::DbContext;
 
-#[derive(Debug, Default)]
-pub struct BalanceManager {
-    balances: RwLock<HashMap<Address, Balance>>,
+pub struct AccountManager {
+    db: Arc<DbContext>,
 }
 
-impl BalanceManager {
-    pub fn new() -> Self {
-        Self {
-            balances: RwLock::new(HashMap::new()),
-        }
+impl AccountManager {
+    pub fn new(db: Arc<DbContext>) -> Self {
+        Self { db }
     }
 
-    pub async fn get_balance(&self, address: &Address) -> Balance {
-        let balances = self.balances.read().await;
-        balances
-            .get(address)
-            .cloned()
-            .unwrap_or_else(|| Balance::new(Amount(0)))
+    pub async fn get_account(&self, address: &Address) -> Result<Account, anyhow::Error> {
+        let account = self.db
+            .get_account(address.get_public_address().to_string())
+            .await
+            .context("Failed to get account from database")?
+            .unwrap_or_else(|| Account::new(address.get_public_address().to_string(), 0));
+        Ok(account)
     }
 
-    pub async fn update_balance(&self, address: Address, amount: Amount) -> Result<()> {
-        let mut balances = self.balances.write().await;
-        let balance = balances.entry(address).or_insert_with(|| Balance::new(Amount(0)));
-        balance.amount = amount;
-        balance.last_updated = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+    pub async fn update_account(&self, address: &Address, amount: u64) -> Result<(), anyhow::Error> {
+        let account = Account::new(address.get_public_address().to_string(), amount);
+        self.db
+            .save_account(&account)
+            .await
+            .context("Failed to save account to database")?;
         Ok(())
     }
 }

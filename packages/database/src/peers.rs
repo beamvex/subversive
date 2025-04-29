@@ -21,12 +21,25 @@ impl PeerStore {
         Self { conn }
     }
 
+    /// Initializes the peers table in the database.
+    pub async fn init_table(&self) -> Result<()> {
+        let conn = self.conn.lock().await;
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS peers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                address TEXT NOT NULL UNIQUE,
+                last_seen INTEGER NOT NULL
+            )",
+            [],
+        )?;
+        Ok(())
+    }
+
     /// Saves a peer to the database.
     pub async fn save_peer(&self, address: &str, last_seen: i64) -> Result<()> {
         let conn = self.conn.lock().await;
         conn.execute(
-            "INSERT INTO peers (address, last_seen) VALUES (?1, ?2)
-             ON CONFLICT(address) DO UPDATE SET last_seen = ?2",
+            "INSERT OR REPLACE INTO peers (address, last_seen) VALUES (?1, ?2)",
             [address, &last_seen.to_string()],
         )?;
         Ok(())
@@ -53,8 +66,8 @@ impl PeerStore {
     pub async fn update_peer_last_seen(&self, address: &str, timestamp: i64) -> Result<()> {
         let conn = self.conn.lock().await;
         conn.execute(
-            "UPDATE peers SET last_seen = ?1 WHERE address = ?2",
-            [&timestamp.to_string(), address],
+            "UPDATE peers SET last_seen = ?2 WHERE address = ?1",
+            [address, &timestamp.to_string()],
         )?;
         Ok(())
     }

@@ -22,6 +22,21 @@ impl MessageStore {
         Self { conn }
     }
 
+    /// Initialize the messages table in the database
+    pub async fn init_table(&self) -> Result<()> {
+        let conn = self.conn.lock().await;
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                content TEXT NOT NULL,
+                source TEXT NOT NULL,
+                timestamp INTEGER NOT NULL
+            )",
+            [],
+        )?;
+        Ok(())
+    }
+
     /// Save a message to the database
     pub async fn save_message(&self, content: &str, source: &str, timestamp: i64) -> Result<()> {
         let conn = self.conn.lock().await;

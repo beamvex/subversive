@@ -2865,9 +2865,11 @@ dependencies = [
 name = "subversive-currency-engine"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "serde",
  "serde_json",
  "subversive-crypto",
+ "subversive-database",
  "thiserror 1.0.69",
  "tokio",
  "tracing",
@@ -2882,6 +2884,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml",
+ "subversive-crypto",
  "tokio",
  "tracing",
 ]
