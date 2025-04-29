@@ -2866,10 +2866,13 @@ name = "subversive-currency-engine"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "rand 0.8.5",
  "serde",
  "serde_json",
  "subversive-crypto",
  "subversive-database",
+ "subversive-utils",
+ "tempfile",
  "thiserror 1.0.69",
  "tokio",
  "tracing",
