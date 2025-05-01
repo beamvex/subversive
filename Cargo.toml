@@ -26,6 +26,7 @@ subversive-database = { path = "./packages/database" }
 subversive-network = { path = "./packages/network" }
 subversive-types = { path = "./packages/types" }
 subversive-utils = { path = "./packages/utils" }
+subversive-crypto = { path = "./packages/crypto" }
 tokio = { version = "1.36", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
