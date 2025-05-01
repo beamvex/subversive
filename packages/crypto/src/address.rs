@@ -6,6 +6,7 @@ use base58::{FromBase58, ToBase58};
 use ed25519_dalek::{ed25519::signature::SignerMut, SigningKey, VerifyingKey};
 use rand::rngs::OsRng;
 
+#[derive(Clone)]
 pub struct Address {
     private_key: Option<SigningKey>,
     public_key: VerifyingKey,
