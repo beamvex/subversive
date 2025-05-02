@@ -1,6 +1,7 @@
 use anyhow::Result;
 use base58::ToBase58;
 use chrono::{Timelike, Utc};
+use std::collections::HashMap;
 use std::sync::Arc;
 use subversive_crypto::Address;
 use subversive_utils::test_utils::init_test_tracing;
@@ -97,6 +98,38 @@ async fn test_game() -> Result<()> {
     // Print last signature (now the alphabetically last one)
     if let Some(last_sig) = signatures.last() {
         info!("Last signature (sorted): {}", last_sig);
+    }
+
+    // Create a HashMap of addresses to signatures
+    let mut addr_sig_map: HashMap<String, String> = HashMap::with_capacity(addresses.len());
+    for (addr, sig) in addresses.iter().zip(signatures.iter()) {
+        let addr = addr.lock().await;
+        let addr_str = addr.get_public_address().to_string();
+        addr_sig_map.insert(addr_str, sig.clone());
+    }
+
+    // Convert to vec for sorting
+    let mut addr_sig_pairs: Vec<_> = addr_sig_map.into_iter().collect();
+    // Sort by signature instead of address
+    addr_sig_pairs.sort_by(|a, b| a.1.cmp(&b.1));
+
+    info!("Created {} address-signature pairs", addr_sig_pairs.len());
+    
+    // Print top 10 addresses (by signature)
+    info!("Top 10 addresses by signature:");
+    info!("| Address | Signature |");
+    info!("|---------|-----------|");
+    for (addr, sig) in addr_sig_pairs.iter().take(10) {
+        info!("| {} | {} |", addr, sig);
+    }
+
+    info!("");
+    // Print bottom 10 addresses (by signature)
+    info!("Bottom 10 addresses by signature:");
+    info!("| Address | Signature |");
+    info!("|---------|-----------|");
+    for (addr, sig) in addr_sig_pairs.iter().rev().take(10) {
+        info!("| {} | {} |", addr, sig);
     }
 
     Ok(())
