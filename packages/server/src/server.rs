@@ -1,13 +1,10 @@
-pub mod api;
-pub mod config;
-pub mod error;
-pub mod tls;
-
-use crate::types::state::AppState;
 use axum::Router;
 use std::{net::SocketAddr, sync::Arc};
+use subversive_types::state::AppState;
 use tokio::task::JoinHandle;
 use tracing::info;
+
+use crate::{api, config, tls};
 
 /// Start the HTTP server in a new task
 ///

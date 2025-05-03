@@ -9,6 +9,7 @@ members = [
     "./packages/crypto",
     "./packages/currency_engine",
     "./packages/ddns",
+    "./packages/server",
 ]
 
 [package]
@@ -26,8 +27,10 @@ path = "src/lib.rs"
 subversive-database = { path = "./packages/database" }
 subversive-network = { path = "./packages/network" }
 subversive-types = { path = "./packages/types" }
+subversive-shutdown = { path = "./packages/shutdown" }
 subversive-utils = { path = "./packages/utils" }
 subversive-crypto = { path = "./packages/crypto" }
+subversive-server = { path = "./packages/server" }
 tokio = { version = "1.36", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

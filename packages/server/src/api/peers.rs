@@ -7,7 +7,7 @@ use axum::{
 use std::sync::Arc;
 use std::time::SystemTime;
 
-use crate::types::{message::Message, state::AppState};
+use subversive_types::{message::Message, state::AppState};
 
 use subversive_network::{health::PeerHealth, peer::PeerInfo};
 
@@ -54,7 +54,7 @@ impl Peers {
         }
 
         // Broadcast to other peers
-        let msg = Message::NewPeer {
+        let _msg = Message::NewPeer {
             addr: peer_addr.clone(),
         };
 

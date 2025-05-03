@@ -5,13 +5,13 @@ use axum::{
     routing::{get, post},
     Router,
 };
-
 use std::sync::Arc;
+use subversive_types::state::AppState;
 use tracing::{error, info};
 
 use super::ApiModule;
-use crate::types::{message::HeartbeatMessage, state::AppState};
 use subversive_network::health::PeerHealth;
+use subversive_types::message::HeartbeatMessage;
 
 /// Health API module
 pub struct Health;

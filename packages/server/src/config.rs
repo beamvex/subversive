@@ -1,6 +1,6 @@
-use crate::types::state::AppState;
 use axum::{routing::get, Router};
 use std::{path::PathBuf, sync::Arc};
+use subversive_types::state::AppState;
 use tower_http::{
     classify::{ServerErrorsAsFailures, SharedClassifier},
     cors::{Any, CorsLayer},

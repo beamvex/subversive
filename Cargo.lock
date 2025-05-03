@@ -2834,6 +2834,8 @@ dependencies = [
  "subversive-crypto",
  "subversive-database",
  "subversive-network",
+ "subversive-server",
+ "subversive-shutdown",
  "subversive-types",
  "subversive-utils",
  "tempfile",
@@ -2925,6 +2927,30 @@ dependencies = [
  "tempfile",
  "test-log",
  "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "subversive-server"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "axum-macros",
+ "axum-server",
+ "chrono",
+ "reqwest 0.11.27",
+ "serde",
+ "serde_json",
+ "subversive-crypto",
+ "subversive-database",
+ "subversive-network",
+ "subversive-shutdown",
+ "subversive-types",
+ "subversive-utils",
+ "tokio",
+ "tower 0.4.13",
+ "tower-http",
  "tracing",
 ]
 

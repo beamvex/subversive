@@ -3,10 +3,7 @@ use clap::Parser;
 use std::sync::Arc;
 use tracing::info;
 
-use subversive::{
-    server,
-    types::{args::Args, config::Config, state::AppState},
-};
+use subversive::types::{args::Args, config::Config, state::AppState};
 use subversive_database::context::DbContext;
 
 #[tokio::main]
@@ -27,7 +24,7 @@ async fn main() -> Result<()> {
         own_address: format!("https://localhost:{}", port),
     });
 
-    let server_handle = tokio::spawn(server::spawn_server(app_state.clone()));
+    let server_handle = tokio::spawn(subversive_server::server::spawn_server(app_state.clone()));
     let _ = server_handle.await??;
 
     Ok(())
