@@ -3,7 +3,7 @@ use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use reqwest::Client;
 use tracing::info;
 
-use super::{DdnsProvider, DdnsProviderConfig};
+use crate::{DdnsProvider, DdnsProviderConfig, Config};
 
 #[derive(Debug, Clone)]
 pub struct OpenDnsProvider {
@@ -56,17 +56,19 @@ impl OpenDnsProvider {
 }
 
 impl DdnsProviderConfig for OpenDnsProvider {
-    fn try_from_config(config: &crate::types::config::Config) -> Option<DdnsProvider> {
+    fn try_from_config(config: &Config) -> Option<DdnsProvider> {
         match (
-            config.opendns_hostname.clone(),
-            config.opendns_username.clone(),
-            config.opendns_password.clone(),
-            config.opendns_network.clone(),
+            &config.opendns_hostname,
+            &config.opendns_username,
+            &config.opendns_password,
+            &config.opendns_network,
         ) {
             (Some(hostname), Some(username), Some(password), Some(network)) => {
-                info!("Starting OpenDNS updater for hostname: {}", hostname);
-                Some(DdnsProvider::OpenDns(Self::new(
-                    hostname, username, password, network,
+                Some(DdnsProvider::OpenDns(OpenDnsProvider::new(
+                    hostname.clone(),
+                    username.clone(),
+                    password.clone(),
+                    network.clone(),
                 )))
             }
             _ => None,

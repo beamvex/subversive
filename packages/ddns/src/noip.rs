@@ -3,7 +3,7 @@ use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use reqwest::Client;
 use tracing::info;
 
-use super::{DdnsProvider, DdnsProviderConfig};
+use crate::{DdnsProvider, DdnsProviderConfig, Config};
 
 #[derive(Debug, Clone)]
 pub struct NoIpProvider {
@@ -49,16 +49,17 @@ impl NoIpProvider {
 }
 
 impl DdnsProviderConfig for NoIpProvider {
-    fn try_from_config(config: &crate::types::config::Config) -> Option<DdnsProvider> {
+    fn try_from_config(config: &Config) -> Option<DdnsProvider> {
         match (
-            config.noip_hostname.clone(),
-            config.noip_username.clone(),
-            config.noip_password.clone(),
+            &config.noip_hostname,
+            &config.noip_username,
+            &config.noip_password,
         ) {
-            (Some(hostname), Some(username), Some(password)) => {
-                info!("Starting No-IP DNS updater for hostname: {}", hostname);
-                Some(DdnsProvider::NoIp(Self::new(hostname, username, password)))
-            }
+            (Some(hostname), Some(username), Some(password)) => Some(DdnsProvider::NoIp(Self::new(
+                hostname.clone(),
+                username.clone(),
+                password.clone(),
+            ))),
             _ => None,
         }
     }
