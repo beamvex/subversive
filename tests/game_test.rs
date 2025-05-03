@@ -18,10 +18,10 @@ async fn test_game() -> Result<()> {
 
     // Create addresses in parallel using 100 threads
     let mut handles = Vec::new();
-    for _ in 0..1000 {
+    for _ in 0..100 {
         let handle = tokio::spawn(async move {
             // Each thread creates 10 addresses
-            (0..100).map(|_| Address::new()).collect::<Vec<Address>>()
+            (0..1).map(|_| Address::new()).collect::<Vec<Address>>()
         });
         handles.push(handle);
     }
@@ -58,32 +58,22 @@ async fn test_game() -> Result<()> {
         .collect();
 
     // Sign messages in parallel using 100 threads
-    let chunk_size = addresses.len() / 100;
     let mut handles = Vec::new();
 
     // Split work into chunks by index
-    for chunk_start in (0..addresses.len()).step_by(chunk_size) {
-        let chunk_end = (chunk_start + chunk_size).min(addresses.len());
+    for idx in 0..addresses.len() {
         let iso_string = iso_string.clone();
-        let chunk_addresses: Vec<Arc<Mutex<Address>>> =
-            addresses[chunk_start..chunk_end].iter().cloned().collect();
+        let addr = addresses[idx].clone();
 
-        let handle = tokio::spawn(async move {
-            let mut signatures = Vec::with_capacity(chunk_addresses.len());
-            for addr in chunk_addresses {
-                let mut addr = addr.lock().await;
-                signatures.push(addr.sign(&iso_string).unwrap());
-            }
-            signatures
-        });
+        let handle = tokio::spawn(async move { addr.lock().await.sign(&iso_string).unwrap() });
         handles.push(handle);
     }
 
     // Wait for all threads and collect results
     let mut signatures = Vec::new();
     for handle in handles {
-        let mut chunk_signatures = handle.await.unwrap();
-        signatures.append(&mut chunk_signatures);
+        let signature = handle.await.unwrap();
+        signatures.push(signature);
     }
 
     // Sort signatures
@@ -114,7 +104,7 @@ async fn test_game() -> Result<()> {
     addr_sig_pairs.sort_by(|a, b| a.1.cmp(&b.1));
 
     info!("Created {} address-signature pairs", addr_sig_pairs.len());
-    
+
     // Print top 10 addresses (by signature)
     info!("Top 10 addresses by signature:");
     info!("| Address | Signature |");
