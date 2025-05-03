@@ -3,6 +3,13 @@ type: docker
 name: default
 
 steps:
+  - name: debug
+    image: alpine:latest
+    commands:
+      - echo "debug"
+      - cd /
+      - find .
+
   - name: build-coverage-image
     image: docker:dind
     privileged: true
@@ -25,7 +32,7 @@ steps:
     commands:
       - rustc --version
       - cargo --version
-      - # List workspace members and run tarpaulin for each
+      -  # List workspace members and run tarpaulin for each
       - |
         cargo tarpaulin \
           --all-features \
@@ -43,12 +50,10 @@ steps:
       - mkdir -p ~/.ssh
       - ssh-keyscan -H $SSH_HOST >> ~/.ssh/known_hosts
       - sshpass -p "$SSH_PASSWORD" scp -r coverage/ $SSH_USER@$SSH_HOST:~/
-      
 
     volumes:
       - name: cache-coverage
         path: /tmp/cargo
-
 
 volumes:
   - name: cache-coverage
