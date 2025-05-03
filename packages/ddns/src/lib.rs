@@ -1,15 +1,11 @@
 use anyhow::Result;
 use reqwest::Client;
 
-mod opendns;
 mod noip;
-#[cfg(test)]
-mod opendns_test;
-#[cfg(test)]
-mod noip_test;
+mod opendns;
 
-pub use opendns::OpenDnsProvider;
 pub use noip::NoIpProvider;
+pub use opendns::OpenDnsProvider;
 
 #[derive(Debug, Clone)]
 pub enum DdnsProvider {
