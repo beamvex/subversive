@@ -3,13 +3,6 @@ type: docker
 name: default
 
 steps:
-  - name: debug
-    image: alpine:latest
-    commands:
-      - echo "debug"
-      - cd /
-      - find .
-
   - name: build-coverage-image
     image: docker:dind
     privileged: true
@@ -50,10 +43,13 @@ steps:
       - mkdir -p ~/.ssh
       - ssh-keyscan -H $SSH_HOST >> ~/.ssh/known_hosts
       - sshpass -p "$SSH_PASSWORD" scp -r coverage/ $SSH_USER@$SSH_HOST:~/
+      - cp -r coverage /html/
 
     volumes:
       - name: cache-coverage
         path: /tmp/cargo
+      - name: html
+        path: /html
 
 volumes:
   - name: cache-coverage
@@ -62,3 +58,6 @@ volumes:
   - name: dockersock
     host:
       path: /var/run/docker.sock
+  - name: html
+    host:
+      path: /tmp/html
