@@ -2,6 +2,7 @@
 
 certs/*
 
+:memory:/
 db/*
 *.db
 *.journal

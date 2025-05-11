@@ -213,7 +213,7 @@ mod tests {
         let messages = state
             .db
             .messages
-            .get_messages_since(timestamp - 3600)
+            .get_messages(timestamp - 3600)
             .await
             .unwrap();
         assert_eq!(messages.len(), 1);
