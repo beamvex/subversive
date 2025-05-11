@@ -1,5 +1,5 @@
 use anyhow::Result;
-use rusty_leveldb::DB;
+use rusty_leveldb::{LdbIterator, DB};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -45,37 +45,40 @@ impl PeerStore {
         let mut db = self.db.lock().await;
         let mut peers = Vec::new();
         let mut iter = db.new_iter()?;
-        
+
         // Iterate through all peers
         iter.seek(b"peer:");
-        
+
         while iter.advance() {
             let mut key = Vec::new();
             let mut value = Vec::new();
             iter.current(&mut key, &mut value);
-            
+
             let key_str = String::from_utf8_lossy(&key);
             if !key_str.starts_with("peer:") {
                 break;
             }
-            
+
             let peer: PeerDoc = serde_json::from_slice(&value)?;
             if peer.last_seen > since {
                 peers.push(peer);
             }
         }
-        
+
         peers.sort_by_key(|p| std::cmp::Reverse(p.last_seen));
         Ok(peers)
     }
 
     /// Updates the last seen timestamp of a peer.
     pub async fn update_peer_last_seen(&self, address: &str, timestamp: i64) -> Result<()> {
-        let conn = self.conn.lock().await;
-        conn.execute(
-            "UPDATE peers SET last_seen = ?2 WHERE address = ?1",
-            [address, &timestamp.to_string()],
-        )?;
+        let mut db = self.db.lock().await;
+        let key = format!("peer:{}", address).into_bytes();
+        let peer = PeerDoc {
+            address: address.to_string(),
+            last_seen: timestamp,
+        };
+        let value = serde_json::to_vec(&peer)?;
+        db.put(&key, &value)?;
         Ok(())
     }
 }

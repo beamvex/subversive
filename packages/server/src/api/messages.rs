@@ -34,7 +34,7 @@ impl Messages {
         let messages = state
             .db
             .messages
-            .get_messages_since(since)
+            .get_messages(since)
             .await
             .unwrap_or_default();
 

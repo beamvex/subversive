@@ -1,5 +1,5 @@
 use anyhow::Result;
-use rusty_leveldb::DB;
+use rusty_leveldb::{LdbIterator, DB};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -41,25 +41,25 @@ impl MessageStore {
         let mut db = self.db.lock().await;
         let mut messages = Vec::new();
         let mut iter = db.new_iter()?;
-        
+
         // Seek to the first message after the timestamp
         let seek_key = format!("message:{}", since).into_bytes();
         iter.seek(&seek_key);
-        
+
         while iter.advance() {
             let mut key = Vec::new();
             let mut value = Vec::new();
             iter.current(&mut key, &mut value);
-            
+
             let key_str = String::from_utf8_lossy(&key);
             if !key_str.starts_with("message:") {
                 continue;
             }
-            
+
             let message: MessageDoc = serde_json::from_slice(&value)?;
             messages.push(message);
         }
-        
+
         messages.sort_by_key(|m| std::cmp::Reverse(m.timestamp));
         Ok(messages)
     }

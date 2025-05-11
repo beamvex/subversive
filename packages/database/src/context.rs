@@ -1,5 +1,5 @@
 use anyhow::Result;
-use rusty_leveldb::{DB, Options};
+use rusty_leveldb::{Options, DB};
 use std::sync::Arc;
 use std::{fs, path::Path};
 use tokio::sync::Mutex;
@@ -62,7 +62,7 @@ impl DbContext {
 
     /// Gets messages since a certain timestamp from the database.
     pub async fn get_messages_since(&self, since: i64) -> Result<Vec<MessageDoc>> {
-        self.messages.get_messages_since(since).await
+        self.messages.get_messages(since).await
     }
 
     /// Gets active peers from the database.

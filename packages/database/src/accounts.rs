@@ -1,9 +1,9 @@
 use anyhow::Result;
 use rusty_leveldb::DB;
+use serde_json;
 use std::sync::Arc;
 use subversive_crypto::account::Account;
 use tokio::sync::Mutex;
-use serde_json;
 
 pub struct AccountStore {
     db: Arc<Mutex<DB>>,
@@ -13,8 +13,6 @@ impl AccountStore {
     pub fn new(db: Arc<Mutex<DB>>) -> Self {
         Self { db }
     }
-
-
 
     pub async fn save_account(&self, account: &Account) -> Result<()> {
         let mut db = self.db.lock().await;
@@ -27,8 +25,8 @@ impl AccountStore {
     pub async fn get_account(&self, address: String) -> Result<Option<Account>> {
         let mut db = self.db.lock().await;
         let key = format!("account:{}", address).into_bytes();
-        
-        if let Some(value) = db.get(&key)? {
+
+        if let Some(value) = db.get(&key) {
             let account: Account = serde_json::from_slice(&value)?;
             Ok(Some(account))
         } else {
