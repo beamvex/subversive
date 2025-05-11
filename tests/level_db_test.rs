@@ -1,3 +1,4 @@
+#[cfg(test)]
 mod tests {
 
     const MYDATABASE: &'static str = "db/mydatabase";

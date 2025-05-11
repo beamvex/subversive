@@ -1,5 +1,5 @@
 use anyhow::Result;
-use rusqlite::Connection;
+use rusty_leveldb::DB;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -13,52 +13,59 @@ pub struct PeerDoc {
 
 /// Peer-related database operations
 pub struct PeerStore {
-    conn: Arc<Mutex<Connection>>,
+    db: Arc<Mutex<DB>>,
 }
 
 impl PeerStore {
-    pub(crate) fn new(conn: Arc<Mutex<Connection>>) -> Self {
-        Self { conn }
+    pub fn new(db: Arc<Mutex<DB>>) -> Self {
+        Self { db }
     }
 
     /// Initializes the peers table in the database.
     pub async fn init_table(&self) -> Result<()> {
-        let conn = self.conn.lock().await;
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS peers (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                address TEXT NOT NULL UNIQUE,
-                last_seen INTEGER NOT NULL
-            )",
-            [],
-        )?;
+        // No initialization needed for LevelDB
         Ok(())
     }
 
     /// Saves a peer to the database.
     pub async fn save_peer(&self, address: &str, last_seen: i64) -> Result<()> {
-        let conn = self.conn.lock().await;
-        conn.execute(
-            "INSERT OR REPLACE INTO peers (address, last_seen) VALUES (?1, ?2)",
-            [address, &last_seen.to_string()],
-        )?;
+        let mut db = self.db.lock().await;
+        let key = format!("peer:{}", address).into_bytes();
+        let peer = PeerDoc {
+            address: address.to_string(),
+            last_seen,
+        };
+        let value = serde_json::to_vec(&peer)?;
+        db.put(&key, &value)?;
         Ok(())
     }
 
     /// Gets active peers from the database.
     pub async fn get_active_peers(&self, since: i64) -> Result<Vec<PeerDoc>> {
-        let conn = self.conn.lock().await;
-        let mut stmt = conn.prepare(
-            "SELECT address, last_seen FROM peers WHERE last_seen > ?1 ORDER BY last_seen DESC",
-        )?;
-        let peers = stmt
-            .query_map([since], |row| {
-                Ok(PeerDoc {
-                    address: row.get(0)?,
-                    last_seen: row.get(1)?,
-                })
-            })?
-            .collect::<Result<Vec<_>, _>>()?;
+        let mut db = self.db.lock().await;
+        let mut peers = Vec::new();
+        let mut iter = db.new_iter()?;
+        
+        // Iterate through all peers
+        iter.seek(b"peer:");
+        
+        while iter.advance() {
+            let mut key = Vec::new();
+            let mut value = Vec::new();
+            iter.current(&mut key, &mut value);
+            
+            let key_str = String::from_utf8_lossy(&key);
+            if !key_str.starts_with("peer:") {
+                break;
+            }
+            
+            let peer: PeerDoc = serde_json::from_slice(&value)?;
+            if peer.last_seen > since {
+                peers.push(peer);
+            }
+        }
+        
+        peers.sort_by_key(|p| std::cmp::Reverse(p.last_seen));
         Ok(peers)
     }
 

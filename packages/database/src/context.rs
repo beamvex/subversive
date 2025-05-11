@@ -1,5 +1,5 @@
 use anyhow::Result;
-use rusqlite::{Connection, OpenFlags};
+use rusty_leveldb::{DB, Options};
 use std::sync::Arc;
 use std::{fs, path::Path};
 use tokio::sync::Mutex;
@@ -23,49 +23,31 @@ impl DbContext {
         // Create db directory if it doesn't exist
         let db_dir = Path::new("db");
         if !db_dir.exists() {
-            fs::create_dir_all(db_dir)?;
+            fs::create_dir_all(db_dir)?
         }
 
         // Create full path in db directory
         let db_path = db_dir.join(path.as_ref());
-        let conn = Arc::new(Mutex::new(Connection::open_with_flags(
-            db_path,
-            OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_CREATE,
-        )?));
-
-        Self::init_tables(&conn).await?;
+        let opt = Options::default();
+        let db = Arc::new(Mutex::new(DB::open(db_path, opt)?));
 
         Ok(Self {
-            messages: MessageStore::new(conn.clone()),
-            peers: PeerStore::new(conn.clone()),
-            accounts: AccountStore::new(conn),
+            messages: MessageStore::new(db.clone()),
+            peers: PeerStore::new(db.clone()),
+            accounts: AccountStore::new(db),
         })
     }
 
     /// Creates a new database context in memory.
     pub async fn new_memory() -> Result<Self> {
-        let conn = Arc::new(Mutex::new(Connection::open_in_memory()?));
-        Self::init_tables(&conn).await?;
+        let opt = Options::default();
+        let db = Arc::new(Mutex::new(DB::open(":memory:", opt)?));
 
         Ok(Self {
-            messages: MessageStore::new(conn.clone()),
-            peers: PeerStore::new(conn.clone()),
-            accounts: AccountStore::new(conn),
+            messages: MessageStore::new(db.clone()),
+            peers: PeerStore::new(db.clone()),
+            accounts: AccountStore::new(db),
         })
-    }
-
-    /// Initialize database tables.
-    async fn init_tables(conn: &Arc<Mutex<Connection>>) -> Result<()> {
-        let message_store = MessageStore::new(conn.clone());
-        message_store.init_table().await?;
-
-        let peer_store = PeerStore::new(conn.clone());
-        peer_store.init_table().await?;
-
-        let account_store = AccountStore::new(conn.clone());
-        account_store.init_table().await?;
-
-        Ok(())
     }
 
     /// Saves a message to the database.
