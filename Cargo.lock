@@ -2959,7 +2959,7 @@ name = "subversive-database"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "rusqlite",
+ "rusty-leveldb",
  "serde",
  "serde_json",
  "serde_yaml",
