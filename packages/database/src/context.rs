@@ -40,7 +40,7 @@ impl DbContext {
 
     /// Creates a new database context in memory.
     pub async fn new_memory() -> Result<Self> {
-        let opt = Options::default();
+        let opt = rusty_leveldb::in_memory();
         let db = Arc::new(Mutex::new(DB::open(":memory:", opt)?));
 
         Ok(Self {

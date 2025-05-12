@@ -3,14 +3,19 @@ mod tests {
 
     const MYDATABASE: &'static str = "db/mydatabase";
     const TOTAL_RECORDS: usize = 1_000_000;
-    const LOG_INTERVAL: usize = 1_000;
+    const LOG_INTERVAL: usize = 100_000;
+
+    use std::env;
 
     use rusty_leveldb::{LdbIterator, DB};
     use subversive_utils::test_utils::init_test_tracing;
 
     #[test]
+    #[ignore]
     fn test_level_db() {
         init_test_tracing();
+        let args: Vec<String> = env::args().collect();
+        dbg!(args);
         let opt = rusty_leveldb::Options::default();
 
         let mut db = DB::open(MYDATABASE, opt).unwrap();
@@ -36,8 +41,11 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_level_db_read() {
         init_test_tracing();
+        let args: Vec<String> = env::args().collect();
+        dbg!(args);
         let opt = rusty_leveldb::Options::default();
         let mut db = DB::open(MYDATABASE, opt).unwrap();
 
