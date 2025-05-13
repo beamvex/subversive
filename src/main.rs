@@ -5,9 +5,13 @@ use tracing::info;
 
 use subversive::types::{args::Args, config::Config, state::AppState};
 use subversive_database::context::DbContext;
+use subversive_utils::logutils::update_tracing;
 
+#[cfg(all(feature = "default", not(feature = "poc")))]
 #[tokio::main]
 async fn main() -> Result<()> {
+    update_tracing("info");
+
     let args = Args::parse();
     let port = args.port.unwrap_or(8080);
 
@@ -26,6 +30,19 @@ async fn main() -> Result<()> {
 
     let server_handle = tokio::spawn(subversive_server::server::spawn_server(app_state.clone()));
     let _ = server_handle.await??;
+
+    Ok(())
+}
+
+#[cfg(feature = "poc")]
+#[tokio::main]
+async fn main() -> Result<()> {
+    update_tracing("info");
+    subversive_utils::tui_utils::banner();
+    let args = Args::parse();
+    let port = args.port.unwrap_or(8080);
+
+    info!("Starting subversive poc on port {}", port);
 
     Ok(())
 }

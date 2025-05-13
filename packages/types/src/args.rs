@@ -5,15 +5,15 @@ use clap::Parser;
 #[clap(author, version, about)]
 pub struct Args {
     /// Port to listen on for P2P communication
-    #[clap(short, long)]
+    #[clap(short = 'p', long)]
     pub port: Option<u16>,
 
     /// Initial peer to connect to
-    #[clap(short, long)]
+    #[clap(short = 'P', long)]
     pub peer: Option<String>,
 
     /// Database file name
-    #[clap(short, long)]
+    #[clap(short = 'd', long)]
     pub database: Option<String>,
 
     /// Custom name for HTTP access logs
