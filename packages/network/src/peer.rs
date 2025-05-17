@@ -2,7 +2,7 @@ use anyhow::Result;
 use reqwest::Client;
 use std::collections::HashMap;
 use std::sync::Arc;
-use subversive_utils::{trace_debug, trace_error, trace_info};
+use subversive_utils::{trace::TraceId, trace_debug, trace_error, trace_info};
 use tokio::sync::Mutex;
 
 use serde::{Deserialize, Serialize};
@@ -35,8 +35,10 @@ pub async fn connect_to_peer(
         None => return Ok(()),
     };
 
-    trace_info!(3, "Connecting to initial peer: {}", peer_addr);
-    trace_debug!(4, "Building HTTP client for peer connection");
+    trace_info!(TraceId::PeerConnect {
+        peer: peer_addr.clone()
+    });
+    trace_debug!(TraceId::BuildHttpClient);
     let client = reqwest::Client::builder()
         .danger_accept_invalid_certs(true)
         .build()
@@ -46,18 +48,24 @@ pub async fn connect_to_peer(
     {
         let peers = peers.lock().await;
         if peers.contains_key(&peer_addr) {
-            trace_debug!(11, "Already connected to peer: {}", peer_addr);
+            trace_debug!(TraceId::PeerAlreadyConnected {
+                peer: peer_addr.clone()
+            });
             return Ok(());
         }
     }
 
-    trace_info!(12, "Adding own peer to initial peer: {}", peer_addr);
+    trace_info!(TraceId::PeerAddOwn {
+        peer: peer_addr.clone()
+    });
     let peer_info = PeerInfo {
         address: own_address.clone(),
         port: own_port,
     };
 
-    trace_info!(13, "Requesting to add peer: {}", peer_addr);
+    trace_info!(TraceId::PeerAddRequest {
+        peer: peer_addr.clone()
+    });
 
     // Send connection request to peer
     let response = client
@@ -66,18 +74,28 @@ pub async fn connect_to_peer(
         .send()
         .await?;
 
-    trace_info!(14, "Response from initial peer: {}", response.status());
+    trace_info!(TraceId::PeerResponse {
+        peer: response.status().to_string()
+    });
 
     if !response.status().is_success() {
-        trace_error!(15, "Failed to connect to peer: {}", response.status());
+        trace_error!(TraceId::PeerConnectError {
+            peer: peer_addr.clone(),
+            error: response.status().to_string()
+        });
         return Ok(());
     }
 
-    trace_info!(16, "Successfully connected to peer: {}", peer_addr);
+    trace_info!(TraceId::PeerConnected {
+        peer: peer_addr.clone()
+    });
 
     // Get the peer's known peers before acquiring the lock
     let known_peers = response.json::<Vec<PeerInfo>>().await.unwrap_or_default();
-    trace_info!(17, "Received {} known peers from {}", known_peers.len(), peer_addr);
+    trace_info!(TraceId::PeerKnownCount {
+        peer: peer_addr.clone(),
+        count: known_peers.len()
+    });
 
     // Now acquire the lock to update our peer list
     let mut peers = peers.lock().await;
@@ -110,7 +128,7 @@ pub async fn add_peer(
 ) -> Result<(), String> {
     let mut peers = peers.lock().await;
     if !peers.contains_key(&address) {
-        trace_debug!(5, "Building HTTP client for peer connection");
+        trace_debug!(TraceId::BuildHttpClient);
         let client = Client::builder()
             .danger_accept_invalid_certs(true)
             .build()
@@ -147,9 +165,13 @@ pub async fn remove_peer(
 ) -> Result<(), String> {
     let mut peers = peers.lock().await;
     if peers.remove(&address).is_some() {
-        trace_info!(6, "Removed peer: {}", address);
+        trace_info!(TraceId::PeerRemoved {
+            peer: address.clone()
+        });
     } else {
-        trace_debug!(7, "Peer {} not found", address);
+        trace_debug!(TraceId::PeerNotFound {
+            peer: address.clone()
+        });
     }
     Ok(())
 }
@@ -159,13 +181,19 @@ pub async fn update_peer_last_seen(
     peers: Arc<Mutex<HashMap<String, PeerHealth>>>,
     peer_addr: String,
 ) {
-    trace_info!(8, "Updating last seen for peer: {}", peer_addr);
+    trace_info!(TraceId::PeerLastSeen {
+        peer: peer_addr.clone()
+    });
     let mut peers = peers.lock().await;
     if let Some(peer_health) = peers.get_mut(&peer_addr) {
         peer_health.update_last_seen();
-        trace_debug!(9, "Updated last seen for peer: {}", peer_addr);
+        trace_debug!(TraceId::PeerLastSeen {
+            peer: peer_addr.clone()
+        });
     } else {
-        trace_debug!(10, "Peer {} not found", peer_addr);
+        trace_debug!(TraceId::PeerNotFound {
+            peer: peer_addr.clone()
+        });
     }
 }
 
