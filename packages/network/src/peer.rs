@@ -24,7 +24,7 @@ pub struct PeerInfo {
 /// * `initial_peer` - Address of the initial peer to connect to
 /// * `own_address` - Our own address that peers can use to connect to us
 /// * `own_port` - Our own port number
-pub async fn connect_to_initial_peer(
+pub async fn connect_to_peer(
     peers: Arc<Mutex<HashMap<String, PeerHealth>>>,
     initial_peer: Option<String>,
     own_address: String,
@@ -36,15 +36,22 @@ pub async fn connect_to_initial_peer(
     };
 
     info!("Connecting to initial peer: {}", peer_addr);
-    let client = Client::new();
+    debug!("Building HTTP client for peer connection");
+    let client = reqwest::Client::builder()
+        .danger_accept_invalid_certs(true)
+        .build()
+        .unwrap();
 
     // Acquire the lock to update peers
     {
         let mut peers = peers.lock().await;
+        info!("Adding own peer to initial peer: {}", peer_addr);
         let peer_info = PeerInfo {
             address: own_address.clone(),
             port: own_port,
         };
+
+        info!("Requesting to add peer: {}", peer_addr);
 
         // Send connection request to peer
         let response = client
@@ -52,6 +59,8 @@ pub async fn connect_to_initial_peer(
             .json(&peer_info)
             .send()
             .await?;
+
+        info!("Response from initial peer: {}", response.status());
 
         if response.status().is_success() {
             info!("Successfully connected to peer: {}", peer_addr);
@@ -92,7 +101,11 @@ pub async fn add_peer(
 ) -> Result<(), String> {
     let mut peers = peers.lock().await;
     if !peers.contains_key(&address) {
-        let client = Client::new();
+        debug!("Building HTTP client for peer connection");
+        let client = Client::builder()
+            .danger_accept_invalid_certs(true)
+            .build()
+            .unwrap();
         let peer_health = PeerHealth::new(client, address.clone());
         peers.insert(address, peer_health);
     }
@@ -173,15 +186,15 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_connect_to_initial_peer_no_peer_configured() {
+    async fn test_connect_to_peer_no_peer_configured() {
         let peers = setup_test_peers().await;
         let result =
-            connect_to_initial_peer(peers, None, "https://localhost:8080".to_string(), 8080).await;
+            connect_to_peer(peers, None, "https://localhost:8080".to_string(), 8080).await;
         assert!(result.is_ok());
     }
 
     #[tokio::test]
-    async fn test_connect_to_initial_peer_success() {
+    async fn test_connect_to_peer_success() {
         let mut mock_server = Server::new_async().await;
         let peer_addr = mock_server.url();
         let own_addr = "https://localhost:8080".to_string();
@@ -207,7 +220,7 @@ mod tests {
             .create_async()
             .await;
 
-        let result = connect_to_initial_peer(
+        let result = connect_to_peer(
             peers.clone(),
             Some(peer_addr.clone()),
             own_addr.clone(),
@@ -224,7 +237,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_connect_to_initial_peer_failure() {
+    async fn test_connect_to_peer_failure() {
         let mut mock_server = Server::new_async().await;
         let peer_addr = mock_server.url();
         let peers = setup_test_peers().await;
@@ -235,7 +248,7 @@ mod tests {
             .create_async()
             .await;
 
-        let result = connect_to_initial_peer(
+        let result = connect_to_peer(
             peers.clone(),
             Some(peer_addr.clone()),
             "https://localhost:8080".to_string(),
@@ -249,7 +262,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_connect_to_initial_peer_skip_own_address() {
+    async fn test_connect_to_peer_skip_own_address() {
         let mut mock_server = Server::new_async().await;
         let peer_addr = mock_server.url();
         let own_addr = "https://localhost:8080".to_string();
@@ -275,7 +288,7 @@ mod tests {
             .create_async()
             .await;
 
-        let result = connect_to_initial_peer(
+        let result = connect_to_peer(
             peers.clone(),
             Some(peer_addr.clone()),
             own_addr.clone(),

@@ -6,6 +6,7 @@ use axum::{
 };
 use std::sync::Arc;
 use std::time::SystemTime;
+use tracing::info;
 
 use subversive_types::{message::Message, state::AppState};
 
@@ -20,6 +21,7 @@ impl Peers {
         State(state): State<Arc<AppState>>,
         Json(peer): Json<PeerInfo>,
     ) -> impl IntoResponse {
+        info!("Adding peer: {}", peer.address);
         if peer.address.is_empty() {
             return "Peer address cannot be empty".into_response();
         }

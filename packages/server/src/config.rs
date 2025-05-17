@@ -30,9 +30,9 @@ impl ServerComponents {
 
         // Set up logging middleware with default span maker
         let trace_layer = TraceLayer::new_for_http()
-            .make_span_with(DefaultMakeSpan::new().level(Level::INFO))
-            .on_request(DefaultOnRequest::new().level(Level::INFO))
-            .on_response(DefaultOnResponse::new().level(Level::INFO));
+            .make_span_with(DefaultMakeSpan::new().level(Level::DEBUG))
+            .on_request(DefaultOnRequest::new().level(Level::DEBUG))
+            .on_response(DefaultOnResponse::new().level(Level::DEBUG));
 
         Self {
             cors_layer,
