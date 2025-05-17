@@ -2,8 +2,8 @@ use anyhow::Result;
 use reqwest::Client;
 use std::collections::HashMap;
 use std::sync::Arc;
+use subversive_utils::{trace_debug, trace_error, trace_info};
 use tokio::sync::Mutex;
-use tracing::{debug, error, info};
 
 use serde::{Deserialize, Serialize};
 
@@ -35,60 +35,73 @@ pub async fn connect_to_peer(
         None => return Ok(()),
     };
 
-    info!("Connecting to initial peer: {}", peer_addr);
-    debug!("Building HTTP client for peer connection");
+    trace_info!("Connecting to initial peer: {}", peer_addr);
+    trace_debug!("Building HTTP client for peer connection");
     let client = reqwest::Client::builder()
         .danger_accept_invalid_certs(true)
         .build()
         .unwrap();
 
-    // Acquire the lock to update peers
+    // Check if we're already connected to this peer
     {
-        let mut peers = peers.lock().await;
-        info!("Adding own peer to initial peer: {}", peer_addr);
-        let peer_info = PeerInfo {
-            address: own_address.clone(),
-            port: own_port,
-        };
-
-        info!("Requesting to add peer: {}", peer_addr);
-
-        // Send connection request to peer
-        let response = client
-            .post(format!("{}/peer", peer_addr))
-            .json(&peer_info)
-            .send()
-            .await?;
-
-        info!("Response from initial peer: {}", response.status());
-
-        if response.status().is_success() {
-            info!("Successfully connected to peer: {}", peer_addr);
-
-            // Add the initial peer
-            let peer_health = PeerHealth::new(client.clone(), peer_addr.clone());
-            peers.insert(peer_addr.clone(), peer_health);
-
-            // Get and add the peer's known peers
-            if let Ok(known_peers) = response.json::<Vec<PeerInfo>>().await {
-                info!(
-                    "Received {} known peers from {}",
-                    known_peers.len(),
-                    peer_addr
-                );
-
-                for known_peer in known_peers {
-                    if known_peer.address != own_address && !peers.contains_key(&known_peer.address)
-                    {
-                        let peer_client = Client::new();
-                        let peer_health = PeerHealth::new(peer_client, known_peer.address.clone());
-                        peers.insert(known_peer.address.clone(), peer_health);
-                    }
-                }
-            }
-        } else {
-            error!("Failed to connect to peer: {}", response.status());
+        let peers = peers.lock().await;
+        if peers.contains_key(&peer_addr) {
+            trace_debug!("Already connected to peer: {}", peer_addr);
+            return Ok(());
         }
+    }
+
+    trace_info!("Adding own peer to initial peer: {}", peer_addr);
+    let peer_info = PeerInfo {
+        address: own_address.clone(),
+        port: own_port,
+    };
+
+    trace_info!("Requesting to add peer: {}", peer_addr);
+
+    // Send connection request to peer
+    let response = client
+        .post(format!("{}/peer", peer_addr))
+        .json(&peer_info)
+        .send()
+        .await?;
+
+    trace_info!("Response from initial peer: {}", response.status());
+
+    if !response.status().is_success() {
+        trace_error!("Failed to connect to peer: {}", response.status());
+        return Ok(());
+    }
+
+    trace_info!("Successfully connected to peer: {}", peer_addr);
+
+    // Get the peer's known peers before acquiring the lock
+    let known_peers = response.json::<Vec<PeerInfo>>().await.unwrap_or_default();
+    trace_info!(
+        "Received {} known peers from {}",
+        known_peers.len(),
+        peer_addr
+    );
+
+    // Now acquire the lock to update our peer list
+    let mut peers = peers.lock().await;
+
+    // Add the initial peer if we haven't already
+    peers
+        .entry(peer_addr.clone())
+        .or_insert_with(|| PeerHealth::new(client.clone(), peer_addr.clone()));
+
+    // Filter and collect new peers we haven't seen yet
+    let new_peers: Vec<_> = known_peers
+        .into_iter()
+        .filter(|p| p.address != own_address && !peers.contains_key(&p.address))
+        .collect();
+
+    // Add all new peers
+    for known_peer in new_peers {
+        let peer_client = Client::new();
+        let peer_health = PeerHealth::new(peer_client, known_peer.address.clone());
+        peers.insert(known_peer.address.clone(), peer_health);
     }
 
     Ok(())
@@ -101,7 +114,7 @@ pub async fn add_peer(
 ) -> Result<(), String> {
     let mut peers = peers.lock().await;
     if !peers.contains_key(&address) {
-        debug!("Building HTTP client for peer connection");
+        trace_debug!("Building HTTP client for peer connection");
         let client = Client::builder()
             .danger_accept_invalid_certs(true)
             .build()
@@ -138,9 +151,9 @@ pub async fn remove_peer(
 ) -> Result<(), String> {
     let mut peers = peers.lock().await;
     if peers.remove(&address).is_some() {
-        info!("Removed peer: {}", address);
+        trace_info!("Removed peer: {}", address);
     } else {
-        debug!("Peer {} not found", address);
+        trace_debug!("Peer {} not found", address);
     }
     Ok(())
 }
@@ -150,13 +163,13 @@ pub async fn update_peer_last_seen(
     peers: Arc<Mutex<HashMap<String, PeerHealth>>>,
     peer_addr: String,
 ) {
-    info!("Updating last seen for peer: {}", peer_addr);
+    trace_info!("Updating last seen for peer: {}", peer_addr);
     let mut peers = peers.lock().await;
     if let Some(peer_health) = peers.get_mut(&peer_addr) {
         peer_health.update_last_seen();
-        debug!("Updated last seen for peer: {}", peer_addr);
+        trace_debug!("Updated last seen for peer: {}", peer_addr);
     } else {
-        debug!("Peer {} not found", peer_addr);
+        trace_debug!("Peer {} not found", peer_addr);
     }
 }
 
@@ -188,8 +201,7 @@ mod tests {
     #[tokio::test]
     async fn test_connect_to_peer_no_peer_configured() {
         let peers = setup_test_peers().await;
-        let result =
-            connect_to_peer(peers, None, "https://localhost:8080".to_string(), 8080).await;
+        let result = connect_to_peer(peers, None, "https://localhost:8080".to_string(), 8080).await;
         assert!(result.is_ok());
     }
 
