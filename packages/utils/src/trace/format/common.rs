@@ -5,7 +5,7 @@ pub fn format_peer_status_message(status: &str, peer: &str) -> String {
 }
 
 pub fn format_msg_id(trace_id: &TraceId) -> String {
-    format!("[{:04x}]", trace_id.id())
+    format!("[{}]", trace_id.id())
 }
 
 pub fn get_thread_id() -> String {
