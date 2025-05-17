@@ -5,33 +5,78 @@ use super::types::TraceId;
 
 impl TraceId {
     pub fn message(&self) -> String {
+        // Try each category of messages
+        if let Some(msg) = self.format_startup_category() {
+            return msg;
+        }
+        if let Some(msg) = self.format_network_scan_category() {
+            return msg;
+        }
+        if let Some(msg) = self.format_peer_connection_category() {
+            return msg;
+        }
+        if let Some(msg) = self.format_peer_management_category() {
+            return msg;
+        }
+        if let Some(msg) = self.format_peer_discovery_category() {
+            return msg;
+        }
+
+        unreachable!("All TraceId variants should be handled in category functions")
+    }
+
+    fn format_startup_category(&self) -> Option<String> {
         match self {
-            // Startup messages
-            TraceId::StartupInit { port } => self.format_startup_message(port),
-            TraceId::StartupPoc => self.format_startup_message_simple(),
-            TraceId::BuildHttpClient => green("Building HTTP client for peer connection"),
-            TraceId::UserPrompt => green("Press Ctrl+C to exit"),
-            
-            // Network scan messages
-            TraceId::NetworkScan => green("Attempting to connect to all peers"),
-            
-            // Peer connection messages
-            TraceId::PeerConnect { peer } => self.format_peer_connect_message(peer),
-            TraceId::PeerInit { peer, source } => self.format_peer_init_message(peer, source),
-            TraceId::PeerConnected { peer } => self.format_peer_connected_message(peer),
-            TraceId::PeerConnectError { peer, error } => self.format_peer_error_message(peer, error),
-            
-            // Peer management messages
-            TraceId::PeerAlreadyConnected { peer } => self.format_peer_status_message("Already connected to peer", peer),
-            TraceId::PeerRemoved { peer } => self.format_peer_status_message("Removed peer", peer),
-            TraceId::PeerNotFound { peer } => self.format_peer_not_found_message(peer),
-            TraceId::PeerLastSeen { peer } => self.format_peer_status_message("Updating last seen for peer", peer),
-            
-            // Peer discovery messages
-            TraceId::PeerAddOwn { peer } => self.format_peer_status_message("Adding own peer to initial peer", peer),
-            TraceId::PeerAddRequest { peer } => self.format_peer_status_message("Requesting to add peer", peer),
-            TraceId::PeerResponse { peer } => self.format_peer_status_message("Response from initial peer", peer),
-            TraceId::PeerKnownCount { peer, count } => self.format_peer_count_message(peer, count)
+            TraceId::StartupInit { port } => Some(self.format_startup_message(port)),
+            TraceId::StartupPoc => Some(self.format_startup_message_simple()),
+            TraceId::BuildHttpClient => Some(green("Building HTTP client for peer connection")),
+            TraceId::UserPrompt => Some(green("Press Ctrl+C to exit")),
+            _ => None
+        }
+    }
+
+    fn format_network_scan_category(&self) -> Option<String> {
+        match self {
+            TraceId::NetworkScan => Some(green("Attempting to connect to all peers")),
+            _ => None
+        }
+    }
+
+    fn format_peer_connection_category(&self) -> Option<String> {
+        match self {
+            TraceId::PeerConnect { peer } => Some(self.format_peer_connect_message(peer)),
+            TraceId::PeerInit { peer, source } => Some(self.format_peer_init_message(peer, source)),
+            TraceId::PeerConnected { peer } => Some(self.format_peer_connected_message(peer)),
+            TraceId::PeerConnectError { peer, error } => Some(self.format_peer_error_message(peer, error)),
+            _ => None
+        }
+    }
+
+    fn format_peer_management_category(&self) -> Option<String> {
+        match self {
+            TraceId::PeerAlreadyConnected { peer } => 
+                Some(self.format_peer_status_message("Already connected to peer", peer)),
+            TraceId::PeerRemoved { peer } => 
+                Some(self.format_peer_status_message("Removed peer", peer)),
+            TraceId::PeerNotFound { peer } => 
+                Some(self.format_peer_not_found_message(peer)),
+            TraceId::PeerLastSeen { peer } => 
+                Some(self.format_peer_status_message("Updating last seen for peer", peer)),
+            _ => None
+        }
+    }
+
+    fn format_peer_discovery_category(&self) -> Option<String> {
+        match self {
+            TraceId::PeerAddOwn { peer } => 
+                Some(self.format_peer_status_message("Adding own peer to initial peer", peer)),
+            TraceId::PeerAddRequest { peer } => 
+                Some(self.format_peer_status_message("Requesting to add peer", peer)),
+            TraceId::PeerResponse { peer } => 
+                Some(self.format_peer_status_message("Response from initial peer", peer)),
+            TraceId::PeerKnownCount { peer, count } => 
+                Some(self.format_peer_count_message(peer, count)),
+            _ => None
         }
     }
 

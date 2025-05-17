@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
 use std::sync::Arc;
-use subversive_utils::{trace::TraceId, trace_info};
+use subversive_utils::trace_info;
 #[cfg(feature = "poc")]
 use tokio::task::JoinError;
 
@@ -19,7 +19,7 @@ async fn main() -> Result<()> {
     let args = Args::parse();
     let port = args.port.unwrap_or(8080);
 
-    trace_info!(TraceId::StartupInit { port });
+    trace_info!(StartupInit { port });
 
     let db = Arc::new(DbContext::new("subversive.db").await?);
     let config = Config::default_config();
@@ -69,7 +69,7 @@ async fn run_poc(
 
     // Add initial peer to peer list if provided
     if let Some(initial_peer) = initial_peer {
-        trace_info!(TraceId::PeerInit {
+        trace_info!(PeerInit {
             peer: initial_peer.clone(),
             source: app_state.own_address.clone()
         });
@@ -90,7 +90,7 @@ fn connect_to_peers(app_state: Arc<AppState>) {
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(3600));
         loop {
             interval.tick().await;
-            trace_info!(TraceId::NetworkScan);
+            trace_info!(NetworkScan);
 
             // Get list of all peers
             let peers = app_state_clone.peers.lock().await;
@@ -121,7 +121,7 @@ async fn main() -> Result<()> {
     update_tracing("info");
     subversive_utils::tui_utils::banner();
 
-    trace_info!(TraceId::StartupPoc);
+    trace_info!(StartupPoc);
 
     let mut handles = vec![];
     for i in 8080..8086 {
@@ -141,7 +141,7 @@ async fn main() -> Result<()> {
 
     /* */
 
-    trace_info!(TraceId::UserPrompt);
+    trace_info!(UserPrompt);
 
     tokio::signal::ctrl_c().await?;
 
