@@ -1,31 +1,33 @@
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::thread;
 
-static TRACE_ID_COUNTER: AtomicU64 = AtomicU64::new(0);
-
-/// Generate a unique trace ID for logging
-pub fn generate_trace_id() -> String {
-    let id = TRACE_ID_COUNTER.fetch_add(1, Ordering::SeqCst);
-    format!("[{:016x}]", id)
+/// Format a message ID for logging with yellow color
+pub fn format_msg_id(id: u64) -> String {
+    format!("\x1b[33m[{:06x}]\x1b[0m", id)
 }
 
-/// Macro to log with trace ID
+/// Get the current thread ID as a colored string (cyan)
+pub fn get_thread_id() -> String {
+    format!("\x1b[36m[{:?}]\x1b[0m", thread::current().id())
+}
+
+/// Macro to log with message ID and thread ID
 #[macro_export]
 macro_rules! trace_info {
-    ($($arg:tt)*) => {
-        tracing::info!("{} {}", $crate::trace::generate_trace_id(), format!($($arg)*))
+    ($msg_id:expr, $($arg:tt)*) => {
+        tracing::info!("{} {} {}", $crate::trace::format_msg_id($msg_id), $crate::trace::get_thread_id(), format!($($arg)*))
     }
 }
 
 #[macro_export]
 macro_rules! trace_debug {
-    ($($arg:tt)*) => {
-        tracing::debug!("{} {}", $crate::trace::generate_trace_id(), format!($($arg)*))
+    ($msg_id:expr, $($arg:tt)*) => {
+        tracing::debug!("{} {} {}", $crate::trace::format_msg_id($msg_id), $crate::trace::get_thread_id(), format!($($arg)*))
     }
 }
 
 #[macro_export]
 macro_rules! trace_error {
-    ($($arg:tt)*) => {
-        tracing::error!("{} {}", $crate::trace::generate_trace_id(), format!($($arg)*))
+    ($msg_id:expr, $($arg:tt)*) => {
+        tracing::error!("{} {} {}", $crate::trace::format_msg_id($msg_id), $crate::trace::get_thread_id(), format!($($arg)*))
     }
 }

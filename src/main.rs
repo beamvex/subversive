@@ -69,11 +69,7 @@ async fn run_poc(
 
     // Add initial peer to peer list if provided
     if let Some(initial_peer) = initial_peer {
-        trace_info!(
-            "Adding initial peer to peer list: {} from {}",
-            initial_peer,
-            app_state.own_address
-        );
+        trace_info!(19, "Adding initial peer to peer list: {} from {}", initial_peer, app_state.own_address);
         let _ =
             subversive_network::peer::add_peer(app_state.peers.clone(), initial_peer.clone()).await;
 
@@ -91,7 +87,7 @@ fn connect_to_peers(app_state: Arc<AppState>) {
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(3600));
         loop {
             interval.tick().await;
-            trace_info!("Attempting to connect to all peers");
+            trace_info!(18, "Attempting to connect to all peers");
 
             // Get list of all peers
             let peers = app_state_clone.peers.lock().await;
@@ -122,7 +118,7 @@ async fn main() -> Result<()> {
     update_tracing("info");
     subversive_utils::tui_utils::banner();
 
-    trace_info!("Starting subversive poc going to run multiple peers at once to test the network");
+    trace_info!(20, "Starting subversive poc going to run multiple peers at once to test the network");
 
     let mut handles = vec![];
     for i in 8080..8086 {
@@ -142,7 +138,7 @@ async fn main() -> Result<()> {
 
     /* */
 
-    trace_info!("Press Ctrl+C to exit");
+    trace_info!(21, "Press Ctrl+C to exit");
 
     tokio::signal::ctrl_c().await?;
 
