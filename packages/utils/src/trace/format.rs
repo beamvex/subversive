@@ -1,10 +1,10 @@
 use std::thread;
-use super::color;
+
+use crate::tui::color::*;
 use super::types::TraceId;
 
 impl TraceId {
     pub fn message(&self) -> String {
-        use color::*;
         match self {
             TraceId::StartupInit { port } => 
                 format!("{} {}", green("Starting subversive node on port"), magenta(&port.to_string())),
@@ -80,10 +80,10 @@ pub fn format_msg_id(id: &TraceId) -> String {
         TraceId::PeerKnownCount { .. } => "PeerKnownCount",
         TraceId::PeerConnectError { .. } => "PeerConnectError",
     };
-    format!("[{}]", color::yellow(name))
+    format!("[{}]", yellow(name))
 }
 
 /// Get the current thread ID as a colored string (cyan)
 pub fn get_thread_id() -> String {
-    format!("[{}]", color::cyan(&format!("{:?}", thread::current().id())))
+    format!("[{}]", cyan(&format!("{:?}", thread::current().id())))
 }

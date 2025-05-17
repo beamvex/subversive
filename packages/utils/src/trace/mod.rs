@@ -1,4 +1,3 @@
-mod color;
 mod types;
 mod format;
 mod macros;
