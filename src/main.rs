@@ -1,11 +1,10 @@
 use anyhow::Result;
 use clap::Parser;
 use std::sync::Arc;
-use subversive_utils::{trace_info, TraceId};
-use subversive_utils::trace::types::{StartupInit, PeerInit};
+use subversive_utils::{trace::types::StartupInit, trace_info, TraceId};
 
 #[cfg(feature = "poc")]
-use subversive_utils::trace::types::TraceId;
+use subversive_utils::trace::types::{NetworkScan, PeerInit, StartupPoc, UserPrompt};
 #[cfg(feature = "poc")]
 use tokio::task::JoinError;
 
@@ -73,7 +72,10 @@ async fn run_poc(
 
     // Add initial peer to peer list if provided
     if let Some(initial_peer) = initial_peer {
-        trace_info!(PeerInit { peer: initial_peer.clone(), source: app_state.own_address.clone() });
+        trace_info!(PeerInit {
+            peer: initial_peer.clone(),
+            source: app_state.own_address.clone()
+        });
         let _ =
             subversive_network::peer::add_peer(app_state.peers.clone(), initial_peer.clone()).await;
 
@@ -86,12 +88,15 @@ async fn run_poc(
 #[cfg(feature = "poc")]
 fn connect_to_peers(app_state: Arc<AppState>) {
     // Spawn a background task to periodically connect to all peers
+
     let app_state_clone = app_state.clone();
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(5));
         loop {
             interval.tick().await;
-            trace_info!(NetworkScan);
+            trace_info!(NetworkScan {
+                addr: app_state_clone.own_address.clone()
+            });
 
             // Get list of all peers
             let peers = app_state_clone.peers.lock().await;
