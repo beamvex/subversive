@@ -4,6 +4,7 @@ pub mod trace;
 pub mod tui;
 pub mod tui_utils;
 
-// Re-export macros
-pub use trace::color::*;
+// Re-export macros and types
+pub use trace::macros::*;
 pub use trace::types::TraceId;
+pub use trace::color::*;

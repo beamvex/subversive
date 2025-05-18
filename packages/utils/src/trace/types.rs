@@ -38,7 +38,29 @@ impl TraceId {
             TraceId::PeerResponse { .. } => 0x0017,
             TraceId::PeerConnected { .. } => 0x0018,
             TraceId::PeerKnownCount { .. } => 0x0019,
-            TraceId::PeerConnectError { .. } => 0x0015,
+            TraceId::PeerConnectError { .. } => 0x001A,
+        }
+    }
+
+    pub fn name(&self) -> &'static str {
+        match self {
+            TraceId::StartupInit { .. } => "StartupInit",
+            TraceId::StartupPoc => "StartupPoc",
+            TraceId::PeerConnect { .. } => "PeerConnect",
+            TraceId::PeerInit { .. } => "PeerInit",
+            TraceId::NetworkScan => "NetworkScan",
+            TraceId::UserPrompt => "UserPrompt",
+            TraceId::BuildHttpClient => "BuildHttpClient",
+            TraceId::PeerAlreadyConnected { .. } => "PeerAlreadyConnected",
+            TraceId::PeerRemoved { .. } => "PeerRemoved",
+            TraceId::PeerNotFound { .. } => "PeerNotFound",
+            TraceId::PeerLastSeen { .. } => "PeerLastSeen",
+            TraceId::PeerAddOwn { .. } => "PeerAddOwn",
+            TraceId::PeerAddRequest { .. } => "PeerAddRequest",
+            TraceId::PeerResponse { .. } => "PeerResponse",
+            TraceId::PeerConnected { .. } => "PeerConnected",
+            TraceId::PeerKnownCount { .. } => "PeerKnownCount",
+            TraceId::PeerConnectError { .. } => "PeerConnectError",
         }
     }
 }
