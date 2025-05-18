@@ -1,12 +1,10 @@
 use anyhow::Result;
-use reqwest::Client;
+use reqwest::{self, Client};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use subversive_utils::{trace_debug, trace_error, trace_info};
-
+use subversive_utils::{trace_debug, trace_error, trace_info, TraceId};
 use tokio::sync::Mutex;
-
-use serde::{Deserialize, Serialize};
 
 use crate::health::PeerHealth;
 

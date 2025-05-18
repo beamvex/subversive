@@ -2,6 +2,9 @@ use anyhow::Result;
 use clap::Parser;
 use std::sync::Arc;
 use subversive_utils::trace_info;
+
+#[cfg(feature = "poc")]
+use subversive_utils::trace::types::TraceId;
 #[cfg(feature = "poc")]
 use tokio::task::JoinError;
 
@@ -87,7 +90,7 @@ fn connect_to_peers(app_state: Arc<AppState>) {
     // Spawn a background task to periodically connect to all peers
     let app_state_clone = app_state.clone();
     tokio::spawn(async move {
-        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(3600));
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(5));
         loop {
             interval.tick().await;
             trace_info!(NetworkScan);

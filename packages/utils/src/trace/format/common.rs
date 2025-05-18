@@ -4,7 +4,7 @@ pub fn format_peer_status_message(status: &str, peer: &str) -> String {
     format!("{}: {}", status, peer)
 }
 
-pub fn format_msg_id(trace_id: &TraceId) -> String {
+pub fn format_msg_id(trace_id: &impl TraceId) -> String {
     format!("[{}]", trace_id.name())
 }
 
