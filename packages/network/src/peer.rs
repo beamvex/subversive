@@ -3,8 +3,12 @@ use reqwest::{self, Client};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use subversive_utils::{trace_debug, trace_error, trace_info, TraceId};
 use tokio::sync::Mutex;
+
+use subversive_utils::{trace_info, trace_debug, trace_error, TraceId};
+use subversive_utils::trace::types::{BuildHttpClient, PeerConnect, PeerAlreadyConnected, PeerAddOwn, 
+    PeerAddRequest, PeerResponse, PeerConnectError, PeerConnected, PeerKnownCount,
+    PeerRemoved, PeerNotFound, PeerLastSeen};
 
 use crate::health::PeerHealth;
 
@@ -34,9 +38,7 @@ pub async fn connect_to_peer(
         None => return Ok(()),
     };
 
-    trace_info!(PeerConnect {
-        peer: peer_addr.clone()
-    });
+    trace_info!(PeerConnect { addr: peer_addr.clone() });
     trace_debug!(BuildHttpClient);
     let client = reqwest::Client::builder()
         .danger_accept_invalid_certs(true)
@@ -47,24 +49,18 @@ pub async fn connect_to_peer(
     {
         let peers = peers.lock().await;
         if peers.contains_key(&peer_addr) {
-            trace_debug!(PeerAlreadyConnected {
-                peer: peer_addr.clone()
-            });
+            trace_debug!(PeerAlreadyConnected { addr: peer_addr.clone() });
             return Ok(());
         }
     }
 
-    trace_info!(PeerAddOwn {
-        peer: peer_addr.clone()
-    });
+    trace_info!(PeerAddOwn { addr: peer_addr.clone() });
     let peer_info = PeerInfo {
         address: own_address.clone(),
         port: own_port,
     };
 
-    trace_info!(PeerAddRequest {
-        peer: peer_addr.clone()
-    });
+    trace_info!(PeerAddRequest { addr: peer_addr.clone() });
 
     // Send connection request to peer
     let response = client
@@ -73,28 +69,18 @@ pub async fn connect_to_peer(
         .send()
         .await?;
 
-    trace_info!(PeerResponse {
-        peer: response.status().to_string()
-    });
+    trace_info!(PeerResponse { addr: peer_addr.clone(), status: response.status().to_string() });
 
     if !response.status().is_success() {
-        trace_error!(PeerConnectError {
-            peer: peer_addr.clone(),
-            error: response.status().to_string()
-        });
+        trace_error!(PeerConnectError { addr: peer_addr.clone(), error: response.status().to_string() });
         return Ok(());
     }
 
-    trace_info!(PeerConnected {
-        peer: peer_addr.clone()
-    });
+    trace_info!(PeerConnected { addr: peer_addr.clone() });
 
     // Get the peer's known peers before acquiring the lock
     let known_peers = response.json::<Vec<PeerInfo>>().await.unwrap_or_default();
-    trace_info!(PeerKnownCount {
-        peer: peer_addr.clone(),
-        count: known_peers.len()
-    });
+    trace_info!(PeerKnownCount { addr: peer_addr.clone(), count: known_peers.len() });
 
     // Now acquire the lock to update our peer list
     let mut peers = peers.lock().await;
@@ -164,13 +150,9 @@ pub async fn remove_peer(
 ) -> Result<(), String> {
     let mut peers = peers.lock().await;
     if peers.remove(&address).is_some() {
-        trace_info!(PeerRemoved {
-            peer: address.clone()
-        });
+        trace_info!(PeerRemoved { addr: address.clone() });
     } else {
-        trace_debug!(PeerNotFound {
-            peer: address.clone()
-        });
+        trace_debug!(PeerNotFound { addr: address.clone() });
     }
     Ok(())
 }
@@ -180,19 +162,13 @@ pub async fn update_peer_last_seen(
     peers: Arc<Mutex<HashMap<String, PeerHealth>>>,
     peer_addr: String,
 ) {
-    trace_info!(PeerLastSeen {
-        peer: peer_addr.clone()
-    });
+    trace_info!(PeerLastSeen { addr: peer_addr.clone() });
     let mut peers = peers.lock().await;
     if let Some(peer_health) = peers.get_mut(&peer_addr) {
         peer_health.update_last_seen();
-        trace_debug!(PeerLastSeen {
-            peer: peer_addr.clone()
-        });
+        trace_debug!(PeerLastSeen { addr: peer_addr.clone() });
     } else {
-        trace_debug!(PeerNotFound {
-            peer: peer_addr.clone()
-        });
+        trace_debug!(PeerNotFound { addr: peer_addr.clone() });
     }
 }
 

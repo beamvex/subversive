@@ -1,7 +1,8 @@
 use anyhow::Result;
 use clap::Parser;
 use std::sync::Arc;
-use subversive_utils::trace_info;
+use subversive_utils::{trace_info, TraceId};
+use subversive_utils::trace::types::{StartupInit, PeerInit};
 
 #[cfg(feature = "poc")]
 use subversive_utils::trace::types::TraceId;
@@ -22,7 +23,7 @@ async fn main() -> Result<()> {
     let args = Args::parse();
     let port = args.port.unwrap_or(8080);
 
-    trace_info!(StartupInit { port });
+    trace_info!(StartupInit { port: port });
 
     let db = Arc::new(DbContext::new("subversive.db").await?);
     let config = Config::default_config();
@@ -72,10 +73,7 @@ async fn run_poc(
 
     // Add initial peer to peer list if provided
     if let Some(initial_peer) = initial_peer {
-        trace_info!(PeerInit {
-            peer: initial_peer.clone(),
-            source: app_state.own_address.clone()
-        });
+        trace_info!(PeerInit { peer: initial_peer.clone(), source: app_state.own_address.clone() });
         let _ =
             subversive_network::peer::add_peer(app_state.peers.clone(), initial_peer.clone()).await;
 

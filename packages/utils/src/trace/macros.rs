@@ -4,7 +4,7 @@ macro_rules! trace_info {
     // For structs with fields
     ($type:ident { $($field:ident : $value:expr),* $(,)? }) => {
         {
-            let event = $crate::trace::types::$type { $($field: $value.into()),* };
+            let event = $type { $($field: $value.into()),* };
             ::tracing::info!("{} {} {}",
                 $crate::trace::format::get_thread_id(),
                 $crate::trace::format::format_msg_id(&event),
@@ -15,7 +15,7 @@ macro_rules! trace_info {
     // For unit-like structs
     ($type:ident) => {
         {
-            let event = $crate::trace::types::$type;
+            let event = $type;
             ::tracing::info!("{} {} {}",
                 $crate::trace::format::get_thread_id(),
                 $crate::trace::format::format_msg_id(&event),
@@ -30,7 +30,7 @@ macro_rules! trace_debug {
     // For structs with fields
     ($type:ident { $($field:ident : $value:expr),* $(,)? }) => {
         {
-            let event = $crate::trace::types::$type { $($field: $value.into()),* };
+            let event = $type { $($field: $value.into()),* };
             ::tracing::debug!("{} {} {}",
                 $crate::trace::format::get_thread_id(),
                 $crate::trace::format::format_msg_id(&event),
@@ -41,7 +41,7 @@ macro_rules! trace_debug {
     // For unit-like structs
     ($type:ident) => {
         {
-            let event = $crate::trace::types::$type;
+            let event = $type;
             ::tracing::debug!("{} {} {}",
                 $crate::trace::format::get_thread_id(),
                 $crate::trace::format::format_msg_id(&event),
@@ -56,7 +56,7 @@ macro_rules! trace_error {
     // For structs with fields
     ($type:ident { $($field:ident : $value:expr),* $(,)? }) => {
         {
-            let event = $crate::trace::types::$type { $($field: $value.into()),* };
+            let event = $type { $($field: $value.into()),* };
             ::tracing::error!("{} {} {}",
                 $crate::trace::format::get_thread_id(),
                 $crate::trace::format::format_msg_id(&event),
@@ -67,7 +67,7 @@ macro_rules! trace_error {
     // For unit-like structs
     ($type:ident) => {
         {
-            let event = $crate::trace::types::$type;
+            let event = $type;
             ::tracing::error!("{} {} {}",
                 $crate::trace::format::get_thread_id(),
                 $crate::trace::format::format_msg_id(&event),

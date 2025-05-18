@@ -7,4 +7,6 @@ pub mod tui_utils;
 // Re-export macros and types
 pub use trace::macros::*;
 pub use trace::types::TraceId;
-pub use trace::types::*;
+pub use trace::types::{BuildHttpClient, PeerConnect, PeerAlreadyConnected, PeerAddOwn, 
+    PeerAddRequest, PeerResponse, PeerConnectError, PeerConnected, PeerKnownCount,
+    PeerRemoved, PeerNotFound, PeerLastSeen};
