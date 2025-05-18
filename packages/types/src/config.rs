@@ -148,15 +148,27 @@ impl Config {
         }
     }
 
+    /// Load configuration from command line arguments and optional config file for testing
+    ///
+    /// If a config file is specified in the arguments, it will be loaded and merged
+    /// with the command line arguments. Command line arguments take precedence.
+    #[cfg(test)]
+    pub async fn load_test(args: Args) -> Self {
+        Self::load_internal(args).await
+    }
+
     /// Load configuration from command line arguments and optional config file
     ///
     /// If a config file is specified in the arguments, it will be loaded and merged
     /// with the command line arguments. Command line arguments take precedence.
-    pub async fn load(#[cfg(test)] args: Args) -> Self {
-        // Parse command line arguments
-        #[cfg(not(test))]
+    #[cfg(not(test))]
+    pub async fn load() -> Self {
         let args = Args::parse();
+        Self::load_internal(args).await
+    }
 
+    /// Internal implementation of configuration loading
+    async fn load_internal(args: Args) -> Self {
         // Load configuration
         let mut config = if let Some(config_path) = &args.config {
             info!("Loading configuration from {}", config_path);

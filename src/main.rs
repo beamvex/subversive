@@ -1,6 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
 use std::sync::Arc;
+use subversive_types::args::Args;
 use subversive_utils::{trace::types::StartupInit, trace_info, TraceId};
 
 #[cfg(feature = "poc")]
@@ -8,13 +9,13 @@ use subversive_utils::trace::types::{NetworkScan, PeerInit, StartupPoc, UserProm
 #[cfg(feature = "poc")]
 use tokio::task::JoinError;
 
-use subversive::types::{args::Args, config::Config, state::AppState};
+use subversive::types::{config::Config, state::AppState};
 use subversive_database::context::DbContext;
 #[cfg(feature = "poc")]
 use subversive_network::peer::connect_to_peer;
 use subversive_utils::logutils::update_tracing;
 
-#[cfg(all(feature = "default", not(feature = "poc")))]
+#[cfg(not(feature = "poc"))]
 #[tokio::main]
 async fn main() -> Result<()> {
     update_tracing("info");
