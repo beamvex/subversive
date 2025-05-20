@@ -9,6 +9,11 @@ pub struct PeerInit {
 }
 
 #[derive(Debug, Clone)]
+pub struct PeerList {
+    pub process: String,
+}
+
+#[derive(Debug, Clone)]
 pub struct BuildHttpClient {
     pub process: String,
 }
@@ -291,6 +296,21 @@ impl TraceId for PeerLastSeen {
     }
     fn message(&self) -> String {
         format!("{} {}", green("Updated last seen for peer"), &self.addr)
+    }
+    fn process(&self) -> String {
+        self.process.clone()
+    }
+}
+
+impl TraceId for PeerList {
+    fn id(&self) -> u64 {
+        0x020C
+    }
+    fn name(&self) -> &'static str {
+        "PeerList"
+    }
+    fn message(&self) -> String {
+        green("Listing peers").to_string()
     }
     fn process(&self) -> String {
         self.process.clone()

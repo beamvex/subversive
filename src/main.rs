@@ -148,7 +148,7 @@ async fn main() -> Result<()> {
     trace_info!(StartupPoc { process: "poc" });
 
     let mut handles = vec![];
-    for i in 8080..8086 {
+    for i in 8080..8081 {
         handles.push(
             run_poc(
                 &format!("peer_{}", i),

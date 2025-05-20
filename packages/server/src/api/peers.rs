@@ -6,6 +6,9 @@ use axum::{
 };
 use std::sync::Arc;
 use std::time::SystemTime;
+pub use subversive_utils::trace::types::PeerList;
+use subversive_utils::trace_info;
+use subversive_utils::TraceId;
 use tracing::info;
 
 use subversive_types::{message::Message, state::AppState};
@@ -75,6 +78,10 @@ impl Peers {
 
     /// List all known peers
     pub async fn list_peers(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+        trace_info!(PeerList {
+            process: state.config.name.clone().unwrap_or("poc".to_string()),
+        });
+
         let peers = state.peers.lock().await;
         let peer_list: Vec<PeerInfo> = peers
             .keys()
