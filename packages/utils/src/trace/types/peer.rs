@@ -5,67 +5,81 @@ use crate::tui::color::{green, magenta, red, yellow};
 pub struct PeerInit {
     pub peer: String,
     pub source: String,
+    pub process: String,
 }
 
 #[derive(Debug, Clone)]
-pub struct BuildHttpClient;
+pub struct BuildHttpClient {
+    pub process: String,
+}
 
 #[derive(Debug, Clone)]
 pub struct PeerConnect {
     pub addr: String,
+    pub process: String,
 }
 
 #[derive(Debug, Clone)]
 pub struct PeerAlreadyConnected {
     pub addr: String,
+    pub process: String,
 }
 
 #[derive(Debug, Clone)]
 pub struct PeerAddOwn {
     pub addr: String,
+    pub process: String,
 }
 
 #[derive(Debug, Clone)]
 pub struct PeerAddRequest {
     pub addr: String,
+    pub process: String,
 }
 
 #[derive(Debug, Clone)]
 pub struct PeerResponse {
     pub addr: String,
     pub status: String,
+    pub process: String,
 }
 
 #[derive(Debug, Clone)]
 pub struct PeerConnectError {
     pub addr: String,
     pub error: String,
+    pub process: String,
 }
 
 #[derive(Debug, Clone)]
 pub struct PeerConnected {
     pub addr: String,
+    pub process: String,
 }
 
 #[derive(Debug, Clone)]
 pub struct PeerKnownCount {
     pub addr: String,
     pub count: usize,
+    pub process: String,
 }
 
 #[derive(Debug, Clone)]
 pub struct PeerRemoved {
     pub addr: String,
+    pub process: String,
 }
 
 #[derive(Debug, Clone)]
 pub struct PeerNotFound {
     pub addr: String,
+    pub process: String,
 }
 
 #[derive(Debug, Clone)]
 pub struct PeerLastSeen {
     pub addr: String,
+    pub process: String,
 }
 
 impl TraceId for PeerInit {
@@ -83,6 +97,9 @@ impl TraceId for PeerInit {
             &self.source
         )
     }
+    fn process(&self) -> String {
+        self.process.clone()
+    }
 }
 
 impl TraceId for BuildHttpClient {
@@ -94,6 +111,9 @@ impl TraceId for BuildHttpClient {
     }
     fn message(&self) -> String {
         "Building HTTP client".to_string()
+    }
+    fn process(&self) -> String {
+        self.process.clone()
     }
 }
 
@@ -107,6 +127,9 @@ impl TraceId for PeerConnect {
     fn message(&self) -> String {
         format!("{} {}", green("Connected to peer at"), magenta(&self.addr))
     }
+    fn process(&self) -> String {
+        self.process.clone()
+    }
 }
 
 impl TraceId for PeerAlreadyConnected {
@@ -118,6 +141,9 @@ impl TraceId for PeerAlreadyConnected {
     }
     fn message(&self) -> String {
         format!("{} {}", yellow("Already connected to peer"), &self.addr)
+    }
+    fn process(&self) -> String {
+        self.process.clone()
     }
 }
 
@@ -131,6 +157,9 @@ impl TraceId for PeerAddOwn {
     fn message(&self) -> String {
         format!("{} {}", green("Adding own address to peer"), &self.addr)
     }
+    fn process(&self) -> String {
+        self.process.clone()
+    }
 }
 
 impl TraceId for PeerAddRequest {
@@ -142,6 +171,9 @@ impl TraceId for PeerAddRequest {
     }
     fn message(&self) -> String {
         format!("{} {}", green("Sending add request to peer"), &self.addr)
+    }
+    fn process(&self) -> String {
+        self.process.clone()
     }
 }
 
@@ -160,6 +192,9 @@ impl TraceId for PeerResponse {
             &self.status
         )
     }
+    fn process(&self) -> String {
+        self.process.clone()
+    }
 }
 
 impl TraceId for PeerConnectError {
@@ -177,6 +212,9 @@ impl TraceId for PeerConnectError {
             &self.error
         )
     }
+    fn process(&self) -> String {
+        self.process.clone()
+    }
 }
 
 impl TraceId for PeerConnected {
@@ -188,6 +226,9 @@ impl TraceId for PeerConnected {
     }
     fn message(&self) -> String {
         format!("{} {}", green("Successfully connected to peer"), &self.addr)
+    }
+    fn process(&self) -> String {
+        self.process.clone()
     }
 }
 
@@ -206,6 +247,9 @@ impl TraceId for PeerKnownCount {
             self.count
         )
     }
+    fn process(&self) -> String {
+        self.process.clone()
+    }
 }
 
 impl TraceId for PeerRemoved {
@@ -217,6 +261,9 @@ impl TraceId for PeerRemoved {
     }
     fn message(&self) -> String {
         format!("{} {}", yellow("Removed peer"), &self.addr)
+    }
+    fn process(&self) -> String {
+        self.process.clone()
     }
 }
 
@@ -230,6 +277,9 @@ impl TraceId for PeerNotFound {
     fn message(&self) -> String {
         format!("{} {}", yellow("Peer not found:"), &self.addr)
     }
+    fn process(&self) -> String {
+        self.process.clone()
+    }
 }
 
 impl TraceId for PeerLastSeen {
@@ -241,5 +291,8 @@ impl TraceId for PeerLastSeen {
     }
     fn message(&self) -> String {
         format!("{} {}", green("Updated last seen for peer"), &self.addr)
+    }
+    fn process(&self) -> String {
+        self.process.clone()
     }
 }

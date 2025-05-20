@@ -4,13 +4,18 @@ use crate::tui::color::{green, magenta};
 #[derive(Debug, Clone)]
 pub struct StartupInit {
     pub port: u16,
+    pub process: String,
 }
 
 #[derive(Debug, Clone)]
-pub struct StartupPoc;
+pub struct StartupPoc {
+    pub process: String,
+}
 
 #[derive(Debug, Clone)]
-pub struct UserPrompt;
+pub struct UserPrompt {
+    pub process: String,
+}
 
 impl TraceId for StartupInit {
     fn id(&self) -> u64 {
@@ -26,6 +31,9 @@ impl TraceId for StartupInit {
             green(&self.port.to_string())
         )
     }
+    fn process(&self) -> String {
+        self.process.clone()
+    }
 }
 
 impl TraceId for StartupPoc {
@@ -39,6 +47,9 @@ impl TraceId for StartupPoc {
         green("Starting subversive poc going to run multiple peers at once to test the network")
             .to_string()
     }
+    fn process(&self) -> String {
+        self.process.clone()
+    }
 }
 
 impl TraceId for UserPrompt {
@@ -50,5 +61,8 @@ impl TraceId for UserPrompt {
     }
     fn message(&self) -> String {
         green("Press any key to exit").to_string()
+    }
+    fn process(&self) -> String {
+        self.process.clone()
     }
 }

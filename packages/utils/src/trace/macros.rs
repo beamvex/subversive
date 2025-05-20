@@ -5,9 +5,10 @@ macro_rules! trace_info {
     ($type:ident { $($field:ident : $value:expr),* $(,)? }) => {
         {
             let event = $type { $($field: $value.into()),* };
-            ::tracing::info!("{} {} {}",
+            ::tracing::info!("{} {} {} {}",
                 $crate::trace::format::get_thread_id(),
                 $crate::trace::format::format_msg_id(&event),
+                $crate::trace::format::format_process_id(&event),
                 event.message()
             )
         }
@@ -16,9 +17,10 @@ macro_rules! trace_info {
     ($type:ident) => {
         {
             let event = $type;
-            ::tracing::info!("{} {} {}",
+            ::tracing::info!("{} {} {} {}",
                 $crate::trace::format::get_thread_id(),
                 $crate::trace::format::format_msg_id(&event),
+                $crate::trace::format::format_process_id(&event),
                 event.message()
             )
         }
@@ -31,9 +33,10 @@ macro_rules! trace_debug {
     ($type:ident { $($field:ident : $value:expr),* $(,)? }) => {
         {
             let event = $type { $($field: $value.into()),* };
-            ::tracing::debug!("{} {} {}",
+            ::tracing::debug!("{} {} {} {}",
                 $crate::trace::format::get_thread_id(),
                 $crate::trace::format::format_msg_id(&event),
+                $crate::trace::format::format_process_id(&event),
                 event.message()
             )
         }
@@ -42,9 +45,10 @@ macro_rules! trace_debug {
     ($type:ident) => {
         {
             let event = $type;
-            ::tracing::debug!("{} {} {}",
+            ::tracing::debug!("{} {} {} {}",
                 $crate::trace::format::get_thread_id(),
                 $crate::trace::format::format_msg_id(&event),
+                $crate::trace::format::format_process_id(&event),
                 event.message()
             )
         }
@@ -57,9 +61,10 @@ macro_rules! trace_error {
     ($type:ident { $($field:ident : $value:expr),* $(,)? }) => {
         {
             let event = $type { $($field: $value.into()),* };
-            ::tracing::error!("{} {} {}",
+            ::tracing::error!("{} {} {} {}",
                 $crate::trace::format::get_thread_id(),
                 $crate::trace::format::format_msg_id(&event),
+                $crate::trace::format::format_process_id(&event),
                 event.message()
             )
         }
@@ -68,9 +73,10 @@ macro_rules! trace_error {
     ($type:ident) => {
         {
             let event = $type;
-            ::tracing::error!("{} {} {}",
+            ::tracing::error!("{} {} {} {}",
                 $crate::trace::format::get_thread_id(),
                 $crate::trace::format::format_msg_id(&event),
+                $crate::trace::format::format_process_id(&event),
                 event.message()
             )
         }

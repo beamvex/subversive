@@ -51,6 +51,8 @@ async fn run_poc(
     let mut config = Config::load().await;
     config.database = Some(format!("{}.db", name));
     config.port = Some(port);
+    config.name = Some(name.to_string());
+
     let db = Arc::new(
         DbContext::new(
             config
@@ -75,10 +77,15 @@ async fn run_poc(
     if let Some(initial_peer) = initial_peer {
         trace_info!(PeerInit {
             peer: initial_peer.clone(),
-            source: app_state.own_address.clone()
+            source: app_state.own_address.clone(),
+            process: name.clone(),
         });
-        let _ =
-            subversive_network::peer::add_peer(app_state.peers.clone(), initial_peer.clone()).await;
+        let _ = subversive_network::peer::add_peer(
+            app_state.peers.clone(),
+            initial_peer.clone(),
+            name.to_string(),
+        )
+        .await;
 
         connect_to_peers(app_state);
     }
@@ -96,7 +103,12 @@ fn connect_to_peers(app_state: Arc<AppState>) {
         loop {
             interval.tick().await;
             trace_info!(NetworkScan {
-                addr: app_state_clone.own_address.clone()
+                addr: app_state_clone.own_address.clone(),
+                process: app_state_clone
+                    .config
+                    .name
+                    .clone()
+                    .unwrap_or("poc".to_string())
             });
 
             // Get list of all peers
@@ -115,6 +127,11 @@ fn connect_to_peers(app_state: Arc<AppState>) {
                     Some(peer_addr),
                     app_state_clone.own_address.clone(),
                     app_state_clone.actual_port,
+                    app_state_clone
+                        .config
+                        .name
+                        .clone()
+                        .unwrap_or("poc".to_string()),
                 )
                 .await;
             }
@@ -128,7 +145,7 @@ async fn main() -> Result<()> {
     update_tracing("info");
     subversive_utils::tui_utils::banner();
 
-    trace_info!(StartupPoc);
+    trace_info!(StartupPoc { process: "poc" });
 
     let mut handles = vec![];
     for i in 8080..8086 {
@@ -148,7 +165,7 @@ async fn main() -> Result<()> {
 
     /* */
 
-    trace_info!(UserPrompt);
+    trace_info!(UserPrompt { process: "poc" });
 
     tokio::signal::ctrl_c().await?;
 

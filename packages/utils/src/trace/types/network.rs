@@ -3,16 +3,19 @@ use crate::tui::color::{green, red};
 
 #[derive(Debug, Clone)]
 pub struct NetworkConnect {
+    pub process: String,
     pub addr: String,
 }
 
 #[derive(Debug, Clone)]
 pub struct NetworkScan {
+    pub process: String,
     pub addr: String,
 }
 
 #[derive(Debug, Clone)]
 pub struct NetworkError {
+    pub process: String,
     pub error: String,
 }
 
@@ -26,6 +29,9 @@ impl TraceId for NetworkConnect {
     fn message(&self) -> String {
         format!("{} {}", green("Connected to network at"), &self.addr)
     }
+    fn process(&self) -> String {
+        self.process.clone()
+    }
 }
 
 impl TraceId for NetworkScan {
@@ -38,6 +44,9 @@ impl TraceId for NetworkScan {
     fn message(&self) -> String {
         format!("{} {}", green("Scanning network at"), &self.addr)
     }
+    fn process(&self) -> String {
+        self.process.clone()
+    }
 }
 
 impl TraceId for NetworkError {
@@ -49,5 +58,8 @@ impl TraceId for NetworkError {
     }
     fn message(&self) -> String {
         format!("{} {}", red("Network error:"), &self.error)
+    }
+    fn process(&self) -> String {
+        self.process.clone()
     }
 }

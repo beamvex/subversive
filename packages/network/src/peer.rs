@@ -5,10 +5,12 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use subversive_utils::{trace_info, trace_debug, trace_error, TraceId};
-use subversive_utils::trace::types::{BuildHttpClient, PeerConnect, PeerAlreadyConnected, PeerAddOwn, 
-    PeerAddRequest, PeerResponse, PeerConnectError, PeerConnected, PeerKnownCount,
-    PeerRemoved, PeerNotFound, PeerLastSeen};
+use subversive_utils::trace::types::{
+    BuildHttpClient, PeerAddOwn, PeerAddRequest, PeerAlreadyConnected, PeerConnect,
+    PeerConnectError, PeerConnected, PeerKnownCount, PeerLastSeen, PeerNotFound, PeerRemoved,
+    PeerResponse,
+};
+use subversive_utils::{trace_debug, trace_error, trace_info, TraceId};
 
 use crate::health::PeerHealth;
 
@@ -32,14 +34,20 @@ pub async fn connect_to_peer(
     initial_peer: Option<String>,
     own_address: String,
     own_port: u16,
+    process: String,
 ) -> Result<()> {
     let peer_addr = match initial_peer {
         Some(addr) => addr,
         None => return Ok(()),
     };
 
-    trace_info!(PeerConnect { addr: peer_addr.clone() });
-    trace_debug!(BuildHttpClient);
+    trace_info!(PeerConnect {
+        addr: peer_addr.clone(),
+        process: process.clone()
+    });
+    trace_debug!(BuildHttpClient {
+        process: process.clone()
+    });
     let client = reqwest::Client::builder()
         .danger_accept_invalid_certs(true)
         .build()
@@ -49,18 +57,27 @@ pub async fn connect_to_peer(
     {
         let peers = peers.lock().await;
         if peers.contains_key(&peer_addr) {
-            trace_debug!(PeerAlreadyConnected { addr: peer_addr.clone() });
+            trace_debug!(PeerAlreadyConnected {
+                addr: peer_addr.clone(),
+                process: process.clone()
+            });
             return Ok(());
         }
     }
 
-    trace_info!(PeerAddOwn { addr: peer_addr.clone() });
+    trace_info!(PeerAddOwn {
+        addr: peer_addr.clone(),
+        process: process.clone()
+    });
     let peer_info = PeerInfo {
         address: own_address.clone(),
         port: own_port,
     };
 
-    trace_info!(PeerAddRequest { addr: peer_addr.clone() });
+    trace_info!(PeerAddRequest {
+        addr: peer_addr.clone(),
+        process: process.clone()
+    });
 
     // Send connection request to peer
     let response = client
@@ -69,18 +86,33 @@ pub async fn connect_to_peer(
         .send()
         .await?;
 
-    trace_info!(PeerResponse { addr: peer_addr.clone(), status: response.status().to_string() });
+    trace_info!(PeerResponse {
+        addr: peer_addr.clone(),
+        status: response.status().to_string(),
+        process: process.clone()
+    });
 
     if !response.status().is_success() {
-        trace_error!(PeerConnectError { addr: peer_addr.clone(), error: response.status().to_string() });
+        trace_error!(PeerConnectError {
+            addr: peer_addr.clone(),
+            error: response.status().to_string(),
+            process: process.clone()
+        });
         return Ok(());
     }
 
-    trace_info!(PeerConnected { addr: peer_addr.clone() });
+    trace_info!(PeerConnected {
+        addr: peer_addr.clone(),
+        process: process.clone()
+    });
 
     // Get the peer's known peers before acquiring the lock
     let known_peers = response.json::<Vec<PeerInfo>>().await.unwrap_or_default();
-    trace_info!(PeerKnownCount { addr: peer_addr.clone(), count: known_peers.len() });
+    trace_info!(PeerKnownCount {
+        addr: peer_addr.clone(),
+        count: known_peers.len(),
+        process: process.clone()
+    });
 
     // Now acquire the lock to update our peer list
     let mut peers = peers.lock().await;
@@ -110,10 +142,13 @@ pub async fn connect_to_peer(
 pub async fn add_peer(
     peers: Arc<Mutex<HashMap<String, PeerHealth>>>,
     address: String,
+    process: String,
 ) -> Result<(), String> {
     let mut peers = peers.lock().await;
     if !peers.contains_key(&address) {
-        trace_debug!(BuildHttpClient);
+        trace_debug!(BuildHttpClient {
+            process: process.clone()
+        });
         let client = Client::builder()
             .danger_accept_invalid_certs(true)
             .build()
@@ -128,9 +163,10 @@ pub async fn add_peer(
 pub async fn add_peers(
     peers: Arc<Mutex<HashMap<String, PeerHealth>>>,
     peer_addrs: Vec<String>,
+    process: String,
 ) -> Result<(), String> {
     for peer_addr in peer_addrs {
-        add_peer(peers.clone(), peer_addr).await?;
+        add_peer(peers.clone(), peer_addr, process.clone()).await?;
     }
     Ok(())
 }
@@ -147,12 +183,19 @@ pub async fn get_peers(
 pub async fn remove_peer(
     peers: Arc<Mutex<HashMap<String, PeerHealth>>>,
     address: String,
+    process: String,
 ) -> Result<(), String> {
     let mut peers = peers.lock().await;
     if peers.remove(&address).is_some() {
-        trace_info!(PeerRemoved { addr: address.clone() });
+        trace_info!(PeerRemoved {
+            addr: address.clone(),
+            process: process.clone()
+        });
     } else {
-        trace_debug!(PeerNotFound { addr: address.clone() });
+        trace_debug!(PeerNotFound {
+            addr: address.clone(),
+            process: process.clone()
+        });
     }
     Ok(())
 }
@@ -161,14 +204,24 @@ pub async fn remove_peer(
 pub async fn update_peer_last_seen(
     peers: Arc<Mutex<HashMap<String, PeerHealth>>>,
     peer_addr: String,
+    process: String,
 ) {
-    trace_info!(PeerLastSeen { addr: peer_addr.clone() });
+    trace_info!(PeerLastSeen {
+        addr: peer_addr.clone(),
+        process: process.clone()
+    });
     let mut peers = peers.lock().await;
     if let Some(peer_health) = peers.get_mut(&peer_addr) {
         peer_health.update_last_seen();
-        trace_debug!(PeerLastSeen { addr: peer_addr.clone() });
+        trace_debug!(PeerLastSeen {
+            addr: peer_addr.clone(),
+            process: process.clone()
+        });
     } else {
-        trace_debug!(PeerNotFound { addr: peer_addr.clone() });
+        trace_debug!(PeerNotFound {
+            addr: peer_addr.clone(),
+            process: process.clone()
+        });
     }
 }
 
