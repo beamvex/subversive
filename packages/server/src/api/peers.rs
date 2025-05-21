@@ -7,8 +7,8 @@ use axum::{
 use std::sync::Arc;
 use std::time::SystemTime;
 pub use subversive_utils::trace::types::PeerList;
-use subversive_utils::trace_info;
 use subversive_utils::TraceId;
+use subversive_utils::{trace_info, PeerConnect};
 use tracing::info;
 
 use subversive_types::{message::Message, state::AppState};
@@ -24,7 +24,10 @@ impl Peers {
         State(state): State<Arc<AppState>>,
         Json(peer): Json<PeerInfo>,
     ) -> impl IntoResponse {
-        info!("Adding peer: {}", peer.address);
+        trace_info!(PeerConnect {
+            addr: peer.address.clone(),
+            process: state.config.name.clone().unwrap_or("poc".to_string()),
+        });
         if peer.address.is_empty() {
             return "Peer address cannot be empty".into_response();
         }
