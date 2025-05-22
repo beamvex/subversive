@@ -46,11 +46,19 @@ impl Peers {
             .unwrap();
 
         let peer_health = PeerHealth::new(client, peer_addr.clone());
-        state
-            .peers
-            .lock()
-            .await
-            .insert(peer_addr.clone(), peer_health);
+        // Add peer and collect list in a single lock
+        let peer_list = {
+            let mut peers = state.peers.lock().await;
+            peers.insert(peer_addr.clone(), peer_health);
+            
+            // Collect peer list while we have the lock
+            peers.keys()
+                .map(|addr| PeerInfo {
+                    address: addr.clone(),
+                    port: 0,
+                })
+                .collect::<Vec<PeerInfo>>()
+        };
 
         // Save peer to database
         let timestamp = SystemTime::now()
@@ -66,16 +74,6 @@ impl Peers {
             addr: peer_addr.clone(),
         };
 
-        // Return list of known peers
-        let peers = state.peers.lock().await;
-        let peer_list: Vec<PeerInfo> = peers
-            .keys()
-            .map(|addr| PeerInfo {
-                address: addr.clone(),
-                port: 0,
-            })
-            .collect();
-
         Json(peer_list).into_response()
     }
 
@@ -85,11 +83,17 @@ impl Peers {
             process: state.config.name.clone().unwrap_or("poc".to_string()),
         });
 
-        let peers = state.peers.lock().await;
-        let peer_list: Vec<PeerInfo> = peers
-            .keys()
+        // Clone the keys while holding the lock briefly
+        let addresses = {
+            let peers = state.peers.lock().await;
+            peers.keys().cloned().collect::<Vec<String>>()
+        };
+
+        // Create PeerInfo objects without holding the lock
+        let peer_list: Vec<PeerInfo> = addresses
+            .into_iter()
             .map(|addr| PeerInfo {
-                address: addr.clone(),
+                address: addr,
                 port: 0,
             })
             .collect();
