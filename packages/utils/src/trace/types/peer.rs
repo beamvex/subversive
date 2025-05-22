@@ -87,6 +87,19 @@ pub struct PeerLastSeen {
     pub process: String,
 }
 
+#[derive(Debug, Clone)]
+pub struct ConnectToPeer {
+    pub addr: String,
+    pub process: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct PeerLastSeenCheck {
+    pub addr: String,
+    pub last_seen: i64,
+    pub process: String,
+}
+
 impl TraceId for PeerInit {
     fn id(&self) -> u64 {
         0x0200
@@ -311,6 +324,41 @@ impl TraceId for PeerList {
     }
     fn message(&self) -> String {
         green("Listing peers").to_string()
+    }
+    fn process(&self) -> String {
+        self.process.clone()
+    }
+}
+
+impl TraceId for ConnectToPeer {
+    fn id(&self) -> u64 {
+        0x020D
+    }
+    fn name(&self) -> &'static str {
+        "ConnectToPeer"
+    }
+    fn message(&self) -> String {
+        format!("{} {}", green("Connecting to peer"), &self.addr)
+    }
+    fn process(&self) -> String {
+        self.process.clone()
+    }
+}
+
+impl TraceId for PeerLastSeenCheck {
+    fn id(&self) -> u64 {
+        0x020E
+    }
+    fn name(&self) -> &'static str {
+        "PeerLastSeenCheck"
+    }
+    fn message(&self) -> String {
+        format!(
+            "{} {} {}",
+            green("Checking last seen for peer"),
+            &self.addr,
+            &self.last_seen
+        )
     }
     fn process(&self) -> String {
         self.process.clone()

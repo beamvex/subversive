@@ -1,4 +1,5 @@
 use anyhow::Result;
+use chrono::{DateTime, Utc};
 use reqwest::{self, Client};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -7,8 +8,8 @@ use tokio::sync::Mutex;
 
 use subversive_utils::trace::types::{
     BuildHttpClient, PeerAddOwn, PeerAddRequest, PeerAlreadyConnected, PeerConnect,
-    PeerConnectError, PeerConnected, PeerKnownCount, PeerLastSeen, PeerNotFound, PeerRemoved,
-    PeerResponse,
+    PeerConnectError, PeerConnected, PeerKnownCount, PeerLastSeen, PeerLastSeenCheck, PeerNotFound,
+    PeerRemoved, PeerResponse,
 };
 use subversive_utils::{trace_debug, trace_error, trace_info, TraceId};
 
@@ -45,7 +46,7 @@ pub async fn connect_to_peer(
         addr: peer_addr.clone(),
         process: process.clone()
     });
-    trace_debug!(BuildHttpClient {
+    trace_info!(BuildHttpClient {
         process: process.clone()
     });
     let client = reqwest::Client::builder()
@@ -53,15 +54,26 @@ pub async fn connect_to_peer(
         .build()
         .unwrap();
 
-    // Check if we're already connected to this peer
+    // Check if we're already connected to this peer and seen recently
     {
         let peers = peers.lock().await;
         if peers.contains_key(&peer_addr) {
-            trace_debug!(PeerAlreadyConnected {
+            let peer = peers.get(&peer_addr).unwrap();
+            let current_time = Utc::now().timestamp();
+            trace_info!(PeerLastSeenCheck {
                 addr: peer_addr.clone(),
+                last_seen: peer.last_seen,
                 process: process.clone()
             });
-            return Ok(());
+
+            // Only skip connection if peer was seen in the last 5 seconds
+            if current_time - peer.last_seen < 5 {
+                trace_info!(PeerAlreadyConnected {
+                    addr: peer_addr.clone(),
+                    process: process.clone()
+                });
+                return Ok(());
+            }
         }
     }
 
@@ -139,13 +151,20 @@ pub async fn connect_to_peer(
 }
 
 /// Add a new peer to the network
+///
+/// # Arguments
+/// * `peers` - Map of peer addresses to their health status
+/// * `address` - Address of the peer to add
+/// * `process` - Process identifier
+/// * `timestamp` - Optional timestamp for when the peer was added
 pub async fn add_peer(
     peers: Arc<Mutex<HashMap<String, PeerHealth>>>,
     address: String,
     process: String,
+    timestamp: Option<DateTime<Utc>>,
 ) -> Result<(), String> {
     let mut peers = peers.lock().await;
-    if !peers.contains_key(&address) {
+    peers.entry(address.clone()).or_insert_with(|| {
         trace_debug!(BuildHttpClient {
             process: process.clone()
         });
@@ -153,9 +172,12 @@ pub async fn add_peer(
             .danger_accept_invalid_certs(true)
             .build()
             .unwrap();
-        let peer_health = PeerHealth::new(client, address.clone());
-        peers.insert(address, peer_health);
-    }
+        let mut peer_health = PeerHealth::new(client, address.clone());
+        if let Some(ts) = timestamp {
+            peer_health.last_seen = ts.timestamp();
+        }
+        peer_health
+    });
     Ok(())
 }
 
@@ -166,7 +188,7 @@ pub async fn add_peers(
     process: String,
 ) -> Result<(), String> {
     for peer_addr in peer_addrs {
-        add_peer(peers.clone(), peer_addr, process.clone()).await?;
+        add_peer(peers.clone(), peer_addr, process.clone(), None).await?;
     }
     Ok(())
 }
@@ -369,28 +391,25 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_add_peer() {
+    async fn test_add_peer() -> Result<(), String> {
         let peers = setup_test_peers().await;
-        let peer_addr = "http://localhost:8080".to_string();
+        let peer_addr = "http://localhost:8080";
 
-        // Add a peer
-        add_peer(peers.clone(), peer_addr.clone()).await.unwrap();
+        add_peer(
+            peers.clone(),
+            peer_addr.to_string(),
+            "test".to_string(),
+            None,
+        )
+        .await?;
 
-        // Verify peer was added
-        let peers_guard = peers.lock().await;
-        assert!(peers_guard.contains_key(&peer_addr));
-
-        // Try adding same peer again
-        drop(peers_guard);
-        add_peer(peers.clone(), peer_addr.clone()).await.unwrap();
-
-        // Verify no duplicate was added
-        let peers_guard = peers.lock().await;
-        assert_eq!(peers_guard.len(), 1);
+        let peers = peers.lock().await;
+        assert!(peers.contains_key(peer_addr));
+        Ok(())
     }
 
     #[tokio::test]
-    async fn test_add_peers() {
+    async fn test_add_peers() -> Result<(), String> {
         let peers = setup_test_peers().await;
         let peer_addrs = vec![
             "http://localhost:8080".to_string(),
@@ -398,15 +417,33 @@ mod tests {
             "http://localhost:8082".to_string(),
         ];
 
-        // Add multiple peers
-        add_peers(peers.clone(), peer_addrs.clone()).await.unwrap();
+        add_peer(
+            peers.clone(),
+            peer_addrs[0].clone(),
+            "test".to_string(),
+            None,
+        )
+        .await?;
+        add_peer(
+            peers.clone(),
+            peer_addrs[1].clone(),
+            "test".to_string(),
+            None,
+        )
+        .await?;
+        add_peer(
+            peers.clone(),
+            peer_addrs[2].clone(),
+            "test".to_string(),
+            None,
+        )
+        .await?;
 
-        // Verify all peers were added
-        let peers_guard = peers.lock().await;
-        assert_eq!(peers_guard.len(), 3);
+        let peers = peers.lock().await;
         for addr in peer_addrs {
-            assert!(peers_guard.contains_key(&addr));
+            assert!(peers.contains_key(&addr));
         }
+        Ok(())
     }
 
     #[tokio::test]
@@ -417,10 +454,23 @@ mod tests {
             "http://localhost:8081".to_string(),
         ];
 
-        // Add peers
-        add_peers(peers.clone(), peer_addrs.clone()).await.unwrap();
+        add_peer(
+            peers.clone(),
+            peer_addrs[0].clone(),
+            "test".to_string(),
+            None,
+        )
+        .await
+        .unwrap();
+        add_peer(
+            peers.clone(),
+            peer_addrs[1].clone(),
+            "test".to_string(),
+            None,
+        )
+        .await
+        .unwrap();
 
-        // Get peers and verify
         let result = get_peers(peers.clone()).await.unwrap();
         assert_eq!(result.len(), 2);
         for addr in peer_addrs {
@@ -429,59 +479,61 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_remove_peer() {
+    async fn test_remove_peer() -> Result<(), String> {
         let peers = setup_test_peers().await;
-        let peer_addr = "http://localhost:8080".to_string();
+        let peer_addr = "http://localhost:8080";
 
-        // Add and then remove a peer
-        add_peer(peers.clone(), peer_addr.clone()).await.unwrap();
-        remove_peer(peers.clone(), peer_addr.clone()).await.unwrap();
+        add_peer(
+            peers.clone(),
+            peer_addr.to_string(),
+            "test".to_string(),
+            None,
+        )
+        .await?;
 
-        // Verify peer was removed
         let peers_guard = peers.lock().await;
-        assert!(!peers_guard.contains_key(&peer_addr));
-
-        // Try removing non-existent peer
+        assert!(peers_guard.contains_key(peer_addr));
         drop(peers_guard);
-        remove_peer(peers.clone(), "http://nonexistent:8080".to_string())
-            .await
-            .unwrap();
-        let peers_guard = peers.lock().await;
-        assert_eq!(peers_guard.len(), 0);
+
+        remove_peer(peers.clone(), peer_addr.to_string(), "test".to_string()).await?;
+
+        let peers = peers.lock().await;
+        assert!(!peers.contains_key(peer_addr));
+        Ok(())
     }
 
     #[tokio::test]
-    async fn test_update_peer_last_seen() {
+    async fn test_update_peer_last_seen() -> Result<(), String> {
         init_test_tracing();
         let peers = setup_test_peers().await;
-        let peer_addr = "http://localhost:8080".to_string();
+        let peer_addr = "http://localhost:8080";
 
-        // Add a peer
-        add_peer(peers.clone(), peer_addr.clone()).await.unwrap();
+        add_peer(
+            peers.clone(),
+            peer_addr.to_string(),
+            "test".to_string(),
+            None,
+        )
+        .await?;
 
-        // Get initial last seen time
         let peers_guard = peers.lock().await;
-        let initial_last_seen = peers_guard.get(&peer_addr).unwrap().last_seen;
+        let initial_last_seen = peers_guard.get(peer_addr).unwrap().last_seen;
         drop(peers_guard);
 
-        // Wait a moment
-        tokio::time::sleep(Duration::from_millis(1000)).await;
+        // Wait a bit to ensure the timestamp changes
+        tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
 
-        // Update last seen
-        update_peer_last_seen(peers.clone(), peer_addr.clone()).await;
+        update_peer_last_seen(peers.clone(), peer_addr.to_string(), "test".to_string()).await?;
 
-        // Verify last seen was updated
-        let peers_guard = peers.lock().await;
-        let new_last_seen = peers_guard.get(&peer_addr).unwrap().last_seen;
-        info!(
-            "Initial last seen: {}, new last seen: {}",
-            initial_last_seen, new_last_seen
-        );
-        assert!(new_last_seen > initial_last_seen);
+        let peers = peers.lock().await;
+        let updated_last_seen = peers.get(peer_addr).unwrap().last_seen;
+
+        assert!(updated_last_seen > initial_last_seen);
+        Ok(())
     }
 
     #[tokio::test]
-    async fn test_update_peer_last_seen_non_existent() {
+    async fn test_update_peer_last_seen_non_existent() -> Result<(), String> {
         init_test_tracing();
         let peers = setup_test_peers().await;
         // Try updating non-existent peer

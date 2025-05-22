@@ -5,7 +5,11 @@ use subversive_types::args::Args;
 use subversive_utils::{trace::types::StartupInit, trace_info, TraceId};
 
 #[cfg(feature = "poc")]
-use subversive_utils::trace::types::{NetworkScan, PeerInit, StartupPoc, UserPrompt};
+use chrono::{DateTime, Utc};
+#[cfg(feature = "poc")]
+use subversive_utils::trace::types::{
+    ConnectToPeer, NetworkScan, PeerInit, StartupPoc, UserPrompt,
+};
 #[cfg(feature = "poc")]
 use tokio::task::JoinError;
 
@@ -84,6 +88,7 @@ async fn run_poc(
             app_state.peers.clone(),
             initial_peer.clone(),
             name.to_string(),
+            Some(DateTime::from_timestamp(0, 0).unwrap()),
         )
         .await;
 
@@ -122,6 +127,14 @@ fn connect_to_peers(app_state: Arc<AppState>) {
                 if peer_addr == app_state_clone.own_address {
                     continue;
                 }
+                trace_info!(ConnectToPeer {
+                    addr: peer_addr.clone(),
+                    process: app_state_clone
+                        .config
+                        .name
+                        .clone()
+                        .unwrap_or("poc".to_string()),
+                });
                 let _ = connect_to_peer(
                     app_state_clone.peers.clone(),
                     Some(peer_addr),
@@ -148,15 +161,15 @@ async fn main() -> Result<()> {
     trace_info!(StartupPoc { process: "poc" });
 
     let mut handles = vec![];
-    for i in 8080..8082 {
+    for i in 18080..18090 {
         handles.push(
             run_poc(
                 &format!("peer_{}", i),
                 i,
-                if i == 8080 {
+                if i == 18080 {
                     None
                 } else {
-                    Some(format!("https://localhost:{}", 8080))
+                    Some(format!("https://localhost:{}", 18080))
                 },
             )
             .await,
