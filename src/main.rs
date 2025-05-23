@@ -33,7 +33,7 @@ async fn main() -> Result<()> {
     let config = Config::default_config();
 
     let app_state = Arc::new(AppState {
-        peers: Default::default(),
+        peers: SafeMap::new(),
         db,
         actual_port: port,
         config: config.clone(),
@@ -68,7 +68,7 @@ async fn run_poc(
     );
 
     let app_state = Arc::new(AppState {
-        peers: Default::default(),
+        peers: SafeMap::new(),
         db,
         actual_port: port,
         config: config.clone(),
@@ -117,7 +117,7 @@ fn connect_to_peers(app_state: Arc<AppState>) {
             });
 
             // Get list of all peers
-            let peers = app_state_clone.peers.lock().await;
+            let peers = app_state_clone.peers.readonly().await;
             let peer_addresses: Vec<String> = peers.keys().cloned().collect();
             drop(peers); // Release the lock
 

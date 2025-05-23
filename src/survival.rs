@@ -119,8 +119,7 @@ async fn attempt_reconnection(state: &Arc<AppState>) {
             match client.get(format!("{}/peers", peer.address)).send().await {
                 Ok(_) => {
                     info!("Successfully reconnected to peer: {}", peer.address);
-                    let mut peers = state.peers.lock().await;
-                    peers.insert(peer.address.clone(), peer_health);
+                    state.peers.insert(peer.address.clone(), peer_health);
                     break;
                 }
                 Err(e) => {
@@ -148,13 +147,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_survival_mode_start() {
-        let config = Config::default_config();
-        let peers = Arc::new(Mutex::new(HashMap::new()));
-        let db = Arc::new(DbContext::new_memory().await.unwrap());
         let app_state = Arc::new(AppState {
-            config,
-            peers: peers.clone(),
-            db,
+            peers: SafeMap::new(),
+            config: Config::default_config(),
+            db: Arc::new(DbContext::new_memory().await.unwrap()),
             own_address: "http://localhost:12345".to_string(),
             actual_port: 12345,
         });
@@ -166,7 +162,7 @@ mod tests {
         tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
 
         // Add a peer and verify heartbeat is sent
-        let mut peers = peers.lock().await;
+        let mut peers = app_state.peers.write().await;
         peers.insert(
             "http://localhost:8080".to_string(),
             PeerHealth::new(reqwest::Client::new(), "http://localhost:8080".to_string()),
@@ -179,13 +175,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_survival_mode_no_peers() {
-        let config = Config::default_config();
-        let peers = Arc::new(Mutex::new(HashMap::new()));
-        let db = Arc::new(DbContext::new_memory().await.unwrap());
         let app_state = Arc::new(AppState {
-            config,
-            peers: peers.clone(),
-            db,
+            peers: SafeMap::new(),
+            config: Config::default_config(),
+            db: Arc::new(DbContext::new_memory().await.unwrap()),
             own_address: "http://localhost:12345".to_string(),
             actual_port: 12345,
         });
@@ -194,7 +187,7 @@ mod tests {
         check_survival_status(&app_state).await;
 
         // Verify we're still running (no shutdown in survival mode)
-        assert!(peers.lock().await.is_empty());
+        assert!(peers.readonly().await.is_empty());
     }
 
     #[tokio::test]
@@ -223,7 +216,7 @@ mod tests {
         check_survival_status(&app_state).await;
 
         // Verify peers are still present
-        assert_eq!(peers.lock().await.len(), 2);
+        assert_eq!(peers.readonly().await.len(), 2);
     }
 
     #[tokio::test]
@@ -248,6 +241,6 @@ mod tests {
         check_survival_status(&app_state).await;
 
         // Verify peer is still present (we keep peers in survival mode)
-        assert_eq!(peers.lock().await.len(), 1);
+        assert_eq!(peers.readonly().await.len(), 1);
     }
 }

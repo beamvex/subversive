@@ -56,7 +56,7 @@ pub async fn connect_to_peer(
 
     // Check if we're already connected to this peer and seen recently
     {
-        let peers = peers.lock().await;
+        let peers = peers.readonly().await;
         if peers.contains_key(&peer_addr) {
             let peer = peers.get(&peer_addr).unwrap();
             let current_time = Utc::now().timestamp();
@@ -127,7 +127,7 @@ pub async fn connect_to_peer(
     });
 
     // Now acquire the lock to update our peer list
-    let mut peers = peers.lock().await;
+    let mut peers = peers.write().await;
 
     // Add the initial peer if we haven't already
     peers
@@ -163,7 +163,7 @@ pub async fn add_peer(
     process: String,
     timestamp: Option<DateTime<Utc>>,
 ) -> Result<(), String> {
-    let mut peers = peers.lock().await;
+    let mut peers = peers.write().await;
     peers.entry(address.clone()).or_insert_with(|| {
         trace_debug!(BuildHttpClient {
             process: process.clone()
@@ -207,7 +207,7 @@ pub async fn remove_peer(
     address: String,
     process: String,
 ) -> Result<(), String> {
-    let mut peers = peers.lock().await;
+    let mut peers = peers.write().await;
     if peers.remove(&address).is_some() {
         trace_info!(PeerRemoved {
             addr: address.clone(),
@@ -232,7 +232,7 @@ pub async fn update_peer_last_seen(
         addr: peer_addr.clone(),
         process: process.clone()
     });
-    let mut peers = peers.lock().await;
+    let mut peers = peers.write().await;
     if let Some(peer_health) = peers.get_mut(&peer_addr) {
         peer_health.update_last_seen();
         trace_debug!(PeerLastSeen {
@@ -275,7 +275,7 @@ mod tests {
     #[tokio::test]
     async fn test_connect_to_peer_no_peer_configured() {
         let peers = setup_test_peers().await;
-        let result = connect_to_peer(peers, None, "https://localhost:8080".to_string(), 8080).await;
+        let result = connect_to_peer(peers, None, "https://localhost:8080".to_string(), 8080, "test".to_string()).await;
         assert!(result.is_ok());
     }
 
@@ -311,11 +311,12 @@ mod tests {
             Some(peer_addr.clone()),
             own_addr.clone(),
             8080,
+            "test".to_string(),
         )
         .await;
         assert!(result.is_ok());
 
-        let peers_guard = peers.lock().await;
+        let peers_guard = peers.readonly().await;
         assert_eq!(peers_guard.len(), 3); // Initial peer + 2 known peers
         assert!(peers_guard.contains_key(&peer_addr));
         assert!(peers_guard.contains_key("https://peer1:8080"));
@@ -339,11 +340,12 @@ mod tests {
             Some(peer_addr.clone()),
             "https://localhost:8080".to_string(),
             8080,
+            "test".to_string(),
         )
         .await;
         assert!(result.is_ok()); // Function succeeds but peer not added
 
-        let peers_guard = peers.lock().await;
+        let peers_guard = peers.readonly().await;
         assert_eq!(peers_guard.len(), 0);
     }
 
@@ -379,11 +381,12 @@ mod tests {
             Some(peer_addr.clone()),
             own_addr.clone(),
             8080,
+            "test".to_string(),
         )
         .await;
         assert!(result.is_ok());
 
-        let peers_guard = peers.lock().await;
+        let peers_guard = peers.readonly().await;
         assert_eq!(peers_guard.len(), 2); // Initial peer + 1 known peer (excluding own address)
         assert!(peers_guard.contains_key(&peer_addr));
         assert!(peers_guard.contains_key("https://peer1:8080"));
@@ -403,7 +406,7 @@ mod tests {
         )
         .await?;
 
-        let peers = peers.lock().await;
+        let peers = peers.readonly().await;
         assert!(peers.contains_key(peer_addr));
         Ok(())
     }
@@ -439,7 +442,7 @@ mod tests {
         )
         .await?;
 
-        let peers = peers.lock().await;
+        let peers = peers.readonly().await;
         for addr in peer_addrs {
             assert!(peers.contains_key(&addr));
         }
@@ -491,13 +494,13 @@ mod tests {
         )
         .await?;
 
-        let peers_guard = peers.lock().await;
+        let peers_guard = peers.readonly().await;
         assert!(peers_guard.contains_key(peer_addr));
         drop(peers_guard);
 
         remove_peer(peers.clone(), peer_addr.to_string(), "test".to_string()).await?;
 
-        let peers = peers.lock().await;
+        let peers = peers.readonly().await;
         assert!(!peers.contains_key(peer_addr));
         Ok(())
     }
@@ -516,7 +519,7 @@ mod tests {
         )
         .await?;
 
-        let peers_guard = peers.lock().await;
+        let peers_guard = peers.readonly().await;
         let initial_last_seen = peers_guard.get(peer_addr).unwrap().last_seen;
         drop(peers_guard);
 
@@ -525,7 +528,7 @@ mod tests {
 
         update_peer_last_seen(peers.clone(), peer_addr.to_string(), "test".to_string()).await?;
 
-        let peers = peers.lock().await;
+        let peers = peers.readonly().await;
         let updated_last_seen = peers.get(peer_addr).unwrap().last_seen;
 
         assert!(updated_last_seen > initial_last_seen);
@@ -537,9 +540,9 @@ mod tests {
         init_test_tracing();
         let peers = setup_test_peers().await;
         // Try updating non-existent peer
-        update_peer_last_seen(peers.clone(), "http://nonexistent:8080".to_string()).await;
+        update_peer_last_seen(peers.clone(), "http://nonexistent:8080".to_string(), "test".to_string()).await;
         // Should not panic or affect existing peers
-        let peers_guard = peers.lock().await;
+        let peers_guard = peers.readonly().await;
         assert_eq!(peers_guard.len(), 0);
     }
 }

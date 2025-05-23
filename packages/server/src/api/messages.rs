@@ -106,7 +106,7 @@ mod tests {
         Arc::new(AppState {
             config,
             own_address: "https://localhost:8080".to_string(),
-            peers: Arc::new(Mutex::new(HashMap::new())),
+            peers: SafeMap::new(),
             db: Arc::new(DbContext::new_memory().await.unwrap()),
             actual_port: port,
         })

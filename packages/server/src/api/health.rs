@@ -19,9 +19,13 @@ pub struct Health;
 impl Health {
     /// Health check endpoint
     pub async fn check(State(state): State<Arc<AppState>>) -> Response {
-        let peers = state.peers.lock().await;
-        let peer_count = peers.len();
-        let response = format!("Healthy with {} peers", peer_count);
+        let readonly = state.peers.readonly().await;
+        let total = readonly.len();
+        let active = readonly
+            .values()
+            .filter(|peer| peer.is_active())
+            .count();
+        let response = format!("Healthy with {} active peers out of {}", active, total);
         Json(response).into_response()
     }
 

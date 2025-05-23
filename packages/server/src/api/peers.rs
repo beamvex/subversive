@@ -48,13 +48,14 @@ impl Peers {
         let peer_health = PeerHealth::new(client, peer_addr.clone());
         // Add peer and collect list in a single lock
         let peer_list = {
-            let mut peers = state.peers.lock().await;
-            peers.insert(peer_addr.clone(), peer_health);
-            
-            // Collect peer list while we have the lock
-            peers.keys()
+            state.peers.insert(peer_addr.clone(), peer_health).await;
+
+            let readonly = state.peers.readonly().await;
+            let known_peers: Vec<String> = readonly.keys().cloned().collect::<Vec<String>>();
+            known_peers
+                .into_iter()
                 .map(|addr| PeerInfo {
-                    address: addr.clone(),
+                    address: addr,
                     port: 0,
                 })
                 .collect::<Vec<PeerInfo>>()
@@ -85,8 +86,8 @@ impl Peers {
 
         // Clone the keys while holding the lock briefly
         let addresses = {
-            let peers = state.peers.lock().await;
-            peers.keys().cloned().collect::<Vec<String>>()
+            let readonly = state.peers.readonly().await;
+            readonly.keys().cloned().collect::<Vec<String>>()
         };
 
         // Create PeerInfo objects without holding the lock
@@ -193,7 +194,7 @@ mod tests {
         Arc::new(AppState {
             config,
             own_address: "https://localhost:8080".to_string(),
-            peers: Arc::new(Mutex::new(HashMap::new())),
+            peers: SafeMap::new(),
             db: Arc::new(DbContext::new_memory().await.unwrap()),
             actual_port: port,
         })
@@ -215,7 +216,7 @@ mod tests {
 
         // Add a test peer
         let client = reqwest::Client::new();
-        state.peers.lock().await.insert(
+        state.peers.insert(
             peer_addr.clone(),
             PeerHealth::new(client, peer_addr.clone()),
         );
@@ -236,7 +237,7 @@ mod tests {
         let state = Arc::new(AppState {
             config,
             own_address: "https://localhost:8080".to_string(),
-            peers: Arc::new(Mutex::new(HashMap::new())),
+            peers: SafeMap::new(),
             db: Arc::new(DbContext::new_memory().await.unwrap()),
             actual_port: port,
         });
@@ -277,9 +278,9 @@ mod tests {
             .into_response();
 
         // Verify peer was added and HTTPS was enforced
-        let peers = state.peers.lock().await;
-        assert_eq!(peers.len(), 1);
-        assert!(peers.contains_key(&peer_addr.replace("http://", "https://")));
+        let readonly = state.peers.readonly().await;
+        assert_eq!(readonly.len(), 1);
+        assert!(readonly.contains_key(&peer_addr.replace("http://", "https://")));
 
         // Verify response contains the list of peers
         let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
@@ -305,9 +306,9 @@ mod tests {
             .into_response();
 
         // Verify peer was added without modification
-        let peers = state.peers.lock().await;
-        assert_eq!(peers.len(), 1);
-        assert!(peers.contains_key(&peer_addr));
+        let readonly = state.peers.readonly().await;
+        assert_eq!(readonly.len(), 1);
+        assert!(readonly.contains_key(&peer_addr));
 
         let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
         let peer_list: Vec<PeerInfo> = serde_json::from_slice(&body).unwrap();
