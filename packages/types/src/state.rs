@@ -1,10 +1,9 @@
-use std::collections::HashMap;
 use std::sync::Arc;
 use subversive_database::context::DbContext;
 
 use crate::config::Config;
+use crate::peer_health::PeerHealth;
 use crate::safe_map::SafeMap;
-use subversive_network::health::PeerHealth;
 
 /// Shared application state
 pub struct AppState {

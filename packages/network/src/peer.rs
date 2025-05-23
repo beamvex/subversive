@@ -2,9 +2,8 @@ use anyhow::Result;
 use chrono::{DateTime, Utc};
 use reqwest::{self, Client};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::sync::Arc;
-use tokio::sync::Mutex;
+
+use subversive_types::safe_map::SafeMap;
 
 use subversive_utils::trace::types::{
     BuildHttpClient, PeerAddOwn, PeerAddRequest, PeerAlreadyConnected, PeerConnect,
@@ -13,7 +12,7 @@ use subversive_utils::trace::types::{
 };
 use subversive_utils::{trace_debug, trace_error, trace_info, TraceId};
 
-use crate::health::PeerHealth;
+use subversive_types::peer_health::PeerHealth;
 
 /// Information about a peer in the network
 #[derive(Debug, Serialize, Deserialize)]
@@ -31,7 +30,7 @@ pub struct PeerInfo {
 /// * `own_address` - Our own address that peers can use to connect to us
 /// * `own_port` - Our own port number
 pub async fn connect_to_peer(
-    peers: Arc<Mutex<HashMap<String, PeerHealth>>>,
+    peers: SafeMap<String, PeerHealth>,
     initial_peer: Option<String>,
     own_address: String,
     own_port: u16,
@@ -158,7 +157,7 @@ pub async fn connect_to_peer(
 /// * `process` - Process identifier
 /// * `timestamp` - Optional timestamp for when the peer was added
 pub async fn add_peer(
-    peers: Arc<Mutex<HashMap<String, PeerHealth>>>,
+    peers: SafeMap<String, PeerHealth>,
     address: String,
     process: String,
     timestamp: Option<DateTime<Utc>>,
@@ -183,7 +182,7 @@ pub async fn add_peer(
 
 /// Add multiple peers to the network
 pub async fn add_peers(
-    peers: Arc<Mutex<HashMap<String, PeerHealth>>>,
+    peers: SafeMap<String, PeerHealth>,
     peer_addrs: Vec<String>,
     process: String,
 ) -> Result<(), String> {
@@ -195,15 +194,15 @@ pub async fn add_peers(
 
 /// Get all known peers
 pub async fn get_peers(
-    peers: Arc<Mutex<HashMap<String, PeerHealth>>>,
+    peers: SafeMap<String, PeerHealth>,
 ) -> Result<Vec<String>, String> {
-    let peers = peers.lock().await;
-    Ok(peers.keys().cloned().collect())
+    let readonly = peers.readonly().await;
+    Ok(readonly.keys().cloned().collect())
 }
 
 /// Remove a peer from the network
 pub async fn remove_peer(
-    peers: Arc<Mutex<HashMap<String, PeerHealth>>>,
+    peers: SafeMap<String, PeerHealth>,
     address: String,
     process: String,
 ) -> Result<(), String> {
@@ -224,7 +223,7 @@ pub async fn remove_peer(
 
 /// Update a peer's last seen timestamp
 pub async fn update_peer_last_seen(
-    peers: Arc<Mutex<HashMap<String, PeerHealth>>>,
+    peers: SafeMap<String, PeerHealth>,
     peer_addr: String,
     process: String,
 ) {
@@ -268,14 +267,21 @@ mod tests {
     use std::time::Duration;
     use subversive_utils::test_utils::init_test_tracing;
 
-    async fn setup_test_peers() -> Arc<Mutex<HashMap<String, PeerHealth>>> {
-        Arc::new(Mutex::new(HashMap::new()))
+    async fn setup_test_peers() -> SafeMap<String, PeerHealth> {
+        SafeMap::new()
     }
 
     #[tokio::test]
     async fn test_connect_to_peer_no_peer_configured() {
         let peers = setup_test_peers().await;
-        let result = connect_to_peer(peers, None, "https://localhost:8080".to_string(), 8080, "test".to_string()).await;
+        let result = connect_to_peer(
+            peers,
+            None,
+            "https://localhost:8080".to_string(),
+            8080,
+            "test".to_string(),
+        )
+        .await;
         assert!(result.is_ok());
     }
 
@@ -540,7 +546,12 @@ mod tests {
         init_test_tracing();
         let peers = setup_test_peers().await;
         // Try updating non-existent peer
-        update_peer_last_seen(peers.clone(), "http://nonexistent:8080".to_string(), "test".to_string()).await;
+        update_peer_last_seen(
+            peers.clone(),
+            "http://nonexistent:8080".to_string(),
+            "test".to_string(),
+        )
+        .await;
         // Should not panic or affect existing peers
         let peers_guard = peers.readonly().await;
         assert_eq!(peers_guard.len(), 0);

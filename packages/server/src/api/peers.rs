@@ -9,11 +9,12 @@ use std::time::SystemTime;
 pub use subversive_utils::trace::types::PeerList;
 use subversive_utils::TraceId;
 use subversive_utils::{trace_info, PeerConnect};
-use tracing::info;
+
 
 use subversive_types::{message::Message, state::AppState};
 
-use subversive_network::{health::PeerHealth, peer::PeerInfo};
+use subversive_network::peer::PeerInfo;
+use subversive_types::peer_health::PeerHealth;
 
 /// Peers API module
 pub struct Peers;
@@ -181,7 +182,8 @@ mod tests {
     };
     use std::{collections::HashMap, sync::Arc};
     use subversive_database::context::DbContext;
-    use subversive_network::{health::PeerHealth, peer::PeerInfo};
+    use subversive_network::peer::PeerInfo;
+use subversive_types::peer_health::PeerHealth;
     use subversive_types::{config::Config, state::AppState};
     use tokio::sync::Mutex;
 

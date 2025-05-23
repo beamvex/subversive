@@ -95,6 +95,13 @@ where
     pub async fn read(&self) -> tokio::sync::RwLockReadGuard<'_, HashMap<K, V>> {
         self.internal_map.read().await
     }
+
+    /// Gets a write lock on the internal map if more complex operations are needed
+    pub async fn write(&self) -> tokio::sync::RwLockWriteGuard<'_, HashMap<K, V>> {
+        let guard = self.internal_map.write().await;
+        self.update_readonly_copy().await;
+        guard
+    }
 }
 
 impl<K, V> Default for SafeMap<K, V>
@@ -104,6 +111,19 @@ where
 {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl<K, V> Clone for SafeMap<K, V>
+where
+    K: Eq + Hash + Clone,
+    V: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            internal_map: RwLock::new(self.internal_map.blocking_read().clone()),
+            readonly_copy: Arc::clone(&self.readonly_copy),
+        }
     }
 }
 

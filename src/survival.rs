@@ -4,7 +4,7 @@ use tokio::time::{self, Duration};
 use tracing::{error, info, warn};
 
 use crate::types::{message::Message, state::AppState};
-use subversive_network::health::PeerHealth;
+use subversive_types::peer_health::PeerHealth;
 
 const SURVIVAL_CHECK_INTERVAL: u64 = 300; // 5 minutes
 const RECONNECT_ATTEMPT_INTERVAL: u64 = 60; // 1 minute
@@ -35,7 +35,7 @@ pub async fn start_survival_mode(app_state: Arc<AppState>) {
 
 #[cfg(test)]
 pub async fn check_survival_status(state: &Arc<AppState>) {
-    let peers = state.peers.lock().await;
+    let peers = state.peers.read().await;
     let peer_count = peers.len();
     drop(peers); // Release the lock before potentially long operations
 
@@ -56,7 +56,7 @@ pub async fn check_survival_status(state: &Arc<AppState>) {
 
 #[cfg(not(test))]
 pub async fn check_survival_status(state: &Arc<AppState>) {
-    let peers = state.peers.lock().await;
+    let peers = state.peers.read().await;
     let peer_count = peers.len();
     drop(peers); // Release the lock before potentially long operations
 
@@ -119,7 +119,7 @@ async fn attempt_reconnection(state: &Arc<AppState>) {
             match client.get(format!("{}/peers", peer.address)).send().await {
                 Ok(_) => {
                     info!("Successfully reconnected to peer: {}", peer.address);
-                    state.peers.insert(peer.address.clone(), peer_health);
+                    state.peers.insert(peer.address.clone(), peer_health).await;
                     break;
                 }
                 Err(e) => {
@@ -137,7 +137,7 @@ mod tests {
     use std::collections::HashMap;
     use std::sync::Arc;
     use subversive_database::context::DbContext;
-    use subversive_network::health::PeerHealth;
+    use subversive_types::peer_health::PeerHealth;
     use tokio::sync::Mutex;
 
     use crate::{

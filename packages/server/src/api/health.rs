@@ -10,7 +10,7 @@ use subversive_types::state::AppState;
 use tracing::{error, info};
 
 use super::ApiModule;
-use subversive_network::health::PeerHealth;
+use subversive_types::peer_health::PeerHealth;
 use subversive_types::message::HeartbeatMessage;
 
 /// Health API module
@@ -35,7 +35,7 @@ impl Health {
         Json(heartbeat): Json<HeartbeatMessage>,
     ) -> Response {
         let peer_addr = &heartbeat.address;
-        let mut peers = state.peers.lock().await;
+        let mut peers = state.peers.write().await;
 
         if !peers.contains_key(peer_addr) {
             error!("Heartbeat received from unknown peer: {}", peer_addr);

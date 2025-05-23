@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
 use std::sync::Arc;
-use subversive_types::args::Args;
+use subversive_types::{args::Args, safe_map::SafeMap, state::AppState};
 use subversive_utils::{trace::types::StartupInit, trace_info, TraceId};
 
 #[cfg(feature = "poc")]
@@ -13,7 +13,7 @@ use subversive_utils::trace::types::{
 #[cfg(feature = "poc")]
 use tokio::task::JoinError;
 
-use subversive::types::{config::Config, state::AppState};
+use subversive::types::config::Config;
 use subversive_database::context::DbContext;
 #[cfg(feature = "poc")]
 use subversive_network::peer::connect_to_peer;
@@ -27,7 +27,7 @@ async fn main() -> Result<()> {
     let args = Args::parse();
     let port = args.port.unwrap_or(8080);
 
-    trace_info!(StartupInit { port: port });
+    trace_info!(StartupInit { port: port, process: "subversive".to_string() });
 
     let db = Arc::new(DbContext::new("subversive.db").await?);
     let config = Config::default_config();
