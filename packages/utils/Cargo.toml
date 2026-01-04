@@ -1,9 +1,0 @@
-[package]
-name = "subversive-utils"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-tokio = { version = "1.45.0", features = ["full"] }
-tracing = "0.1.41"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
