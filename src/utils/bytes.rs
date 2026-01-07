@@ -30,3 +30,32 @@ pub fn bytes_to_base36(bytes: &[u8]) -> String {
     out.reverse();
     String::from_utf8(out).expect("base36 alphabet is valid utf8")
 }
+
+pub fn base36_to_bytes(base36: &str) -> Vec<u8> {
+    const ALPHABET: &[u8; 36] = b"0123456789abcdefghijklmnopqrstuvwxyz";
+
+    if base36.is_empty() {
+        return vec![0];
+    }
+
+    let mut result: Vec<u8> = Vec::new();
+    let mut carry: u32 = 0;
+
+    for c in base36.chars() {
+        let digit = ALPHABET.iter().position(|&b| b == c as u8).unwrap() as u32;
+        carry = carry * 36 + digit;
+
+        if carry >= 256 {
+            result.push((carry / 256) as u8);
+            carry %= 256;
+        }
+    }
+
+    if carry > 0 {
+        result.push(carry as u8);
+    }
+
+    result.reverse();
+    result
+}
+

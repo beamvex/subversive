@@ -26,12 +26,13 @@ mod tests {
     use crate::game::play;
     use crate::crypto::generate_key;
     use crate::crypto::sign;
+    use crate::utils::base36_to_bytes;
 
     #[test]
     fn test_play() {
-        let (private_key1, public_key1) = generate_key();
 
-        let (private_key2, public_key2) = generate_key();
+        let private_key1 = base36_to_bytes("3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833");
+        let private_key2 = base36_to_bytes("3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833");
 
         let data = b"test";
         let signature1 = sign(data, &private_key1);
