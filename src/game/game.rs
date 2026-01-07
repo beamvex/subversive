@@ -12,9 +12,14 @@ pub fn play(signature1: &[u8], signature2: &[u8]) -> i32 {
     
     let signature1 = bytes_to_base36(signature1);
     let signature2 = bytes_to_base36(signature2);
-    println!("signature1: {}", signature1);
-    println!("signature2: {}", signature2);
-    0
+    /// compare signatures return 1 if signature1 > signature2, -1 if signature1 < signature2, 0 if equal
+    if signature1 > signature2 {
+        1
+    } else if signature1 < signature2 {
+        -1
+    } else {
+        0
+    }
 }
 
 mod tests {
