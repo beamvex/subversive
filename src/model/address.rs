@@ -10,8 +10,6 @@ mod tests {
     use super::*;
     use crate::utils::{base36_to_bytes_32, bytes_to_base36};
 
-    use zerocopy::{Immutable, IntoBytes};
-
     #[test]
     fn test_address() {
         let private_key_bytes = base36_to_bytes_32("3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833");
