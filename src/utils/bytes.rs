@@ -31,31 +31,70 @@ pub fn bytes_to_base36(bytes: &[u8]) -> String {
     String::from_utf8(out).expect("base36 alphabet is valid utf8")
 }
 
-pub fn base36_to_bytes(base36: &str) -> Vec<u8> {
+fn base36_to_bytes(base36: &str) -> Vec<u8> {
     const ALPHABET: &[u8; 36] = b"0123456789abcdefghijklmnopqrstuvwxyz";
 
-    if base36.is_empty() {
+    let s = base36.trim();
+    if s.is_empty() || s == "0" {
         return vec![0];
     }
 
-    let mut result: Vec<u8> = Vec::new();
-    let mut carry: u32 = 0;
+    let mut bytes: Vec<u8> = vec![0];
 
-    for c in base36.chars() {
-        let digit = ALPHABET.iter().position(|&b| b == c as u8).unwrap() as u32;
-        carry = carry * 36 + digit;
+    for c in s.bytes() {
+        let c = c.to_ascii_lowercase();
+        let digit = ALPHABET
+            .iter()
+            .position(|&b| b == c)
+            .expect("invalid base36 character") as u32;
 
-        if carry >= 256 {
-            result.push((carry / 256) as u8);
-            carry %= 256;
+        let mut carry = digit;
+        for b in bytes.iter_mut().rev() {
+            let v = (*b as u32) * 36 + carry;
+            *b = (v & 0xff) as u8;
+            carry = v >> 8;
+        }
+
+        while carry > 0 {
+            bytes.insert(0, (carry & 0xff) as u8);
+            carry >>= 8;
         }
     }
 
-    if carry > 0 {
-        result.push(carry as u8);
+    while bytes.len() > 1 && bytes[0] == 0 {
+        bytes.remove(0);
     }
 
-    result.reverse();
-    result
+    bytes
 }
 
+pub fn base36_to_bytes_32(base36: &str) -> Vec<u8> {
+    let mut bytes = base36_to_bytes(base36);
+
+    if bytes.len() > 32 {
+        panic!("base36 value does not fit in 32 bytes");
+    }
+
+    if bytes.len() < 32 {
+        let mut padded = vec![0u8; 32 - bytes.len()];
+        padded.append(&mut bytes);
+        return padded;
+    }
+
+    bytes
+}
+
+mod tests {
+    use crate::utils::{base36_to_bytes_32, bytes_to_base36};
+
+    #[test]
+    fn test_base36_to_bytes_32() {
+
+        let private_key_bytes = base36_to_bytes_32("3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833");
+        
+        let private_key = bytes_to_base36(&private_key_bytes);
+        println!("private_key1: {}", private_key);
+
+        assert_eq!(private_key, "3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833");
+    }
+}
