@@ -32,7 +32,7 @@ mod tests {
     fn test_play() {
 
         let private_key1 = base36_to_bytes_32("3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833");
-        let private_key2 = base36_to_bytes_32("3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833");
+        let private_key2 = base36_to_bytes_32("26j1x2pu9o8kae53tl7jnhu5osmcu8au4glzi5jno5027zr08m");
 
         println!("private_key1: {}", bytes_to_base36(&private_key1));
         println!("private_key2: {}", bytes_to_base36(&private_key2));
@@ -41,6 +41,6 @@ mod tests {
         let signature1 = sign(data, &private_key1);
         let data = b"test";
         let signature2 = sign(data, &private_key2);
-        assert_eq!(play(&signature1, &signature2), 0);
+        assert_eq!(play(&signature1, &signature2), -1);
     }
 }
