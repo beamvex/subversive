@@ -9,8 +9,7 @@ pub struct SignedTransaction {
 }
 
 mod tests {
-    use crate::model::address::Address;
-    use crate::model::transaction::Transaction;
+    use crate::model::{signature::Signature,address::Address, signed_transaction::SignedTransaction, transaction::Transaction};
     use crate::crypto::sign;
     use zerocopy::AsBytes;
     use crate::utils::{base36_to_bytes_32, bytes_to_base36};
@@ -47,6 +46,21 @@ mod tests {
 
         let signature_bytes = sign(&transaction_bytes, &private_key_bytes1);
         println!("signature_bytes: {}", bytes_to_base36(&signature_bytes));
+
+        let signature: [u8; 64] = signature_bytes
+            .as_slice()
+            .try_into()
+            .expect("ed25519 signature must be 64 bytes");
+
+        let signature = Signature { signature };
+
+        let signed_transaction = SignedTransaction {
+            transaction,
+            signature,
+        };
+
+        let signed_transaction_bytes = signed_transaction.as_bytes();
+        println!("signed_transaction_bytes: {}", bytes_to_base36(&signed_transaction_bytes));
     }
 
 }
