@@ -3,7 +3,7 @@ use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned};
 #[repr(C)]
 #[derive(Debug, Default, FromZeroes, FromBytes, AsBytes, Unaligned)]
 pub struct Address {
-    public_key: [u8; 32],
+    pub public_key: [u8; 32],
 }
 
 mod tests {
