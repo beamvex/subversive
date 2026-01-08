@@ -20,7 +20,7 @@ mod tests {
 
     #[test]
     fn test_signature() {
-        let private_key_bytes = base36_to_bytes_32("z4mr3uhk64hsc8mzkhnh4d7w771s4z2vg8r46j828dnqs9spj7l41jxnmgz7fh4cb0h4qnui2ewhac76nzz525c1rq6mjmenwnj");
+        let private_key_bytes = base36_to_bytes_32("1f1uklaakeqg1xhjlvnihhi5ipyu4kgoj7pq0uqkhajovr0pso");
 
         let data = b"test";
         let signature_bytes = sign(data, &private_key_bytes);
