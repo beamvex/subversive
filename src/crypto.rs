@@ -1,5 +1,5 @@
 #[path = "crypto/generate.rs"]
-mod generate;
+pub mod generate;
 /*
 #[path = "crypto/sign.rs"]
 mod sign;
@@ -11,4 +11,4 @@ pub use sign::sign;
 pub use verify::verify;
 */
 
-pub use generate::generate_key;
+pub use generate::GenerateKey;

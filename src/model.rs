@@ -23,10 +23,11 @@ pub mod private_address;
 /*
 pub use transaction::Transaction;
 pub use block::Block;
-pub use signature::Signature;   
-pub use signed_transaction::SignedTransaction;   
-pub use signed_block::SignedBlock;   
+pub use signature::Signature;
+pub use signed_transaction::SignedTransaction;
+pub use signed_block::SignedBlock;
 */
 
 pub use address::Address;
-pub use private_address::PrivateAddress;   
+pub use private_address::PrivateAddress;
+pub use private_address::PrivateAddressTrait;
