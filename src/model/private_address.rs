@@ -1,7 +1,10 @@
 
 use crate::model::address::Address;
+use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned};
 
+#[repr(C)]
+#[derive(Debug, Default, FromZeroes, FromBytes, AsBytes, Unaligned)]
 pub struct PrivateAddress {
-    private_key: Vec<u8>,
-    address: Address,
+    pub private_key: [u8; 32],
+    pub address: Address,
 }
