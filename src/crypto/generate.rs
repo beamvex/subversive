@@ -26,7 +26,9 @@ mod tests {
         let private_key = generate_key();
 
         println!("1. private_key_b36: {}", bytes_to_base36(&private_key.private_key));
+        println!("2. public_key_b36: {}", bytes_to_base36(&private_key.address.public_key));
 
         assert_eq!(private_key.private_key.len(), 32);
+        assert_eq!(private_key.address.public_key.len(), 32);
     }
 }
