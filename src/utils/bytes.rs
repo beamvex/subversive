@@ -1,3 +1,5 @@
+use crate::model::Key;
+
 pub fn bytes_to_base36(bytes: &[u8]) -> String {
     const ALPHABET: &[u8; 36] = b"0123456789abcdefghijklmnopqrstuvwxyz";
 
@@ -68,23 +70,25 @@ fn base36_to_bytes(base36: &str) -> Vec<u8> {
     bytes
 }
 
-pub fn base36_to_bytes_32(base36: &str) -> Vec<u8> {
-    let mut bytes = base36_to_bytes(base36);
+impl Key {
+    pub fn from_base36(base36: &str) -> Self {
+        let mut bytes = base36_to_bytes(base36);
 
-    if bytes.len() > 32 {
-        panic!("base36 value does not fit in 32 bytes");
+        if bytes.len() > 32 {
+            panic!("base36 value does not fit in 32 bytes");
+        }
+
+        if bytes.len() < 32 {
+            let mut padded = vec![0u8; 32 - bytes.len()];
+            padded.append(&mut bytes);
+            return Key::new(padded.try_into().unwrap());
+        }
+
+        Key::new(bytes.try_into().unwrap())
     }
-
-    if bytes.len() < 32 {
-        let mut padded = vec![0u8; 32 - bytes.len()];
-        padded.append(&mut bytes);
-        return padded;
-    }
-
-    bytes
 }
 
-pub fn base36_to_bytes_64(base36: &str) -> Vec<u8> {
+pub fn base36_to_bytes_64(base36: &str) -> [u8; 64] {
     let mut bytes = base36_to_bytes(base36);
 
     if bytes.len() > 64 {
@@ -94,38 +98,22 @@ pub fn base36_to_bytes_64(base36: &str) -> Vec<u8> {
     if bytes.len() < 64 {
         let mut padded = vec![0u8; 64 - bytes.len()];
         padded.append(&mut bytes);
-        return padded;
+        return padded.try_into().unwrap();
     }
 
-    bytes
+    bytes.try_into().unwrap()
 }
 
-
 mod tests {
-    use crate::utils::{base36_to_bytes_32, base36_to_bytes_64, bytes_to_base36};
-
-    #[test]
-    fn test_base36_to_bytes_32() {
-
-        let private_key_bytes = base36_to_bytes_32("3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833");
-        
-        let private_key = bytes_to_base36(&private_key_bytes);
-        println!("private_key1: {}", private_key);
-
-        assert_eq!(private_key, "3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833");
-    }
+    use crate::utils::{base36_to_bytes_64, bytes_to_base36};
 
     #[test]
     fn test_base36_to_bytes_64() {
-
         let private_key_bytes = base36_to_bytes_64("z4mr3uhk64hsc8mzkhnh4d7w771s4z2vg8r46j828dnqs9spj7l41jxnmgz7fh4cb0h4qnui2ewhac76nzz525c1rq6mjmenwnj");
-        
+
         let private_key = bytes_to_base36(&private_key_bytes);
         println!("private_key1: {}", private_key);
 
         assert_eq!(private_key, "z4mr3uhk64hsc8mzkhnh4d7w771s4z2vg8r46j828dnqs9spj7l41jxnmgz7fh4cb0h4qnui2ewhac76nzz525c1rq6mjmenwnj");
     }
-
-
-
 }
