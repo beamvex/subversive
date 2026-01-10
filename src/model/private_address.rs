@@ -15,8 +15,13 @@ impl PrivateAddress {
             address,
         }
     }
+
     pub fn get_private_key(&self) -> &[u8; 32] {
         &self.private_key
+    }
+
+    pub fn get_address(&self) -> &Address {
+        &self.address
     }
 }
 
@@ -47,6 +52,30 @@ mod tests {
         let address = Address::new(public_key);
 
         let private_address = PrivateAddress::new(private_key, address);
+
+        let private_address_bytes = private_address.as_bytes();
+
+        println!(
+            "private_address_bytes: {}",
+            bytes_to_base36(&private_address_bytes)
+        );
+    }
+
+    #[test]
+    fn test_generate_key() {
+        let private_address = PrivateAddress::generate();
+
+        println!(
+            "1. private_key_b36: {}",
+            bytes_to_base36(private_address.get_private_key())
+        );
+        println!(
+            "2. public_key_b36: {}",
+            bytes_to_base36(private_address.get_address().get_public_key())
+        );
+
+        assert_eq!(private_address.get_private_key().len(), 32);
+        assert_eq!(private_address.get_address().get_public_key().len(), 32);
 
         let private_address_bytes = private_address.as_bytes();
 
