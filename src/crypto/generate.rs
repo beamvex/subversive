@@ -1,8 +1,8 @@
-use crate::types::key;
+use crate::types::Key;
 use ed25519_dalek::SigningKey;
 use rand_core::OsRng;
 
-pub fn generate_key() -> (key, key) {
+pub fn generate_key() -> (Key, Key) {
     let signing_key = SigningKey::generate(&mut OsRng);
     let verifying_key = signing_key.verifying_key();
 

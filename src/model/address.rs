@@ -1,16 +1,18 @@
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned};
 
+use crate::types::Key;
+
 #[repr(C)]
 #[derive(Debug, Default, FromZeroes, FromBytes, AsBytes, Unaligned)]
 pub struct Address {
-    public_key: [u8; 32],
+    public_key: Key,
 }
 
 impl Address {
-    fn new(public_key: [u8; 32]) -> Self {
+    pub fn new(public_key: Key) -> Self {
         Address { public_key }
     }
-    fn get_public_key(&self) -> &[u8; 32] {
+    pub fn get_public_key(&self) -> &Key {
         &self.public_key
     }
 }
@@ -25,14 +27,12 @@ mod tests {
         let private_key_bytes =
             base36_to_bytes_32("3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833");
 
-        let public_key: [u8; 32] = private_key_bytes
+        let public_key: Key = private_key_bytes
             .as_slice()
             .try_into()
             .expect("base36_to_bytes_32 must return 32 bytes");
 
-        let address = Address {
-            public_key: public_key,
-        };
+        let address = Address::new(public_key);
 
         let address_bytes = address.as_bytes();
 

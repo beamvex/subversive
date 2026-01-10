@@ -1,1 +1,1 @@
-pub type key = [u8; 32];
+pub type Key = [u8; 32];
