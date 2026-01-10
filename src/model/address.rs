@@ -1,17 +1,12 @@
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned};
 
-pub trait AddressTrait {
-    fn new(public_key: [u8; 32]) -> Self;
-    fn get_public_key(&self) -> &[u8; 32];
-}
-
 #[repr(C)]
 #[derive(Debug, Default, FromZeroes, FromBytes, AsBytes, Unaligned)]
 pub struct Address {
     public_key: [u8; 32],
 }
 
-impl AddressTrait for Address {
+impl Address {
     fn new(public_key: [u8; 32]) -> Self {
         Address { public_key }
     }

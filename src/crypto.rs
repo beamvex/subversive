@@ -11,4 +11,4 @@ pub use sign::sign;
 pub use verify::verify;
 */
 
-pub use generate::GenerateKey;
+pub use generate::generate_key;
