@@ -13,11 +13,11 @@ pub mod signed_transaction;
 
 #[path = "model/signed_block.rs"]
 pub mod signed_block;
-
+*/
 
 #[path = "model/private_address.rs"]
 pub mod private_address;
-*/
+
 #[path = "model/address.rs"]
 pub mod address;
 
@@ -30,4 +30,4 @@ pub use signed_block::SignedBlock;
 */
 
 pub use address::Address;
-//pub use private_address::PrivateAddress;
+pub use private_address::PrivateAddress;
