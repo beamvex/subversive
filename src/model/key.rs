@@ -1,3 +1,4 @@
+use crate::utils::FromBase36;
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned};
 
 #[repr(C)]
@@ -16,9 +17,18 @@ impl Key {
     }
 }
 
+impl FromBase36 for Key {
+    fn from_bytes(bytes: &[u8]) -> Self {
+        Key::read_from(bytes).unwrap()
+    }
+}
+
+#[cfg(test)]
 mod tests {
+
     use crate::model::Key;
     use crate::utils::bytes_to_base36;
+    use crate::utils::FromBase36;
 
     #[test]
     fn test_from_base36() {

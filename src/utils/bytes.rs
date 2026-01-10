@@ -1,5 +1,3 @@
-use crate::model::Key;
-
 pub fn bytes_to_base36(bytes: &[u8]) -> String {
     const ALPHABET: &[u8; 36] = b"0123456789abcdefghijklmnopqrstuvwxyz";
 
@@ -70,8 +68,13 @@ fn base36_to_bytes(base36: &str) -> Vec<u8> {
     bytes
 }
 
-impl Key {
-    pub fn from_base36(base36: &str) -> Self {
+pub trait FromBase36 {
+    fn from_bytes(bytes: &[u8]) -> Self;
+
+    fn from_base36(base36: &str) -> Self
+    where
+        Self: Sized,
+    {
         let mut bytes = base36_to_bytes(base36);
 
         if bytes.len() > 32 {
@@ -81,10 +84,12 @@ impl Key {
         if bytes.len() < 32 {
             let mut padded = vec![0u8; 32 - bytes.len()];
             padded.append(&mut bytes);
-            return Key::new(padded.try_into().unwrap());
+            let padded_bytes: [u8; 32] = padded.try_into().unwrap();
+            return Self::from_bytes(&padded_bytes);
         }
 
-        Key::new(bytes.try_into().unwrap())
+        let bytes: [u8; 32] = bytes.try_into().unwrap();
+        Self::from_bytes(&bytes)
     }
 }
 
@@ -104,8 +109,10 @@ pub fn base36_to_bytes_64(base36: &str) -> [u8; 64] {
     bytes.try_into().unwrap()
 }
 
+#[cfg(test)]
 mod tests {
-    use crate::utils::{base36_to_bytes_64, bytes_to_base36};
+    use crate::utils::base36_to_bytes_64;
+    use crate::utils::bytes_to_base36;
 
     #[test]
     fn test_base36_to_bytes_64() {
