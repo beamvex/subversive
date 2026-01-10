@@ -1,6 +1,6 @@
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned};
 
-use crate::types::Key;
+use crate::model::key::Key;
 
 #[repr(C)]
 #[derive(Debug, Default, FromZeroes, FromBytes, AsBytes, Unaligned)]
@@ -27,10 +27,7 @@ mod tests {
         let private_key_bytes =
             base36_to_bytes_32("3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833");
 
-        let public_key: Key = private_key_bytes
-            .as_slice()
-            .try_into()
-            .expect("base36_to_bytes_32 must return 32 bytes");
+        let public_key: Key = Key::new(private_key_bytes);
 
         let address = Address::new(public_key);
 

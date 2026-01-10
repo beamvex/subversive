@@ -1,5 +1,5 @@
-#[path = "crypto/generate.rs"]
-pub mod generate;
+//#[path = "crypto/generate.rs"]
+//pub mod generate;
 
 /*
 #[path = "crypto/sign.rs"]
