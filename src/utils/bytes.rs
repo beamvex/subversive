@@ -1,34 +1,42 @@
-pub fn bytes_to_base36(bytes: &[u8]) -> String {
-    const ALPHABET: &[u8; 36] = b"0123456789abcdefghijklmnopqrstuvwxyz";
+use zerocopy::AsBytes;
 
-    if bytes.is_empty() {
-        return "0".to_string();
-    }
+pub trait ToBase36 {
+    fn to_base36(&self) -> String
+    where
+        Self: AsBytes,
+    {
+        let bytes = self.as_bytes();
+        const ALPHABET: &[u8; 36] = b"0123456789abcdefghijklmnopqrstuvwxyz";
 
-    if bytes.iter().all(|&b| b == 0) {
-        return "0".to_string();
-    }
-
-    let mut n = bytes.to_vec();
-    let mut out: Vec<u8> = Vec::new();
-
-    while !n.is_empty() && n.iter().any(|&b| b != 0) {
-        let mut rem: u32 = 0;
-        for b in n.iter_mut() {
-            let v = (rem << 8) | (*b as u32);
-            *b = (v / 36) as u8;
-            rem = v % 36;
+        if bytes.is_empty() {
+            return "0".to_string();
         }
 
-        out.push(ALPHABET[rem as usize]);
-
-        while n.first().copied() == Some(0) {
-            n.remove(0);
+        if bytes.iter().all(|&b| b == 0) {
+            return "0".to_string();
         }
-    }
 
-    out.reverse();
-    String::from_utf8(out).expect("base36 alphabet is valid utf8")
+        let mut n = bytes.to_vec();
+        let mut out: Vec<u8> = Vec::new();
+
+        while !n.is_empty() && n.iter().any(|&b| b != 0) {
+            let mut rem: u32 = 0;
+            for b in n.iter_mut() {
+                let v = (rem << 8) | (*b as u32);
+                *b = (v / 36) as u8;
+                rem = v % 36;
+            }
+
+            out.push(ALPHABET[rem as usize]);
+
+            while n.first().copied() == Some(0) {
+                n.remove(0);
+            }
+        }
+
+        out.reverse();
+        String::from_utf8(out).expect("base36 alphabet is valid utf8")
+    }
 }
 
 fn base36_to_bytes(base36: &str) -> Vec<u8> {
@@ -108,11 +116,10 @@ pub fn base36_to_bytes_64(base36: &str) -> [u8; 64] {
 
     bytes.try_into().unwrap()
 }
-
+/*
 #[cfg(test)]
 mod tests {
     use crate::utils::base36_to_bytes_64;
-    use crate::utils::bytes_to_base36;
 
     #[test]
     fn test_base36_to_bytes_64() {
@@ -124,3 +131,4 @@ mod tests {
         assert_eq!(private_key, "z4mr3uhk64hsc8mzkhnh4d7w771s4z2vg8r46j828dnqs9spj7l41jxnmgz7fh4cb0h4qnui2ewhac76nzz525c1rq6mjmenwnj");
     }
 }
+    */

@@ -1,4 +1,4 @@
-use crate::utils::FromBase36;
+use crate::utils::{FromBase36, ToBase36};
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned};
 
 #[repr(C)]
@@ -17,6 +17,8 @@ impl Key {
     }
 }
 
+impl ToBase36 for Key {}
+
 impl FromBase36 for Key {
     fn from_bytes(bytes: &[u8]) -> Self {
         Key::read_from(bytes).unwrap()
@@ -27,14 +29,14 @@ impl FromBase36 for Key {
 mod tests {
 
     use crate::model::Key;
-    use crate::utils::bytes_to_base36;
     use crate::utils::FromBase36;
+    use crate::utils::ToBase36;
 
     #[test]
     fn test_from_base36() {
         let key = Key::from_base36("3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833");
 
-        let key = bytes_to_base36(key.get_bytes());
+        let key = key.to_base36();
         println!("key: {}", key);
 
         assert_eq!(key, "3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833");
