@@ -1,40 +1,44 @@
+use crate::utils::{FromBase36, ToBase36};
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned};
 
 #[repr(C)]
 #[derive(Debug, FromZeroes, FromBytes, AsBytes, Unaligned)]
 pub struct Signature {
-    pub signature: [u8; 64],
+    signature: [u8; 64],
 }
 
 impl Default for Signature {
     fn default() -> Self {
-        Self { signature: [0u8; 64] }
+        Self {
+            signature: [0u8; 64],
+        }
     }
 }
+
+impl Signature {
+    pub fn new(signature: [u8; 64]) -> Self {
+        Signature { signature }
+    }
+    pub fn get_signature(&self) -> &[u8; 64] {
+        &self.signature
+    }
+}
+
+impl FromBase36 for Signature {
+    fn from_bytes(bytes: &[u8]) -> Self {
+        Signature::read_from(bytes).unwrap()
+    }
+}
+
+impl ToBase36 for Signature {}
 
 mod tests {
     use super::*;
-    use zerocopy::AsBytes;
-    use crate::crypto::sign;
-    use crate::utils::{base36_to_bytes_32, bytes_to_base36};
 
     #[test]
     fn test_signature() {
-        let private_key_bytes = base36_to_bytes_32("1f1uklaakeqg1xhjlvnihhi5ipyu4kgoj7pq0uqkhajovr0pso");
+        let signature = Signature::from_base36("1f1uklaakeqg1xhjlvnihhi5ipyu4kgoj7pq0uqkhajovr0pso1f1uklaakeqg1xhjlvnihhi5ipyu4kgoj7pq0uqkhajovr0pso");
 
-        let data = b"test";
-        let signature_bytes = sign(data, &private_key_bytes);
-        let signature: [u8; 64] = signature_bytes
-            .as_slice()
-            .try_into()
-            .expect("ed25519 signature must be 64 bytes");
-
-        let signature = Signature { signature };
-        
-        let signature_bytes = signature.as_bytes();
-        
-        println!("signature_bytes: {}", bytes_to_base36(&signature_bytes));
+        println!("signature: {}", signature.to_base36());
     }
-
 }
-

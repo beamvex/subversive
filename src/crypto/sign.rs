@@ -1,5 +1,7 @@
-use ed25519_dalek::SigningKey;
 use ed25519_dalek::Signer;
+use ed25519_dalek::SigningKey;
+
+/*
 
 pub fn sign(data: &[u8], private_key: &[u8]) -> Vec<u8> {
     let private_key: &[u8; 32] = private_key
@@ -35,3 +37,5 @@ mod tests {
         assert_eq!(signature.len(), 64);
     }
 }
+
+    */
