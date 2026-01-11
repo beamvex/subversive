@@ -19,6 +19,7 @@ impl Address {
     }
 }
 
+#[cfg(test)]
 mod tests {
 
     use crate::model::key::Key;

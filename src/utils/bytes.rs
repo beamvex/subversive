@@ -83,39 +83,24 @@ pub trait FromBase36 {
     where
         Self: Sized,
     {
+        let size: usize = std::mem::size_of::<Self>();
+
         let mut bytes = base36_to_bytes(base36);
 
-        if bytes.len() > 32 {
-            panic!("base36 value does not fit in 32 bytes");
+        if bytes.len() > size {
+            panic!("base36 value does not fit in {} bytes", size);
         }
 
-        if bytes.len() < 32 {
-            let mut padded = vec![0u8; 32 - bytes.len()];
+        if bytes.len() < size {
+            let mut padded = vec![0u8; size - bytes.len()];
             padded.append(&mut bytes);
-            let padded_bytes: [u8; 32] = padded.try_into().unwrap();
-            return Self::from_bytes(&padded_bytes);
+            return Self::from_bytes(&padded);
         }
 
-        let bytes: [u8; 32] = bytes.try_into().unwrap();
         Self::from_bytes(&bytes)
     }
 }
 
-pub fn base36_to_bytes_64(base36: &str) -> [u8; 64] {
-    let mut bytes = base36_to_bytes(base36);
-
-    if bytes.len() > 64 {
-        panic!("base36 value does not fit in 64 bytes");
-    }
-
-    if bytes.len() < 64 {
-        let mut padded = vec![0u8; 64 - bytes.len()];
-        padded.append(&mut bytes);
-        return padded.try_into().unwrap();
-    }
-
-    bytes.try_into().unwrap()
-}
 /*
 #[cfg(test)]
 mod tests {

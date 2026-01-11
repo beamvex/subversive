@@ -28,12 +28,12 @@ impl PrivateAddress {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::model::address::Address;
     use crate::model::key::Key;
     use crate::utils::{FromBase36, ToBase36};
-    use zerocopy::AsBytes;
 
     #[test]
     fn test_private_address() {
