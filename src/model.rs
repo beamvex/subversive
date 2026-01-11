@@ -15,8 +15,8 @@ pub mod signed_transaction;
 pub mod signed_block;
 */
 
-//#[path = "model/private_address.rs"]
-//pub mod private_address;
+#[path = "model/private_address.rs"]
+pub mod private_address;
 
 #[path = "model/address.rs"]
 pub mod address;
