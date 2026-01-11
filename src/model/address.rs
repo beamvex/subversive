@@ -1,12 +1,14 @@
-use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned};
-
 use crate::model::key::Key;
+use crate::utils::ToBase36;
+use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned};
 
 #[repr(C)]
 #[derive(Debug, Default, FromZeroes, FromBytes, AsBytes, Unaligned)]
 pub struct Address {
     public_key: Key,
 }
+
+impl ToBase36 for Address {}
 
 impl Address {
     pub fn new(public_key: Key) -> Self {
@@ -18,21 +20,19 @@ impl Address {
 }
 
 mod tests {
-    use super::*;
-    use crate::utils::{base36_to_bytes_32, bytes_to_base36};
-    use zerocopy::AsBytes;
+
+    use crate::model::key::Key;
+    use crate::model::Address;
+    use crate::utils::{FromBase36, ToBase36};
 
     #[test]
     fn test_address() {
-        let private_key_bytes =
-            base36_to_bytes_32("3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833");
-
-        let public_key: Key = Key::new(private_key_bytes);
+        let public_key = Key::from_base36("3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833");
 
         let address = Address::new(public_key);
 
-        let address_bytes = address.as_bytes();
+        let address_bytes = address.to_base36();
 
-        println!("address_bytes: {}", bytes_to_base36(&address_bytes));
+        println!("address_bytes: {}", address_bytes);
     }
 }

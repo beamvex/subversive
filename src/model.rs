@@ -18,8 +18,8 @@ pub mod signed_block;
 //#[path = "model/private_address.rs"]
 //pub mod private_address;
 
-//#[path = "model/address.rs"]
-//pub mod address;
+#[path = "model/address.rs"]
+pub mod address;
 
 #[path = "model/key.rs"]
 pub mod key;
@@ -32,6 +32,6 @@ pub use signed_transaction::SignedTransaction;
 pub use signed_block::SignedBlock;
 */
 
-//pub use address::Address;
+pub use address::Address;
 pub use key::Key;
 //pub use private_address::PrivateAddress;
