@@ -1,18 +1,45 @@
-/*
 use ed25519_dalek::Signer;
 use ed25519_dalek::SigningKey;
+use zerocopy::AsBytes;
 
+use crate::model::Signature;
 
-
-pub fn sign(data: &[u8], private_key: &[u8]) -> Vec<u8> {
-    let private_key: &[u8; 32] = private_key
-        .try_into()
-        .expect("ed25519 private key must be 32 bytes");
-    let signing_key = SigningKey::from_bytes(private_key);
-    let signature = signing_key.sign(data);
-    signature.to_bytes().to_vec()
+pub trait Sign {
+    fn sign(&self) -> Signature;
 }
 
+impl<T> Sign for T
+where
+    T: AsBytes + ?Sized,
+{
+    fn sign(&self) -> Signature {
+        let bytes: &[u8] = self.as_bytes();
+        let seed: &[u8; 32] = bytes
+            .try_into()
+            .expect("SigningKey::from_bytes requires exactly 32 bytes");
+
+        let signing_key = SigningKey::from_bytes(seed);
+        let signature = signing_key.sign(b"");
+        Signature::new(signature.to_bytes())
+    }
+}
+
+pub trait SignCustom {
+    fn as_bytes_custom(&self) -> &[u8];
+
+    fn sign(&self) -> Signature {
+        let bytes: &[u8] = self.as_bytes_custom();
+        let seed: &[u8; 32] = bytes
+            .try_into()
+            .expect("SigningKey::from_bytes requires exactly 32 bytes");
+
+        let signing_key = SigningKey::from_bytes(seed);
+        let signature = signing_key.sign(b"");
+        Signature::new(signature.to_bytes())
+    }
+}
+
+/*
 #[cfg(test)]
 mod tests {
     use super::*;
