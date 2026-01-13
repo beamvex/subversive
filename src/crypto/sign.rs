@@ -1,12 +1,17 @@
 use ed25519_dalek::Signer;
 use ed25519_dalek::SigningKey;
+use zerocopy::AsBytes;
 
 use crate::model::private_address::PrivateAddress;
+use crate::model::transaction::Transaction;
 use crate::model::Signature;
 
 pub trait Sign {
-    fn sign(&self, private_address: &PrivateAddress) -> Signature {
-        let bytes: &[u8] = b"data";
+    fn sign(&self, private_address: &PrivateAddress) -> Signature
+    where
+        Self: AsBytes,
+    {
+        let bytes: &[u8] = self.as_bytes();
 
         let signing_key = SigningKey::from_bytes(private_address.get_private_key().get_bytes());
         let signature = signing_key.sign(bytes);
@@ -14,31 +19,38 @@ pub trait Sign {
     }
 }
 
-/*
+impl Sign for Transaction {}
+
 #[cfg(test)]
 mod tests {
-    use super::*;
 
-    use crate::utils::bytes_to_base36;
-    use crate::crypto::generate_key;
+    use crate::crypto::sign::Sign;
+    use crate::model::address::Address;
+    use crate::model::key::Key;
+    use crate::model::private_address::PrivateAddress;
+    use crate::model::transaction::Transaction;
+    use crate::model::Signature;
+    use crate::utils::{FromBase36, ToBase36};
 
     #[test]
     fn test_sign() {
-        let (private_key, public_key) = generate_key();
+        let private_address = PrivateAddress::generate();
+        let from_address = Address::new(Key::from_base36(
+            "3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833",
+        ));
+        let to_address = Address::new(Key::from_base36(
+            "1f1uklaakeqg1xhjlvnihhi5ipyu4kgoj7pq0uqkhajovr0pso",
+        ));
 
-        let data = b"test";
-        let signature = sign(data, &private_key);
+        let transaction = Transaction {
+            from: from_address,
+            to: to_address,
+            amount: 1,
+            timestamp: 0,
+        };
 
-        println!("1. private_key_b36: {}", bytes_to_base36(&private_key));
-        println!("2. public_key_b36: {}", bytes_to_base36(&public_key));
-        println!("3. data: {}", bytes_to_base36(data));
-        println!("4. signature: {}", bytes_to_base36(&signature));
+        let signature = transaction.sign(&private_address);
 
-        assert_eq!(private_key.len(), 32);
-        assert_eq!(public_key.len(), 32);
-        assert_eq!(data.len(), 4);
-        assert_eq!(signature.len(), 64);
+        println!("signature: {}", signature.to_base36());
     }
 }
-
-    */
