@@ -43,7 +43,10 @@ mod tests {
             timestamp: 0,
         };
 
-        let bytes: Vec<u8> = (&transaction).into();
+        let bytes: Vec<u8> = {
+            let borrowed_transaction = &transaction;
+            borrowed_transaction.into()
+        };
         let signature = private_address.sign(&bytes);
 
         let verified = verify(
