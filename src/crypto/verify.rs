@@ -19,13 +19,11 @@ pub fn verify(data: &[u8], signature: &[u8], public_key: &[u8]) -> bool {
 mod tests {
 
     use super::*;
-    use crate::crypto::sign::Sign;
     use crate::model::address::Address;
     use crate::model::key::Key;
     use crate::model::private_address::PrivateAddress;
     use crate::model::transaction::Transaction;
-    use crate::model::Signature;
-    use crate::utils::{FromBase36, ToBase36};
+    use crate::utils::FromBase36;
     use zerocopy::AsBytes;
 
     #[test]
@@ -45,12 +43,11 @@ mod tests {
             timestamp: 0,
         };
 
-        let signature = transaction.sign(&private_address);
-
-        let data: &[u8] = transaction.as_bytes();
+        let bytes: Vec<u8> = (&transaction).into();
+        let signature = private_address.sign(&bytes);
 
         let verified = verify(
-            data,
+            &bytes,
             signature.as_bytes(),
             private_address.get_address().as_bytes(),
         );

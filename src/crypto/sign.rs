@@ -2,33 +2,23 @@ use ed25519_dalek::Signer;
 use ed25519_dalek::SigningKey;
 
 use crate::model::private_address::PrivateAddress;
-use crate::model::transaction::Transaction;
 use crate::model::Signature;
 
-pub trait Sign {
-    fn sign(&self, private_address: &PrivateAddress) -> Signature
-    where
-        Self: zerocopy::AsBytes,
-    {
-        let bytes: &[u8] = self.as_bytes();
-
-        let signing_key = SigningKey::from_bytes(private_address.get_private_key().get_bytes());
+impl PrivateAddress {
+    pub fn sign(&self, bytes: &[u8]) -> Signature {
+        let signing_key = SigningKey::from_bytes(self.get_private_key().get_bytes());
         let signature = signing_key.sign(bytes);
         Signature::new(signature.to_bytes())
     }
 }
 
-impl Sign for Transaction {}
-
 #[cfg(test)]
 mod tests {
 
-    use crate::crypto::sign::Sign;
     use crate::model::address::Address;
     use crate::model::key::Key;
     use crate::model::private_address::PrivateAddress;
     use crate::model::transaction::Transaction;
-    use crate::model::Signature;
     use crate::utils::{FromBase36, ToBase36};
 
     #[test]
@@ -48,7 +38,8 @@ mod tests {
             timestamp: 0,
         };
 
-        let signature = transaction.sign(&private_address);
+        let bytes: Vec<u8> = (&transaction).into();
+        let signature = private_address.sign(&bytes);
 
         println!("signature: {}", signature.to_base36());
     }

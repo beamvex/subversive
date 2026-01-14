@@ -1,5 +1,3 @@
-use std::default;
-
 use crate::model::address::Address;
 use crate::utils::ToBase36;
 use zerocopy::{AsBytes, FromBytes, FromZeroes};
@@ -28,7 +26,6 @@ mod tests {
     use crate::model::key::Key;
     use crate::model::transaction::Transaction;
     use crate::utils::{FromBase36, ToBase36};
-    use zerocopy::AsBytes;
 
     #[test]
     fn test_transaction() {
