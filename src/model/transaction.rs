@@ -14,12 +14,6 @@ pub struct Transaction {
 
 impl ToBase36 for Transaction {}
 
-impl From<Transaction> for Vec<u8> {
-    fn from(transaction: Transaction) -> Vec<u8> {
-        transaction.as_bytes().to_vec()
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::model::address::Address;

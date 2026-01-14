@@ -1,6 +1,5 @@
 use ed25519_dalek::Signer;
 use ed25519_dalek::SigningKey;
-use zerocopy::AsBytes;
 
 use crate::model::private_address::PrivateAddress;
 use crate::model::transaction::Transaction;
@@ -9,7 +8,7 @@ use crate::model::Signature;
 pub trait Sign {
     fn sign(&self, private_address: &PrivateAddress) -> Signature
     where
-        Self: AsBytes,
+        Self: zerocopy::AsBytes,
     {
         let bytes: &[u8] = self.as_bytes();
 

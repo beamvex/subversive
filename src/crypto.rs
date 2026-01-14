@@ -4,9 +4,7 @@ pub mod generate;
 #[path = "crypto/sign.rs"]
 mod sign;
 
-/*
 #[path = "crypto/verify.rs"]
 mod verify;
 
 pub use verify::verify;
-*/
