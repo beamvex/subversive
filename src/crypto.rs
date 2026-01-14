@@ -6,5 +6,3 @@ mod sign;
 
 #[path = "crypto/verify.rs"]
 mod verify;
-
-pub use verify::verify;
