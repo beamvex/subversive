@@ -1,77 +1,59 @@
-use crate::model::{signature::Signature, transaction::Transaction};
+use crate::{
+    model::{signature::Signature, transaction::Transaction, PrivateAddress},
+    utils::ToBase36,
+};
 use zerocopy::{AsBytes, FromBytes, FromZeroes};
 
 #[repr(C)]
 #[derive(Debug, FromZeroes, FromBytes, AsBytes, Default)]
 pub struct SignedTransaction {
-    pub transaction: Transaction,
-    pub signature: Signature,
+    transaction: Transaction,
+    signature: Signature,
 }
+
+impl SignedTransaction {
+    pub fn new(transaction: Transaction, private_address: &PrivateAddress) -> Self {
+        let bytes: Vec<u8> = (&transaction).into();
+        let signature = private_address.sign(&bytes);
+
+        Self {
+            transaction,
+            signature,
+        }
+    }
+}
+
+impl ToBase36 for SignedTransaction {}
 
 #[cfg(test)]
 mod tests {
-    use crate::crypto::sign;
-    use crate::model::{
-        address::Address, signature::Signature, signed_transaction::SignedTransaction,
-        transaction::Transaction,
-    };
-    use crate::utils::{base36_to_bytes_32, bytes_to_base36};
-    use zerocopy::AsBytes;
+
+    use super::*;
+    use crate::model::address::Address;
+    use crate::model::key::Key;
+    use crate::model::private_address::PrivateAddress;
+    use crate::model::transaction::Transaction;
+    use crate::utils::{FromBase36, ToBase36};
 
     #[test]
-    fn test_transaction() {
-        let private_key_bytes1 =
-            base36_to_bytes_32("3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833");
-        let private_key_bytes2 =
-            base36_to_bytes_32("1f1uklaakeqg1xhjlvnihhi5ipyu4kgoj7pq0uqkhajovr0pso");
-
-        let public_key1: [u8; 32] = private_key_bytes1
-            .as_slice()
-            .try_into()
-            .expect("base36_to_bytes_32 must return 32 bytes");
-
-        let address1 = Address {
-            public_key: public_key1,
-        };
-
-        let public_key2: [u8; 32] = private_key_bytes2
-            .as_slice()
-            .try_into()
-            .expect("base36_to_bytes_32 must return 32 bytes");
-
-        let address2 = Address {
-            public_key: public_key2,
-        };
+    fn test_sign() {
+        let private_address = PrivateAddress::generate();
+        let from_address = Address::new(Key::from_base36(
+            "3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833",
+        ));
+        let to_address = Address::new(Key::from_base36(
+            "1f1uklaakeqg1xhjlvnihhi5ipyu4kgoj7pq0uqkhajovr0pso",
+        ));
 
         let transaction = Transaction {
-            from: address1,
-            to: address2,
+            from: from_address,
+            to: to_address,
             amount: 1,
             timestamp: 0,
         };
 
-        let transaction_bytes = transaction.as_bytes();
-        println!("transaction_bytes: {}", bytes_to_base36(&transaction_bytes));
+        let signed_transaction = SignedTransaction::new(transaction, &private_address);
 
-        let signature_bytes = sign(&transaction_bytes, &private_key_bytes1);
-        println!("signature_bytes: {}", bytes_to_base36(&signature_bytes));
-
-        let signature: [u8; 64] = signature_bytes
-            .as_slice()
-            .try_into()
-            .expect("ed25519 signature must be 64 bytes");
-
-        let signature = Signature { signature };
-
-        let signed_transaction = SignedTransaction {
-            transaction,
-            signature,
-        };
-
-        let signed_transaction_bytes = signed_transaction.as_bytes();
-        println!(
-            "signed_transaction_bytes: {}",
-            bytes_to_base36(&signed_transaction_bytes)
-        );
+        println!("signed_transaction: {}", signed_transaction.to_base36());
     }
 }
