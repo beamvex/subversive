@@ -2,12 +2,11 @@
 #[path = "model/block.rs"]
 pub mod block;
 
-#[path = "model/signed_transaction.rs"]
-pub mod signed_transaction;
-
 #[path = "model/signed_block.rs"]
 pub mod signed_block;
 */
+#[path = "model/signed_transaction.rs"]
+pub mod signed_transaction;
 
 #[path = "model/transaction.rs"]
 pub mod transaction;

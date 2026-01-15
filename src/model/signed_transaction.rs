@@ -8,31 +8,40 @@ pub struct SignedTransaction {
     pub signature: Signature,
 }
 
+#[cfg(test)]
 mod tests {
-    use crate::model::{signature::Signature,address::Address, signed_transaction::SignedTransaction, transaction::Transaction};
     use crate::crypto::sign;
-    use zerocopy::AsBytes;
+    use crate::model::{
+        address::Address, signature::Signature, signed_transaction::SignedTransaction,
+        transaction::Transaction,
+    };
     use crate::utils::{base36_to_bytes_32, bytes_to_base36};
+    use zerocopy::AsBytes;
 
     #[test]
     fn test_transaction() {
-        let private_key_bytes1 = base36_to_bytes_32("3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833");
-        let private_key_bytes2 = base36_to_bytes_32("1f1uklaakeqg1xhjlvnihhi5ipyu4kgoj7pq0uqkhajovr0pso");
+        let private_key_bytes1 =
+            base36_to_bytes_32("3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833");
+        let private_key_bytes2 =
+            base36_to_bytes_32("1f1uklaakeqg1xhjlvnihhi5ipyu4kgoj7pq0uqkhajovr0pso");
 
         let public_key1: [u8; 32] = private_key_bytes1
             .as_slice()
             .try_into()
             .expect("base36_to_bytes_32 must return 32 bytes");
 
-        let address1 = Address { public_key: public_key1 };
-        
+        let address1 = Address {
+            public_key: public_key1,
+        };
+
         let public_key2: [u8; 32] = private_key_bytes2
             .as_slice()
             .try_into()
             .expect("base36_to_bytes_32 must return 32 bytes");
 
-        let address2 = Address { public_key: public_key2 };
-        
+        let address2 = Address {
+            public_key: public_key2,
+        };
 
         let transaction = Transaction {
             from: address1,
@@ -60,7 +69,9 @@ mod tests {
         };
 
         let signed_transaction_bytes = signed_transaction.as_bytes();
-        println!("signed_transaction_bytes: {}", bytes_to_base36(&signed_transaction_bytes));
+        println!(
+            "signed_transaction_bytes: {}",
+            bytes_to_base36(&signed_transaction_bytes)
+        );
     }
-
 }
