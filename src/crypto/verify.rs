@@ -51,9 +51,7 @@ mod tests {
         };
         let signature = private_address.sign(&bytes);
 
-        let from_address = Address::new(Key::from_base36(
-            "3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833",
-        ));
+        let from_address = private_address.get_address();
         let verified = from_address.verify(&bytes, signature);
 
         assert!(verified);

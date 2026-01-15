@@ -32,6 +32,12 @@ impl FromBase36 for Signature {
 
 impl ToBase36 for Signature {}
 
+impl From<&Signature> for Vec<u8> {
+    fn from(value: &Signature) -> Self {
+        value.as_bytes().to_vec()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
