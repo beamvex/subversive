@@ -25,7 +25,7 @@ pub mod signature;
 
 /*
 pub use block::Block;
-pub use signed_transaction::SignedTransaction;
+
 pub use signed_block::SignedBlock;
 */
 
@@ -33,4 +33,5 @@ pub use address::Address;
 pub use key::Key;
 pub use private_address::PrivateAddress;
 pub use signature::Signature;
+pub use signed_transaction::SignedTransaction;
 pub use transaction::Transaction;
