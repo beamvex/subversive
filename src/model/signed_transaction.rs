@@ -1,5 +1,5 @@
 use crate::{
-    model::{signature::Signature, transaction::Transaction, PrivateAddress},
+    model::{address::Address, signature::Signature, transaction::Transaction, PrivateAddress},
     utils::ToBase36,
 };
 use zerocopy::{AsBytes, FromBytes, FromZeroes};
@@ -20,6 +20,11 @@ impl SignedTransaction {
             transaction,
             signature,
         }
+    }
+
+    pub fn verify(&self, public_address: &Address) -> bool {
+        let bytes: Vec<u8> = (&self.transaction).into();
+        public_address.verify(&bytes, &self.signature)
     }
 }
 
@@ -81,7 +86,10 @@ mod tests {
 
         let bytes = signed_transaction.as_bytes();
 
-        let parsed = SignedTransaction::read_from(bytes).unwrap();
-        println!("verified: {:?}", parsed);
+        let parsed_signed_transaction = SignedTransaction::read_from(bytes).unwrap();
+
+        let verified = parsed_signed_transaction.verify(&private_address.get_address());
+
+        println!("verified: {:?}", verified);
     }
 }

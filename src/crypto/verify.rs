@@ -6,7 +6,7 @@ use zerocopy::AsBytes;
 use crate::model::Address;
 
 impl Address {
-    pub fn verify(&self, data: &[u8], signature: crate::model::Signature) -> bool {
+    pub fn verify(&self, data: &[u8], signature: &crate::model::Signature) -> bool {
         let public_key: &[u8] = self.get_public_key().as_bytes();
         let verifying_key = VerifyingKey::from_bytes(
             public_key
@@ -52,7 +52,7 @@ mod tests {
         let signature = private_address.sign(&bytes);
 
         let from_address = private_address.get_address();
-        let verified = from_address.verify(&bytes, signature);
+        let verified = from_address.verify(&bytes, &signature);
 
         assert!(verified);
     }
