@@ -56,7 +56,7 @@ mod tests {
             0,
         );
 
-        let transaction = Transaction::new(transaction, &private_address);
+        let transaction = Transaction::new(transaction, &from_private_address);
 
         println!("transaction: {}", transaction.to_base36());
     }
@@ -73,7 +73,7 @@ mod tests {
             0,
         );
 
-        let transaction = Transaction::new(transaction, &private_address);
+        let transaction = Transaction::new(transaction, &from_private_address);
 
         println!("transaction: {}", transaction.to_base36());
 
@@ -81,7 +81,7 @@ mod tests {
 
         let parsed_transaction = Transaction::read_from(bytes).unwrap();
 
-        let verified = parsed_transaction.verify(&private_address.get_address());
+        let verified = parsed_transaction.verify(&from_private_address.get_address());
 
         println!("verified: {:?}", verified);
     }

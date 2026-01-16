@@ -36,6 +36,7 @@ mod tests {
 
     use super::*;
     use crate::model::transaction_data::TransactionData;
+    use crate::model::PrivateAddress;
     use crate::utils::ToBase36;
 
     #[test]

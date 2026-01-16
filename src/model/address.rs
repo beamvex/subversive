@@ -45,16 +45,12 @@ mod tests {
     #[test]
     fn test_verify() {
         let private_address = PrivateAddress::new();
-        let from_address = Address::new(Key::from_base36(
-            "3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833",
-        ));
-        let to_address = Address::new(Key::from_base36(
-            "1f1uklaakeqg1xhjlvnihhi5ipyu4kgoj7pq0uqkhajovr0pso",
-        ));
+        let from_address = private_address.get_address();
+        let to_address = private_address.get_address();
 
         let transaction = TransactionData::new(from_address, to_address, 1, 0);
 
-        let bytes: Vec<u8> = transaction.into();
+        let bytes: Vec<u8> = (&transaction).into();
         let signature = private_address.sign(&bytes);
 
         let from_address = private_address.get_address();

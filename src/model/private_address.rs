@@ -98,7 +98,7 @@ mod tests {
         let transaction = TransactionData::new(from_address, to_address, 1, 0);
 
         let bytes: Vec<u8> = (&transaction).into();
-        let signature = private_address.sign(&bytes);
+        let signature = from_private_address.sign(&bytes);
 
         println!("signature: {}", signature.to_base36());
     }
