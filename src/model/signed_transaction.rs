@@ -43,7 +43,7 @@ mod tests {
 
     #[test]
     fn test_signing_transaction() {
-        let private_address = PrivateAddress::generate();
+        let private_address = PrivateAddress::new();
         let from_address = Address::new(Key::from_base36(
             "3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833",
         ));
@@ -65,7 +65,7 @@ mod tests {
 
     #[test]
     fn test_verifying_transaction() {
-        let private_address = PrivateAddress::generate();
+        let private_address = PrivateAddress::new();
         let from_address = Address::new(Key::from_base36(
             "3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833",
         ));

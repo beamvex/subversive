@@ -1,5 +1,7 @@
 use crate::model::{address::Address, Key};
 use crate::utils::ToBase36;
+use ed25519_dalek::SigningKey;
+use rand_core::OsRng;
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned};
 
 #[repr(C)]
@@ -12,7 +14,10 @@ pub struct PrivateAddress {
 impl ToBase36 for PrivateAddress {}
 
 impl PrivateAddress {
-    pub fn new(private_key: Key, address: Address) -> Self {
+    pub fn new() -> Self {
+        let (private_key, public_key) = Self::generate_key();
+        let address = Address::new(public_key);
+
         PrivateAddress {
             private_key,
             address,
@@ -26,35 +31,25 @@ impl PrivateAddress {
     pub fn get_address(&self) -> &Address {
         &self.address
     }
+
+    fn generate_key() -> (Key, Key) {
+        let signing_key = SigningKey::generate(&mut OsRng);
+        let verifying_key = signing_key.verifying_key();
+
+        let private_key = Key::new(signing_key.to_bytes());
+        let public_key = Key::new(verifying_key.to_bytes());
+
+        (private_key, public_key)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::model::address::Address;
-    use crate::model::key::Key;
-    use crate::utils::{FromBase36, ToBase36};
-
-    #[test]
-    fn test_private_address() {
-        let public_key: Key =
-            Key::from_base36("3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833");
-
-        let private_key: Key =
-            Key::from_base36("3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833");
-
-        let address = Address::new(public_key);
-
-        let private_address = PrivateAddress::new(private_key, address);
-
-        let private_address_bytes = private_address.to_base36();
-
-        println!("private_address_bytes: {}", private_address_bytes);
-    }
 
     #[test]
     fn test_generate_key() {
-        let private_address = PrivateAddress::generate();
+        let private_address = PrivateAddress::new();
 
         println!(
             "1. private_key_b36: {}",

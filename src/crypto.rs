@@ -1,6 +1,3 @@
-#[path = "crypto/generate.rs"]
-pub mod generate;
-
 #[path = "crypto/sign.rs"]
 mod sign;
 
