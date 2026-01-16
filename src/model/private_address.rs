@@ -56,11 +56,9 @@ impl PrivateAddress {
 #[cfg(test)]
 mod tests {
 
-    use crate::model::address::Address;
-    use crate::model::key::Key;
     use crate::model::private_address::PrivateAddress;
     use crate::model::transaction_data::TransactionData;
-    use crate::utils::{FromBase36, ToBase36};
+    use crate::utils::ToBase36;
 
     #[test]
     fn test_generate_key() {
@@ -92,20 +90,12 @@ mod tests {
 
     #[test]
     fn test_sign() {
-        let private_address = PrivateAddress::new();
-        let from_address = Address::new(Key::from_base36(
-            "3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833",
-        ));
-        let to_address = Address::new(Key::from_base36(
-            "1f1uklaakeqg1xhjlvnihhi5ipyu4kgoj7pq0uqkhajovr0pso",
-        ));
+        let from_private_address = PrivateAddress::new();
+        let from_address = from_private_address.get_address();
+        let to_private_address = PrivateAddress::new();
+        let to_address = to_private_address.get_address();
 
-        let transaction = TransactionData {
-            from: from_address,
-            to: to_address,
-            amount: 1,
-            timestamp: 0,
-        };
+        let transaction = TransactionData::new(from_address, to_address, 1, 0);
 
         let bytes: Vec<u8> = (&transaction).into();
         let signature = private_address.sign(&bytes);

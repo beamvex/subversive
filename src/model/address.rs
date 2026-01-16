@@ -52,17 +52,9 @@ mod tests {
             "1f1uklaakeqg1xhjlvnihhi5ipyu4kgoj7pq0uqkhajovr0pso",
         ));
 
-        let transaction = TransactionData {
-            from: from_address,
-            to: to_address,
-            amount: 1,
-            timestamp: 0,
-        };
+        let transaction = TransactionData::new(from_address, to_address, 1, 0);
 
-        let bytes: Vec<u8> = {
-            let borrowed_transaction = &transaction;
-            borrowed_transaction.into()
-        };
+        let bytes: Vec<u8> = transaction.into();
         let signature = private_address.sign(&bytes);
 
         let from_address = private_address.get_address();

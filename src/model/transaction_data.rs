@@ -5,11 +5,22 @@ use zerocopy::{AsBytes, FromBytes, FromZeroes};
 #[repr(C)]
 #[derive(Debug, FromZeroes, FromBytes, AsBytes, Default)]
 pub struct TransactionData {
-    pub from: Address,
-    pub to: Address,
-    pub amount: u64,
+    from: Address,
+    to: Address,
+    amount: u64,
     /// Unix timestamp in seconds
-    pub timestamp: u64,
+    timestamp: u64,
+}
+
+impl TransactionData {
+    pub fn new(from: Address, to: Address, amount: u64, timestamp: u64) -> Self {
+        TransactionData {
+            from,
+            to,
+            amount,
+            timestamp,
+        }
+    }
 }
 
 impl ToBase36 for TransactionData {}
