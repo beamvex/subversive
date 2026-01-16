@@ -23,6 +23,9 @@ pub mod key;
 #[path = "model/signature.rs"]
 pub mod signature;
 
+#[path = "model/hash.rs"]
+pub mod hash;
+
 /*
 pub use block::Block;
 
@@ -30,6 +33,7 @@ pub use signed_block::SignedBlock;
 */
 
 pub use address::Address;
+pub use hash::Hash;
 pub use key::Key;
 pub use private_address::PrivateAddress;
 pub use signature::Signature;
