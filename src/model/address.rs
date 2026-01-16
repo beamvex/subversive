@@ -32,6 +32,15 @@ impl Address {
     }
 }
 
+impl From<&Address> for Address {
+    fn from(value: &Address) -> Self {
+        let public_key = value.get_public_key();
+        let mut destination = [0u8; 32];
+        destination.copy_from_slice(public_key.as_bytes());
+        Address::new(Key::new(destination))
+    }
+}
+
 #[cfg(test)]
 mod tests {
 

@@ -15,8 +15,8 @@ pub struct TransactionData {
 impl TransactionData {
     pub fn new(from: &Address, to: &Address, amount: u64, timestamp: u64) -> Self {
         TransactionData {
-            from,
-            to,
+            from: from.into(),
+            to: to.into(),
             amount,
             timestamp,
         }
