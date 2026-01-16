@@ -4,7 +4,7 @@ use zerocopy::{AsBytes, FromBytes, FromZeroes};
 
 #[repr(C)]
 #[derive(Debug, FromZeroes, FromBytes, AsBytes, Default)]
-pub struct Transaction {
+pub struct TransactionData {
     pub from: Address,
     pub to: Address,
     pub amount: u64,
@@ -12,10 +12,10 @@ pub struct Transaction {
     pub timestamp: u64,
 }
 
-impl ToBase36 for Transaction {}
+impl ToBase36 for TransactionData {}
 
-impl From<&Transaction> for Vec<u8> {
-    fn from(value: &Transaction) -> Self {
+impl From<&TransactionData> for Vec<u8> {
+    fn from(value: &TransactionData) -> Self {
         value.as_bytes().to_vec()
     }
 }
@@ -24,7 +24,7 @@ impl From<&Transaction> for Vec<u8> {
 mod tests {
     use crate::model::address::Address;
     use crate::model::key::Key;
-    use crate::model::transaction::Transaction;
+    use crate::model::transaction_data::TransactionData;
     use crate::utils::{FromBase36, ToBase36};
 
     #[test]
@@ -36,7 +36,7 @@ mod tests {
             "1f1uklaakeqg1xhjlvnihhi5ipyu4kgoj7pq0uqkhajovr0pso",
         ));
 
-        let transaction = Transaction {
+        let transaction = TransactionData {
             from: from_address,
             to: to_address,
             amount: 1,
@@ -57,7 +57,7 @@ mod tests {
             "1f1uklaakeqg1xhjlvnihhi5ipyu4kgoj7pq0uqkhajovr0pso",
         ));
 
-        let transaction = Transaction {
+        let transaction = TransactionData {
             from: from_address,
             to: to_address,
             amount: 1,

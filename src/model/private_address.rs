@@ -59,7 +59,7 @@ mod tests {
     use crate::model::address::Address;
     use crate::model::key::Key;
     use crate::model::private_address::PrivateAddress;
-    use crate::model::transaction::Transaction;
+    use crate::model::transaction_data::TransactionData;
     use crate::utils::{FromBase36, ToBase36};
 
     #[test]
@@ -100,7 +100,7 @@ mod tests {
             "1f1uklaakeqg1xhjlvnihhi5ipyu4kgoj7pq0uqkhajovr0pso",
         ));
 
-        let transaction = Transaction {
+        let transaction = TransactionData {
             from: from_address,
             to: to_address,
             amount: 1,

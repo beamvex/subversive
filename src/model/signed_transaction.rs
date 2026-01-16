@@ -1,5 +1,7 @@
 use crate::{
-    model::{address::Address, signature::Signature, transaction::Transaction, PrivateAddress},
+    model::{
+        address::Address, signature::Signature, transaction_data::TransactionData, PrivateAddress,
+    },
     utils::ToBase36,
 };
 use zerocopy::{AsBytes, FromBytes, FromZeroes};
@@ -7,12 +9,12 @@ use zerocopy::{AsBytes, FromBytes, FromZeroes};
 #[repr(C)]
 #[derive(Debug, FromZeroes, FromBytes, AsBytes, Default)]
 pub struct SignedTransaction {
-    transaction: Transaction,
+    transaction: TransactionData,
     signature: Signature,
 }
 
 impl SignedTransaction {
-    pub fn new(transaction: Transaction, private_address: &PrivateAddress) -> Self {
+    pub fn new(transaction: TransactionData, private_address: &PrivateAddress) -> Self {
         let bytes: Vec<u8> = (&transaction).into();
         let signature = private_address.sign(&bytes);
 
@@ -37,7 +39,7 @@ mod tests {
     use crate::model::address::Address;
     use crate::model::key::Key;
     use crate::model::private_address::PrivateAddress;
-    use crate::model::transaction::Transaction;
+    use crate::model::transaction_data::TransactionData;
     use crate::utils::{FromBase36, ToBase36};
     use zerocopy::AsBytes;
 
@@ -51,7 +53,7 @@ mod tests {
             "1f1uklaakeqg1xhjlvnihhi5ipyu4kgoj7pq0uqkhajovr0pso",
         ));
 
-        let transaction = Transaction {
+        let transaction = TransactionData {
             from: from_address,
             to: to_address,
             amount: 1,
@@ -73,7 +75,7 @@ mod tests {
             "1f1uklaakeqg1xhjlvnihhi5ipyu4kgoj7pq0uqkhajovr0pso",
         ));
 
-        let transaction = Transaction {
+        let transaction = TransactionData {
             from: from_address,
             to: to_address,
             amount: 1,
