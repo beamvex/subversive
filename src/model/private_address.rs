@@ -55,7 +55,6 @@ impl PrivateAddress {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
 
     use crate::model::address::Address;
     use crate::model::key::Key;
