@@ -5,8 +5,8 @@ pub mod block;
 #[path = "model/signed_block.rs"]
 pub mod signed_block;
 */
-#[path = "model/signed_transaction.rs"]
-pub mod signed_transaction;
+#[path = "model/transaction.rs"]
+pub mod transaction;
 
 #[path = "model/transaction_data.rs"]
 pub mod transaction_data;
@@ -37,5 +37,5 @@ pub use hash::Hash;
 pub use key::Key;
 pub use private_address::PrivateAddress;
 pub use signature::Signature;
-pub use signed_transaction::SignedTransaction;
+pub use transaction::Transaction;
 pub use transaction_data::TransactionData;

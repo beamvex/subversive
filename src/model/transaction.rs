@@ -8,12 +8,12 @@ use zerocopy::{AsBytes, FromBytes, FromZeroes};
 
 #[repr(C)]
 #[derive(Debug, FromZeroes, FromBytes, AsBytes, Default)]
-pub struct SignedTransaction {
+pub struct Transaction {
     transaction: TransactionData,
     signature: Signature,
 }
 
-impl SignedTransaction {
+impl Transaction {
     pub fn new(transaction: TransactionData, private_address: &PrivateAddress) -> Self {
         let bytes: Vec<u8> = (&transaction).into();
         let signature = private_address.sign(&bytes);
@@ -30,7 +30,7 @@ impl SignedTransaction {
     }
 }
 
-impl ToBase36 for SignedTransaction {}
+impl ToBase36 for Transaction {}
 
 #[cfg(test)]
 mod tests {
@@ -60,9 +60,9 @@ mod tests {
             timestamp: 0,
         };
 
-        let signed_transaction = SignedTransaction::new(transaction, &private_address);
+        let transaction = Transaction::new(transaction, &private_address);
 
-        println!("signed_transaction: {}", signed_transaction.to_base36());
+        println!("transaction: {}", transaction.to_base36());
     }
 
     #[test]
@@ -82,15 +82,15 @@ mod tests {
             timestamp: 0,
         };
 
-        let signed_transaction = SignedTransaction::new(transaction, &private_address);
+        let transaction = Transaction::new(transaction, &private_address);
 
-        println!("signed_transaction: {}", signed_transaction.to_base36());
+        println!("transaction: {}", transaction.to_base36());
 
-        let bytes = signed_transaction.as_bytes();
+        let bytes = transaction.as_bytes();
 
-        let parsed_signed_transaction = SignedTransaction::read_from(bytes).unwrap();
+        let parsed_transaction = Transaction::read_from(bytes).unwrap();
 
-        let verified = parsed_signed_transaction.verify(&private_address.get_address());
+        let verified = parsed_transaction.verify(&private_address.get_address());
 
         println!("verified: {:?}", verified);
     }
