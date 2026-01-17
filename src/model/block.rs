@@ -28,19 +28,24 @@ mod tests {
         assert_eq!(block.previous_hash, "previous_hash");
         assert_eq!(block.hash, "hash");
 
+        let start = std::time::Instant::now();
         const TRANSACTION_COUNT: usize = 50000;
 
-        for _ in 0..TRANSACTION_COUNT {
-            let transaction = create_transaction();
-            block.transactions.push(transaction);
-        }
-        assert_eq!(block.transactions.len(), TRANSACTION_COUNT);
-    }
-
-    fn create_transaction() -> Transaction {
         let from_private_address = PrivateAddress::new();
         let to_private_address = PrivateAddress::new();
 
+        for _ in 0..TRANSACTION_COUNT {
+            let transaction = create_transaction(&from_private_address, &to_private_address);
+            block.transactions.push(transaction);
+        }
+        assert_eq!(block.transactions.len(), TRANSACTION_COUNT);
+        println!("Time taken: {} seconds", start.elapsed().as_secs());
+    }
+
+    fn create_transaction(
+        from_private_address: &PrivateAddress,
+        to_private_address: &PrivateAddress,
+    ) -> Transaction {
         let transaction = TransactionData::new(
             from_private_address.get_address(),
             to_private_address.get_address(),
