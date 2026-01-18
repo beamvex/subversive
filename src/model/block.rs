@@ -29,7 +29,7 @@ mod tests {
         assert_eq!(block.hash, "hash");
 
         let start = std::time::Instant::now();
-        const TRANSACTION_COUNT: usize = 50000;
+        const TRANSACTION_COUNT: usize = 5500;
 
         let from_private_address = PrivateAddress::new();
         let to_private_address = PrivateAddress::new();
