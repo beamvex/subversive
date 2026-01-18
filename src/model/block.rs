@@ -1,10 +1,56 @@
-use crate::model::transaction::Transaction;
+use crate::model::{transaction::Transaction, Hash, Signature};
+
+pub struct BlockHeader {
+    version: [u8; 1],
+    algo: [u8; 8],
+    id: Hash,
+    timestamp: u64,
+    previous_hash: Hash,
+}
+
+pub struct BlockData {
+    hash: Hash,
+    header: BlockHeader,
+    transactions: Vec<Transaction>,
+}
 
 pub struct Block {
-    timestamp: u64,
-    transactions: Vec<Transaction>,
-    previous_hash: String,
-    hash: String,
+    data: BlockData,
+    signature: Signature,
+}
+
+impl BlockHeader {
+    pub fn new(
+        version: [u8; 1],
+        algo: [u8; 8],
+        id: Hash,
+        timestamp: u64,
+        previous_hash: Hash,
+    ) -> Self {
+        Self {
+            version,
+            algo,
+            id,
+            timestamp,
+            previous_hash,
+        }
+    }
+}
+
+impl BlockData {
+    pub fn new(hash: Hash, header: BlockHeader, transactions: Vec<Transaction>) -> Self {
+        Self {
+            hash,
+            header,
+            transactions,
+        }
+    }
+}
+
+impl Block {
+    pub fn new(data: BlockData, signature: Signature) -> Self {
+        Self { data, signature }
+    }
 }
 
 #[cfg(test)]
@@ -12,21 +58,31 @@ mod tests {
     use super::*;
     use crate::model::private_address::PrivateAddress;
     use crate::model::transaction_data::TransactionData;
-    use crate::utils::ToBase36;
+    use crate::utils::{FromBase36, ToBase36};
     use zerocopy::AsBytes;
 
     #[test]
     fn test_block() {
-        let mut block = Block {
-            timestamp: 1234567890,
-            transactions: vec![],
-            previous_hash: "previous_hash".to_string(),
-            hash: "hash".to_string(),
-        };
-        assert_eq!(block.timestamp, 1234567890);
+        let data = BlockData::new(
+            Hash::from_base36("hash").unwrap(),
+            BlockHeader::new(
+                [1],
+                [0; 8],
+                Hash::from_base36("id").unwrap(),
+                1234567890,
+                Hash::from_base36("previous_hash").unwrap(),
+            ),
+            vec![],
+        );
+        let signature = Signature::from_base36("signature").unwrap();
+        let mut block = Block::new(data, signature);
+        assert_eq!(block.data.header.timestamp, 1234567890);
 
-        assert_eq!(block.previous_hash, "previous_hash");
-        assert_eq!(block.hash, "hash");
+        assert_eq!(
+            block.data.header.previous_hash,
+            Hash::from_base36("previous_hash").unwrap()
+        );
+        assert_eq!(block.data.hash, Hash::from_base36("hash").unwrap());
 
         let start = std::time::Instant::now();
         const TRANSACTION_COUNT: usize = 5500;
@@ -36,9 +92,9 @@ mod tests {
 
         for _ in 0..TRANSACTION_COUNT {
             let transaction = create_transaction(&from_private_address, &to_private_address);
-            block.transactions.push(transaction);
+            block.data.transactions.push(transaction);
         }
-        assert_eq!(block.transactions.len(), TRANSACTION_COUNT);
+        assert_eq!(block.data.transactions.len(), TRANSACTION_COUNT);
         println!("Time taken: {} seconds", start.elapsed().as_secs());
     }
 
