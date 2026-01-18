@@ -64,25 +64,28 @@ mod tests {
     #[test]
     fn test_block() {
         let data = BlockData::new(
-            Hash::from_base36("hash"),
+            Hash::from_base36("123"),
             BlockHeader::new(
                 [1],
                 [0; 8],
-                Hash::from_base36("id"),
+                Hash::from_base36("456"),
                 1234567890,
-                Hash::from_base36("previous_hash"),
+                Hash::from_base36("789"),
             ),
             vec![],
         );
-        let signature = Signature::from_base36("signature");
+        let signature = Signature::from_base36("012");
         let mut block = Block::new(data, signature);
         assert_eq!(block.data.header.timestamp, 1234567890);
 
         assert_eq!(
-            block.data.header.previous_hash,
-            Hash::from_base36("previous_hash")
+            block.data.header.previous_hash.as_bytes(),
+            Hash::from_base36("789").as_bytes()
         );
-        assert_eq!(block.data.hash, Hash::from_base36("hash"));
+        assert_eq!(
+            block.data.hash.as_bytes(),
+            Hash::from_base36("123").as_bytes()
+        );
 
         let start = std::time::Instant::now();
         const TRANSACTION_COUNT: usize = 5500;
