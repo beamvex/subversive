@@ -1,10 +1,13 @@
 use crate::model::{transaction::Transaction, Hash, Signature};
+use zerocopy::{AsBytes, FromBytes, FromZeroes};
 
+#[repr(C)]
+#[derive(Debug, FromZeroes, FromBytes, AsBytes, Default)]
 pub struct BlockHeader {
     version: [u8; 1],
     algo: [u8; 8],
     id: Hash,
-    timestamp: u64,
+    timestamp: [u8; 8],
     previous_hash: Hash,
 }
 
@@ -31,9 +34,13 @@ impl BlockHeader {
             version,
             algo,
             id,
-            timestamp,
+            timestamp: timestamp.to_le_bytes(),
             previous_hash,
         }
+    }
+
+    pub fn timestamp(&self) -> u64 {
+        u64::from_le_bytes(self.timestamp)
     }
 }
 
@@ -58,8 +65,7 @@ mod tests {
     use super::*;
     use crate::model::private_address::PrivateAddress;
     use crate::model::transaction_data::TransactionData;
-    use crate::utils::{FromBase36, ToBase36};
-    use zerocopy::AsBytes;
+    use crate::utils::FromBase36;
 
     #[test]
     fn test_block() {
@@ -76,7 +82,7 @@ mod tests {
         );
         let signature = Signature::from_base36("012");
         let mut block = Block::new(data, signature);
-        assert_eq!(block.data.header.timestamp, 1234567890);
+        assert_eq!(block.data.header.timestamp(), 1234567890);
 
         assert_eq!(
             block.data.header.previous_hash.as_bytes(),
