@@ -1,3 +1,5 @@
+use std::io::{Read, Write};
+
 use crate::{
     model::{
         address::Address, signature::Signature, transaction_data::TransactionData, Hash,
@@ -30,6 +32,19 @@ impl Transaction {
     pub fn verify(&self, public_address: &Address) -> bool {
         let bytes: Vec<u8> = (&self.data).into();
         public_address.verify(&bytes, &self.signature)
+    }
+
+    pub fn save(&self) {
+        let bytes: Vec<u8> = self.as_bytes().to_vec();
+        let mut file = std::fs::File::create("transaction.bin").unwrap();
+        file.write_all(&bytes).unwrap();
+    }
+
+    pub fn load() -> Self {
+        let mut file = std::fs::File::open("transaction.bin").unwrap();
+        let mut bytes = Vec::new();
+        file.read_to_end(&mut bytes).unwrap();
+        Self::read_from(&bytes).unwrap()
     }
 }
 
@@ -82,6 +97,41 @@ mod tests {
         let parsed_transaction = Transaction::read_from(bytes).unwrap();
 
         let verified = parsed_transaction.verify(&from_private_address.get_address());
+
+        println!("verified: {:?}", verified);
+    }
+
+    #[test]
+    fn test_save_transaction() {
+        let from_private_address = PrivateAddress::new();
+        let to_private_address = PrivateAddress::new();
+
+        let transaction = TransactionData::new(
+            from_private_address.get_address(),
+            to_private_address.get_address(),
+            1,
+            0,
+        );
+
+        let transaction = Transaction::new(transaction, &from_private_address);
+
+        println!("transaction: {}", transaction.to_base36());
+
+        let bytes = transaction.as_bytes();
+
+        let parsed_transaction = Transaction::read_from(bytes).unwrap();
+
+        let verified = parsed_transaction.verify(&from_private_address.get_address());
+
+        println!("verified: {:?}", verified);
+
+        transaction.save();
+
+        let loaded_transaction = Transaction::load();
+
+        println!("loaded_transaction: {}", loaded_transaction.to_base36());
+
+        let verified = loaded_transaction.verify(&from_private_address.get_address());
 
         println!("verified: {:?}", verified);
     }
