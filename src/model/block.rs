@@ -1,6 +1,4 @@
-use crate::model::{
-    block_data::BlockData, block_header::BlockHeader, transaction::Transaction, Hash, Signature,
-};
+use crate::model::{block_data::BlockData, signature::Signature};
 
 pub struct Block {
     data: BlockData,
@@ -15,12 +13,19 @@ impl Block {
     pub fn get_data(&mut self) -> &mut BlockData {
         &mut self.data
     }
+
+    pub fn get_signature(&self) -> &Signature {
+        &self.signature
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::model::block_header::BlockHeader;
+    use crate::model::hash::Hash;
     use crate::model::private_address::PrivateAddress;
+    use crate::model::transaction::Transaction;
     use crate::model::transaction_data::TransactionData;
     use crate::utils::FromBase36;
     use zerocopy::AsBytes;
