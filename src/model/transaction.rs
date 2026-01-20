@@ -135,6 +135,19 @@ mod tests {
 
         println!("verified: {:?}", verified);
 
+        let ts = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis();
+        let db_path = format!("./tmp/db_{}", ts);
+        crate::config::CONFIG.with(|config| {
+            config.borrow_mut().set_db_path(db_path);
+        });
+        println!(
+            "db_path: {}",
+            crate::config::CONFIG.with(|config| config.borrow().get_db_path().clone())
+        );
+
         transaction.save();
 
         let loaded_transaction = Transaction::load();
