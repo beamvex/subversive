@@ -1,27 +1,29 @@
 use std::cell::RefCell;
 
-pub struct Config<'a> {
-    db_path: &'a str,
+pub struct Config {
+    db_path: String,
 }
 
-impl Default for Config<'static> {
+impl Default for Config {
     fn default() -> Self {
-        Self { db_path: "db" }
+        Self {
+            db_path: "db".to_string(),
+        }
     }
 }
 
-impl Config<'static> {
-    pub fn get_db_path(&self) -> &'static str {
-        self.db_path
+impl Config {
+    pub fn get_db_path(&self) -> &String {
+        &self.db_path
     }
 
-    pub fn set_db_path(&mut self, db_path: &'static str) {
-        self.db_path = db_path;
+    pub fn set_db_path(&mut self, db_path: &str) {
+        self.db_path = db_path.to_string();
     }
 }
 
 thread_local! {
-    pub static CONFIG: RefCell<Config<'static>> = RefCell::new(Config::default());
+    pub static CONFIG: RefCell<Config> = RefCell::new(Config::default());
 }
 
 #[cfg(test)]

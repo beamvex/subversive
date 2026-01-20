@@ -35,7 +35,7 @@ impl Transaction {
     }
 
     pub fn save(&self) {
-        let db_path = crate::config::CONFIG.with(|config| config.borrow().get_db_path());
+        let db_path = crate::config::CONFIG.with(|config| config.borrow().get_db_path().clone());
         let file_path = format!("{}/transaction.bin", db_path);
 
         std::fs::create_dir_all(&db_path).unwrap();
@@ -46,10 +46,14 @@ impl Transaction {
     }
 
     pub fn load() -> Self {
-        let db_path = crate::config::CONFIG.with(|config| config.borrow().get_db_path());
+        let db_path = crate::config::CONFIG.with(|config| {
+            let config_ref = config.borrow();
+            let db_path = config_ref.get_db_path();
+            db_path.clone()
+        });
         let file_path = format!("{}/transaction.bin", db_path);
 
-        std::fs::create_dir_all(db_path).unwrap();
+        std::fs::create_dir_all(&db_path).unwrap();
 
         let mut file = std::fs::File::open(file_path).unwrap();
         let mut bytes = Vec::new();
@@ -141,7 +145,7 @@ mod tests {
         });
         println!(
             "db_path: {}",
-            crate::config::CONFIG.with(|config| config.borrow().get_db_path())
+            crate::config::CONFIG.with(|config| config.borrow().get_db_path().clone())
         );
 
         transaction.save();
