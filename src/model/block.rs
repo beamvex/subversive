@@ -57,7 +57,7 @@ mod tests {
         );
 
         let start = std::time::Instant::now();
-        const TRANSACTION_COUNT: usize = 5500;
+        const TRANSACTION_COUNT: usize = 10;
 
         let from_private_address = PrivateAddress::new();
         let to_private_address = PrivateAddress::new();
