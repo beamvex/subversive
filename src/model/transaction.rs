@@ -35,13 +35,23 @@ impl Transaction {
     }
 
     pub fn save(&self) {
+        let db_path = crate::config::CONFIG.with(|config| config.borrow().get_db_path().clone());
+        let file_path = format!("{}/transaction.bin", db_path);
+
+        std::fs::create_dir_all(&db_path).unwrap();
+
         let bytes: Vec<u8> = self.as_bytes().to_vec();
-        let mut file = std::fs::File::create("transaction.bin").unwrap();
+        let mut file = std::fs::File::create(file_path).unwrap();
         file.write_all(&bytes).unwrap();
     }
 
     pub fn load() -> Self {
-        let mut file = std::fs::File::open("transaction.bin").unwrap();
+        let db_path = crate::config::CONFIG.with(|config| config.borrow().get_db_path().clone());
+        let file_path = format!("{}/transaction.bin", db_path);
+
+        std::fs::create_dir_all(&db_path).unwrap();
+
+        let mut file = std::fs::File::open(file_path).unwrap();
         let mut bytes = Vec::new();
         file.read_to_end(&mut bytes).unwrap();
         Self::read_from(&bytes).unwrap()
