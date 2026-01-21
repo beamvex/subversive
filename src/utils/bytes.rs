@@ -8,7 +8,6 @@ pub trait ToBase36 {
         Self: AsBytes,
     {
         let bytes = self.as_bytes();
-        
 
         if bytes.is_empty() {
             return "0".to_string();

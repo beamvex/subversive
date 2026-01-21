@@ -1,4 +1,6 @@
 use crate::model::{block_data::BlockData, signature::Signature};
+use crate::utils::ToBase36;
+use zerocopy::AsBytes;
 
 pub struct Block {
     data: BlockData,
@@ -16,6 +18,23 @@ impl Block {
 
     pub fn get_signature(&self) -> &Signature {
         &self.signature
+    }
+}
+
+impl From<&mut Block> for Vec<u8> {
+    fn from(value: &mut Block) -> Vec<u8> {
+        let mut result = Vec::new();
+        let data_bytes: Vec<u8> = value.get_data().into();
+        result.extend_from_slice(&data_bytes);
+        result.extend_from_slice(value.get_signature().as_bytes());
+        result
+    }
+}
+
+impl ToBase36 for Block {
+    fn to_base36(&self) -> String {
+        let bytes: Vec<u8> = self.into();
+        base36::encode(&bytes)
     }
 }
 
@@ -56,7 +75,7 @@ mod tests {
         );
 
         let start = std::time::Instant::now();
-        const TRANSACTION_COUNT: usize = 10;
+        const TRANSACTION_COUNT: usize = 20;
 
         let from_private_address = PrivateAddress::default();
         let to_private_address = PrivateAddress::default();
@@ -67,6 +86,12 @@ mod tests {
         }
         assert_eq!(block.get_data().get_transactions().len(), TRANSACTION_COUNT);
         println!("Time taken: {} seconds", start.elapsed().as_secs());
+
+        let block_bytes: Vec<u8> = (&mut block).into();
+        println!("Block bytes: {}", block_bytes.len());
+
+        let block_base36 = block.to_base36();
+        println!("Block base36: {}", block_base36);
     }
 
     fn create_transaction(

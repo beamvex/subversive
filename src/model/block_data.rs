@@ -1,4 +1,5 @@
 use crate::model::{block_header::BlockHeader, hash::Hash, transaction::Transaction};
+use zerocopy::AsBytes;
 
 pub struct BlockData {
     hash: Hash,
@@ -25,5 +26,15 @@ impl BlockData {
 
     pub fn get_transactions(&mut self) -> &mut Vec<Transaction> {
         &mut self.transactions
+    }
+}
+
+impl From<&mut BlockData> for Vec<u8> {
+    fn from(value: &mut BlockData) -> Vec<u8> {
+        let mut result = Vec::new();
+        result.extend_from_slice(value.get_hash().as_bytes());
+        result.extend_from_slice(value.get_header().as_bytes());
+        result.extend_from_slice(value.get_transactions().as_bytes());
+        result
     }
 }
