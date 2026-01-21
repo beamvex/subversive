@@ -17,17 +17,12 @@ impl FromBase36 for Hash {
 }
 
 impl Hash {
-    pub fn new(bytes: [u8; 32]) -> Self {
-        Hash { bytes }
-    }
-}
-
-impl Hash {
     pub fn from_bytes(bytes: &[u8]) -> Self {
         let mut hasher = Keccak256::default();
         hasher.update(bytes);
         let result = hasher.finalize();
-        Hash::new(result.into())
+        let bytes = result.into();
+        Hash { bytes }
     }
 }
 
