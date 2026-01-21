@@ -40,8 +40,8 @@ impl PrivateAddress {
         let signing_key = SigningKey::generate(&mut OsRng);
         let verifying_key = signing_key.verifying_key();
 
-        let private_key = Key::new(signing_key.to_bytes());
-        let public_key = Key::new(verifying_key.to_bytes());
+        let private_key = Key::from(signing_key.to_bytes());
+        let public_key = Key::from(verifying_key.to_bytes());
 
         (private_key, public_key)
     }

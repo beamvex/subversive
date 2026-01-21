@@ -8,10 +8,6 @@ pub struct Key {
 }
 
 impl Key {
-    pub fn new(bytes: [u8; 32]) -> Self {
-        Key { bytes }
-    }
-
     pub fn get_bytes(&self) -> &[u8; 32] {
         &self.bytes
     }
@@ -22,6 +18,12 @@ impl ToBase36 for Key {}
 impl FromBase36 for Key {
     fn from_bytes(bytes: &[u8]) -> Self {
         Key::read_from(bytes).unwrap()
+    }
+}
+
+impl From<[u8; 32]> for Key {
+    fn from(bytes: [u8; 32]) -> Self {
+        Key { bytes }
     }
 }
 
