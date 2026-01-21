@@ -7,7 +7,7 @@ use rand_core::OsRng;
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned};
 
 #[repr(C)]
-#[derive(Debug, Default, FromZeroes, FromBytes, AsBytes, Unaligned)]
+#[derive(Debug, FromZeroes, FromBytes, AsBytes, Unaligned)]
 pub struct PrivateAddress {
     private_key: Key,
     address: Address,
@@ -15,8 +15,8 @@ pub struct PrivateAddress {
 
 impl ToBase36 for PrivateAddress {}
 
-impl PrivateAddress {
-    pub fn new() -> Self {
+impl Default for PrivateAddress {
+    fn default() -> Self {
         let (private_key, public_key) = Self::generate_key();
         let address = Address::new(public_key);
 
@@ -25,7 +25,9 @@ impl PrivateAddress {
             address,
         }
     }
+}
 
+impl PrivateAddress {
     pub fn get_private_key(&self) -> &Key {
         &self.private_key
     }
@@ -62,7 +64,7 @@ mod tests {
 
     #[test]
     fn test_generate_key() {
-        let private_address = PrivateAddress::new();
+        let private_address = PrivateAddress::default();
 
         println!(
             "1. private_key_b36: {}",
@@ -90,9 +92,9 @@ mod tests {
 
     #[test]
     fn test_sign() {
-        let from_private_address = PrivateAddress::new();
+        let from_private_address = PrivateAddress::default();
         let from_address = from_private_address.get_address();
-        let to_private_address = PrivateAddress::new();
+        let to_private_address = PrivateAddress::default();
         let to_address = to_private_address.get_address();
 
         let transaction = TransactionData::new(from_address, to_address, 1, 0);

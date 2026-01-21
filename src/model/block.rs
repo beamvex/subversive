@@ -58,8 +58,8 @@ mod tests {
         let start = std::time::Instant::now();
         const TRANSACTION_COUNT: usize = 10;
 
-        let from_private_address = PrivateAddress::new();
-        let to_private_address = PrivateAddress::new();
+        let from_private_address = PrivateAddress::default();
+        let to_private_address = PrivateAddress::default();
 
         for _ in 0..TRANSACTION_COUNT {
             let transaction = create_transaction(&from_private_address, &to_private_address);

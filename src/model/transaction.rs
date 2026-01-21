@@ -77,8 +77,8 @@ mod tests {
 
     #[test]
     fn test_signing_transaction() {
-        let from_private_address = PrivateAddress::new();
-        let to_private_address = PrivateAddress::new();
+        let from_private_address = PrivateAddress::default();
+        let to_private_address = PrivateAddress::default();
 
         let transaction =
             Transaction::new(&from_private_address, &to_private_address.get_address(), 1);
@@ -88,8 +88,8 @@ mod tests {
 
     #[test]
     fn test_verifying_transaction() {
-        let from_private_address = PrivateAddress::new();
-        let to_private_address = PrivateAddress::new();
+        let from_private_address = PrivateAddress::default();
+        let to_private_address = PrivateAddress::default();
 
         let transaction =
             Transaction::new(&from_private_address, &to_private_address.get_address(), 1);
@@ -107,8 +107,8 @@ mod tests {
 
     #[test]
     fn test_save_transaction() {
-        let from_private_address = PrivateAddress::new();
-        let to_private_address = PrivateAddress::new();
+        let from_private_address = PrivateAddress::default();
+        let to_private_address = PrivateAddress::default();
 
         let transaction =
             Transaction::new(&from_private_address, &to_private_address.get_address(), 1);

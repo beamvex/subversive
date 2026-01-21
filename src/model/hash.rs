@@ -41,9 +41,9 @@ mod tests {
 
     #[test]
     fn test_hash() {
-        let from_private_address = PrivateAddress::new();
+        let from_private_address = PrivateAddress::default();
         let from_address = from_private_address.get_address();
-        let to_private_address = PrivateAddress::new();
+        let to_private_address = PrivateAddress::default();
         let to_address = to_private_address.get_address();
 
         let transaction = TransactionData::new(from_address, to_address, 1, 0);

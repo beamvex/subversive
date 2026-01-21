@@ -53,7 +53,7 @@ mod tests {
 
     #[test]
     fn test_verify() {
-        let private_address = PrivateAddress::new();
+        let private_address = PrivateAddress::default();
         let from_address = private_address.get_address();
         let to_address = private_address.get_address();
 
