@@ -26,7 +26,6 @@ mod tests {
     use crate::model::hash::Hash;
     use crate::model::private_address::PrivateAddress;
     use crate::model::transaction::Transaction;
-    use crate::model::transaction_data::TransactionData;
     use crate::utils::FromBase36;
     use zerocopy::AsBytes;
 
@@ -74,14 +73,8 @@ mod tests {
         from_private_address: &PrivateAddress,
         to_private_address: &PrivateAddress,
     ) -> Transaction {
-        let transaction = TransactionData::new(
-            from_private_address.get_address(),
-            to_private_address.get_address(),
-            1,
-            0,
-        );
-
-        let transaction = Transaction::new(transaction, &from_private_address);
+        let transaction =
+            Transaction::new(&from_private_address, &to_private_address.get_address(), 1);
 
         //println!("transaction: {}", transaction.to_base36());
         transaction

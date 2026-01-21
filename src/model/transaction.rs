@@ -18,7 +18,10 @@ pub struct Transaction {
 }
 
 impl Transaction {
-    pub fn new(transaction: TransactionData, private_address: &PrivateAddress) -> Self {
+    pub fn new(private_address: &PrivateAddress, to_address: &Address, amount: u64) -> Self {
+        let transaction =
+            TransactionData::new(private_address.get_address(), to_address, amount, 0);
+
         let bytes: Vec<u8> = (&transaction).into();
         let signature = private_address.sign(&bytes);
 
@@ -69,7 +72,6 @@ mod tests {
 
     use super::*;
     use crate::model::private_address::PrivateAddress;
-    use crate::model::transaction_data::TransactionData;
     use crate::utils::ToBase36;
     use zerocopy::AsBytes;
 
@@ -78,14 +80,8 @@ mod tests {
         let from_private_address = PrivateAddress::new();
         let to_private_address = PrivateAddress::new();
 
-        let transaction = TransactionData::new(
-            from_private_address.get_address(),
-            to_private_address.get_address(),
-            1,
-            0,
-        );
-
-        let transaction = Transaction::new(transaction, &from_private_address);
+        let transaction =
+            Transaction::new(&from_private_address, &to_private_address.get_address(), 1);
 
         println!("transaction: {}", transaction.to_base36());
     }
@@ -95,14 +91,8 @@ mod tests {
         let from_private_address = PrivateAddress::new();
         let to_private_address = PrivateAddress::new();
 
-        let transaction = TransactionData::new(
-            from_private_address.get_address(),
-            to_private_address.get_address(),
-            1,
-            0,
-        );
-
-        let transaction = Transaction::new(transaction, &from_private_address);
+        let transaction =
+            Transaction::new(&from_private_address, &to_private_address.get_address(), 1);
 
         println!("transaction: {}", transaction.to_base36());
 
@@ -120,14 +110,8 @@ mod tests {
         let from_private_address = PrivateAddress::new();
         let to_private_address = PrivateAddress::new();
 
-        let transaction = TransactionData::new(
-            from_private_address.get_address(),
-            to_private_address.get_address(),
-            1,
-            0,
-        );
-
-        let transaction = Transaction::new(transaction, &from_private_address);
+        let transaction =
+            Transaction::new(&from_private_address, &to_private_address.get_address(), 1);
 
         println!("transaction: {}", transaction.to_base36());
 
