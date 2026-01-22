@@ -1,5 +1,6 @@
+use crate::model::Base36;
 use crate::model::{address::Address, Key, Signature};
-use crate::utils::ToBase36;
+use crate::utils::to_base36;
 use ed25519_dalek::Signer;
 use ed25519_dalek::SigningKey;
 
@@ -13,7 +14,11 @@ pub struct PrivateAddress {
     address: Address,
 }
 
-impl ToBase36 for PrivateAddress {}
+impl From<&PrivateAddress> for Base36 {
+    fn from(private_address: &PrivateAddress) -> Self {
+        Base36::new(to_base36(&private_address.private_key.to_bytes()))
+    }
+}
 
 impl Default for PrivateAddress {
     fn default() -> Self {
@@ -58,22 +63,18 @@ impl PrivateAddress {
 #[cfg(test)]
 mod tests {
 
-    use crate::model::private_address::PrivateAddress;
+    use super::*;
     use crate::model::transaction_data::TransactionData;
-    use crate::utils::ToBase36;
 
     #[test]
     fn test_generate_key() {
         let private_address = PrivateAddress::default();
 
-        println!(
-            "1. private_key_b36: {}",
-            private_address.get_private_key().to_base36()
-        );
-        println!(
-            "2. public_key_b36: {}",
-            private_address.get_address().get_public_key().to_base36()
-        );
+        let private_address_b36: Base36 = (&private_address).into();
+        let public_address_b36: Base36 = private_address.get_address().into();
+
+        println!("1. private_key_b36: {}", private_address_b36);
+        println!("2. public_key_b36: {}", public_address_b36);
 
         assert_eq!(private_address.get_private_key().get_bytes().len(), 32);
         assert_eq!(
@@ -85,9 +86,7 @@ mod tests {
             32
         );
 
-        let private_address_bytes = private_address.to_base36();
-
-        println!("private_address_bytes: {}", private_address_bytes);
+        println!("private_address_bytes: {}", private_address_b36);
     }
 
     #[test]
@@ -102,6 +101,7 @@ mod tests {
         let bytes: Vec<u8> = (&transaction).into();
         let signature = from_private_address.sign(&bytes);
 
-        println!("signature: {}", signature.to_base36());
+        let signature_b36: Base36 = (&signature).into();
+        println!("signature: {}", signature_b36);
     }
 }
