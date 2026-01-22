@@ -1,4 +1,7 @@
-use crate::utils::{FromBase36, ToBase36};
+use crate::{
+    model::Base36,
+    utils::{to_base36, FromBase36},
+};
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned};
 
 #[repr(C)]
@@ -30,11 +33,15 @@ impl FromBase36 for Signature {
     }
 }
 
-impl ToBase36 for Signature {}
-
 impl From<&Signature> for Vec<u8> {
     fn from(value: &Signature) -> Self {
         value.as_bytes().to_vec()
+    }
+}
+
+impl From<Signature> for Base36 {
+    fn from(signature: Signature) -> Self {
+        Base36::new(to_base36(&signature.get_signature().to_vec()))
     }
 }
 
@@ -52,10 +59,10 @@ mod tests {
         let sig = signing_key.sign(data).to_bytes();
 
         let signature = Signature::new(sig);
-        let b36 = signature.to_base36();
+        let b36: Base36 = signature.into();
         println!("signature_b36: {}", b36);
 
-        let signature2 = Signature::from_base36(&b36);
+        let signature2 = Signature::from_base36(&b36.into());
         assert_eq!(signature.get_signature(), signature2.get_signature());
     }
 }

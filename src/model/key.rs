@@ -1,4 +1,5 @@
-use crate::utils::{FromBase36, ToBase36};
+use crate::model::Base36;
+use crate::utils::{to_base36, FromBase36};
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned};
 
 #[repr(C)]
@@ -12,8 +13,6 @@ impl Key {
         &self.bytes
     }
 }
-
-impl ToBase36 for Key {}
 
 impl FromBase36 for Key {
     fn from_bytes(bytes: &[u8]) -> Self {
@@ -29,7 +28,7 @@ impl From<[u8; 32]> for Key {
 
 impl From<Key> for Base36 {
     fn from(key: Key) -> Self {
-        Base36::new(key.to_base36())
+        Base36::new(to_base36(&key.to_bytes()))
     }
 }
 

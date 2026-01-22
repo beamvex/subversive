@@ -1,6 +1,6 @@
-use crate::model::key::Key;
-use crate::model::Signature;
-use crate::utils::ToBase36;
+use crate::model::{Base36, Signature};
+use crate::{model::key::Key, utils::to_base36};
+
 use ed25519_dalek::{Signature as Ed25519Signature, Verifier, VerifyingKey};
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned};
 
@@ -9,8 +9,6 @@ use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned};
 pub struct Address {
     public_key: Key,
 }
-
-impl ToBase36 for Address {}
 
 impl Address {
     pub fn new(public_key: Key) -> Self {
@@ -41,6 +39,12 @@ impl From<&Address> for Address {
     }
 }
 
+impl From<Address> for Base36 {
+    fn from(address: Address) -> Self {
+        Base36::new(to_base36(&address.get_public_key().to_bytes()))
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -49,7 +53,7 @@ mod tests {
     use crate::model::private_address::PrivateAddress;
     use crate::model::transaction_data::TransactionData;
 
-    use crate::utils::{FromBase36, ToBase36};
+    use crate::utils::FromBase36;
 
     #[test]
     fn test_verify() {
@@ -74,7 +78,7 @@ mod tests {
 
         let address = Address::new(public_key);
 
-        let address_bytes = address.to_base36();
+        let address_bytes: Base36 = address.into();
 
         println!("address_bytes: {}", address_bytes);
     }
