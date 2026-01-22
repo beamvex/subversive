@@ -2,12 +2,12 @@ use zerocopy::AsBytes;
 
 const ALPHABET: &[u8; 36] = b"0123456789abcdefghijklmnopqrstuvwxyz";
 
-pub trait ToBase36 {
+pub trait ToBase36<'a> {
     fn to_base36(&self) -> String
     where
-        Self: AsBytes,
+        &'a Self: Into<Vec<u8>>,
     {
-        let bytes = self.as_bytes();
+        let bytes: Vec<u8> = self.into();
 
         if bytes.is_empty() {
             return "0".to_string();

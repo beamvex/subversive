@@ -1,4 +1,5 @@
 pub mod address;
+pub mod base36;
 pub mod block;
 pub mod block_data;
 pub mod block_header;
@@ -10,6 +11,7 @@ pub mod transaction;
 pub mod transaction_data;
 
 pub use address::Address;
+pub use base36::Base36;
 pub use block::Block;
 pub use block_data::BlockData;
 pub use block_header::BlockHeader;

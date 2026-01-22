@@ -27,6 +27,12 @@ impl From<[u8; 32]> for Key {
     }
 }
 
+impl From<Key> for Base36 {
+    fn from(key: Key) -> Self {
+        Base36::new(key.to_base36())
+    }
+}
+
 #[cfg(test)]
 mod tests {
 

@@ -31,12 +31,7 @@ impl From<&mut Block> for Vec<u8> {
     }
 }
 
-impl ToBase36 for Block {
-    fn to_base36(&self) -> String {
-        let bytes: Vec<u8> = self.into();
-        base36::encode(&bytes)
-    }
-}
+impl ToBase36 for Block {}
 
 #[cfg(test)]
 mod tests {
