@@ -39,8 +39,8 @@ impl From<&Signature> for Vec<u8> {
     }
 }
 
-impl From<Signature> for Base36 {
-    fn from(signature: Signature) -> Self {
+impl From<&Signature> for Base36 {
+    fn from(signature: &Signature) -> Self {
         Base36::new(to_base36(&signature.get_signature().to_vec()))
     }
 }
@@ -59,11 +59,11 @@ mod tests {
         let sig = signing_key.sign(data).to_bytes();
 
         let signature = Signature::new(sig);
-        let b36: Base36 = signature.into();
+        let b36: Base36 = (&signature).into();
         println!("signature_b36: {}", b36);
 
-        let signature_b36: Base36 = signature.into();
-        let signature2 = Signature::from_base36(&signature_b36.as_bytes());
+        let signature_b36: Base36 = (&signature).into();
+        let signature2 = Signature::from_base36(&signature_b36.get_string());
         assert_eq!(signature.get_signature(), signature2.get_signature());
     }
 }

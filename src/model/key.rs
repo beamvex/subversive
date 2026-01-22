@@ -28,7 +28,8 @@ impl From<[u8; 32]> for Key {
 
 impl From<Key> for Base36 {
     fn from(key: Key) -> Self {
-        Base36::new(to_base36(&key.to_bytes()))
+        let bytes: Vec<u8> = key.as_bytes().to_vec();
+        Base36::new(to_base36(&bytes))
     }
 }
 
@@ -43,9 +44,12 @@ mod tests {
     fn test_from_base36() {
         let key = Key::from_base36("3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833");
 
-        let key = key.to_base36();
+        let key: Base36 = key.into();
         println!("key: {}", key);
 
-        assert_eq!(key, "3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833");
+        assert_eq!(
+            key.get_string(),
+            "3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833"
+        );
     }
 }

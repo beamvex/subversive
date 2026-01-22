@@ -39,9 +39,11 @@ impl From<&Address> for Address {
     }
 }
 
-impl From<Address> for Base36 {
-    fn from(address: Address) -> Self {
-        Base36::new(to_base36(&address.get_public_key().to_bytes()))
+impl From<&Address> for Base36 {
+    fn from(address: &Address) -> Self {
+        let public_key = address.get_public_key();
+        let public_key: Vec<u8> = public_key.as_bytes().to_vec();
+        Base36::new(to_base36(&public_key))
     }
 }
 
@@ -77,7 +79,7 @@ mod tests {
 
         let address = Address::new(public_key);
 
-        let address_bytes: Base36 = address.into();
+        let address_bytes: Base36 = (&address).into();
 
         println!("address_bytes: {}", address_bytes);
     }

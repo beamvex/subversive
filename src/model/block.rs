@@ -1,3 +1,4 @@
+use crate::model::Base36;
 use crate::model::{block_data::BlockData, signature::Signature};
 use crate::utils::to_base36;
 use zerocopy::AsBytes;
@@ -31,6 +32,13 @@ impl From<&mut Block> for Vec<u8> {
     }
 }
 
+impl From<&mut Block> for Base36 {
+    fn from(value: &mut Block) -> Self {
+        let bytes: Vec<u8> = value.into();
+        Base36::new(to_base36(&bytes))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -38,6 +46,7 @@ mod tests {
     use crate::model::hash::Hash;
     use crate::model::private_address::PrivateAddress;
     use crate::model::transaction::Transaction;
+    use crate::model::Base36;
     use crate::utils::FromBase36;
     use zerocopy::AsBytes;
 
@@ -83,8 +92,8 @@ mod tests {
         let block_bytes: Vec<u8> = (&mut block).into();
         println!("Block bytes: {}", block_bytes.len());
 
-        let block_base36 = block.to_base36();
-        println!("Block base36: {}", block_base36);
+        let block_base36: Base36 = (&mut block).into();
+        println!("Block base36: {}", block_base36.get_string());
     }
 
     fn create_transaction(

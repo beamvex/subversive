@@ -52,6 +52,7 @@ mod tests {
         let bytes: Vec<u8> = (&transaction).into();
         let hash = Hash::from_bytes(&bytes);
 
-        println!("hash: {}", hash.to_base36());
+        let hash: Base36 = hash.into();
+        println!("hash: {}", hash.get_string());
     }
 }

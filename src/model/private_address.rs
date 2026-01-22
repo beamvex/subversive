@@ -16,7 +16,8 @@ pub struct PrivateAddress {
 
 impl From<&PrivateAddress> for Base36 {
     fn from(private_address: &PrivateAddress) -> Self {
-        Base36::new(to_base36(&private_address.private_key.to_bytes()))
+        let bytes: Vec<u8> = private_address.private_key.as_bytes().to_vec();
+        Base36::new(to_base36(&bytes))
     }
 }
 
