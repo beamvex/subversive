@@ -1,4 +1,7 @@
-use crate::utils::{to_base36, FromBase36};
+use crate::{
+    model::Base36,
+    utils::{to_base36, FromBase36},
+};
 use sha3::{Digest, Keccak256};
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned};
 
@@ -24,6 +27,12 @@ impl Hash {
     }
 }
 
+impl From<Hash> for Base36 {
+    fn from(hash: Hash) -> Self {
+        Base36::new(to_base36(&hash.bytes.into()))
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -43,6 +52,6 @@ mod tests {
         let bytes: Vec<u8> = (&transaction).into();
         let hash = Hash::from_bytes(&bytes);
 
-        println!("hash: {}", to_base36(&hash.bytes.into()));
+        println!("hash: {}", hash.to_base36());
     }
 }

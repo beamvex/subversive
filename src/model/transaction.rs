@@ -1,11 +1,7 @@
 use std::io::{Read, Write};
 
-use crate::{
-    model::{
-        address::Address, signature::Signature, transaction_data::TransactionData, Hash,
-        PrivateAddress,
-    },
-    utils::ToBase36,
+use crate::model::{
+    address::Address, signature::Signature, transaction_data::TransactionData, Hash, PrivateAddress,
 };
 use zerocopy::{AsBytes, FromBytes, FromZeroes};
 
@@ -65,14 +61,11 @@ impl Transaction {
     }
 }
 
-impl ToBase36 for Transaction {}
-
 #[cfg(test)]
 mod tests {
 
     use super::*;
     use crate::model::private_address::PrivateAddress;
-    use crate::utils::ToBase36;
     use zerocopy::AsBytes;
 
     #[test]
@@ -83,7 +76,8 @@ mod tests {
         let transaction =
             Transaction::new(&from_private_address, &to_private_address.get_address(), 1);
 
-        println!("transaction: {}", transaction.to_base36());
+        let transaction_b36: Base36 = transaction.into();
+        println!("transaction: {}", transaction_b36);
     }
 
     #[test]
@@ -94,7 +88,8 @@ mod tests {
         let transaction =
             Transaction::new(&from_private_address, &to_private_address.get_address(), 1);
 
-        println!("transaction: {}", transaction.to_base36());
+        let transaction_b36: Base36 = transaction.into();
+        println!("transaction: {}", transaction_b36);
 
         let bytes = transaction.as_bytes();
 
@@ -113,7 +108,8 @@ mod tests {
         let transaction =
             Transaction::new(&from_private_address, &to_private_address.get_address(), 1);
 
-        println!("transaction: {}", transaction.to_base36());
+        let transaction_b36: Base36 = transaction.into();
+        println!("transaction: {}", transaction_b36);
 
         let bytes = transaction.as_bytes();
 
@@ -136,7 +132,8 @@ mod tests {
 
         let loaded_transaction = Transaction::load();
 
-        println!("loaded_transaction: {}", loaded_transaction.to_base36());
+        let loaded_transaction_b36: Base36 = loaded_transaction.into();
+        println!("loaded_transaction: {}", loaded_transaction_b36);
 
         let verified = loaded_transaction.verify(&from_private_address.get_address());
 

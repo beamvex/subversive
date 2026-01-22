@@ -35,9 +35,9 @@ impl From<Key> for Base36 {
 #[cfg(test)]
 mod tests {
 
-    use crate::model::Key;
+    use super::*;
+    use crate::utils::to_base36;
     use crate::utils::FromBase36;
-    use crate::utils::ToBase36;
 
     #[test]
     fn test_from_base36() {

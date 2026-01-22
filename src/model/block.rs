@@ -1,5 +1,5 @@
 use crate::model::{block_data::BlockData, signature::Signature};
-use crate::utils::ToBase36;
+use crate::utils::to_base36;
 use zerocopy::AsBytes;
 
 pub struct Block {
@@ -30,8 +30,6 @@ impl From<&mut Block> for Vec<u8> {
         result
     }
 }
-
-impl ToBase36 for Block {}
 
 #[cfg(test)]
 mod tests {

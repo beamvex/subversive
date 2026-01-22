@@ -1,5 +1,5 @@
-use crate::model::address::Address;
-use crate::utils::ToBase36;
+use crate::model::Base36;
+use crate::{model::address::Address, utils::to_base36};
 use zerocopy::{AsBytes, FromBytes, FromZeroes};
 
 #[repr(C)]
@@ -23,20 +23,24 @@ impl TransactionData {
     }
 }
 
-impl ToBase36 for TransactionData {}
-
 impl From<&TransactionData> for Vec<u8> {
     fn from(value: &TransactionData) -> Self {
         value.as_bytes().to_vec()
     }
 }
 
+impl From<&TransactionData> for Base36 {
+    fn from(transaction_data: &TransactionData) -> Self {
+        let bytes: Vec<u8> = transaction_data.into();
+        Base36::new(to_base36(&bytes))
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::model::address::Address;
+    use super::*;
     use crate::model::key::Key;
-    use crate::model::transaction_data::TransactionData;
-    use crate::utils::{FromBase36, ToBase36};
+    use crate::utils::FromBase36;
 
     #[test]
     fn test_transaction() {
@@ -54,7 +58,7 @@ mod tests {
             timestamp: 0,
         };
 
-        let transaction_bytes = transaction.to_base36();
+        let transaction_bytes: Base36 = (&transaction).into();
 
         println!("transaction_bytes: {}", &transaction_bytes);
     }
@@ -75,8 +79,8 @@ mod tests {
             timestamp: 0,
         };
 
-        let transaction_bytes: Vec<u8> = (&transaction).into();
+        let transaction_bytes: Base36 = (&transaction).into();
 
-        println!("transaction_bytes: {}", &transaction_bytes.len());
+        println!("transaction_bytes: {}", &transaction_bytes);
     }
 }

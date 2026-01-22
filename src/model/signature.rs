@@ -62,7 +62,8 @@ mod tests {
         let b36: Base36 = signature.into();
         println!("signature_b36: {}", b36);
 
-        let signature2 = Signature::from_base36(&b36.into());
+        let signature_b36: Base36 = signature.into();
+        let signature2 = Signature::from_base36(&signature_b36.as_bytes());
         assert_eq!(signature.get_signature(), signature2.get_signature());
     }
 }

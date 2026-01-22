@@ -48,8 +48,7 @@ impl From<Address> for Base36 {
 #[cfg(test)]
 mod tests {
 
-    use crate::model::address::Address;
-    use crate::model::key::Key;
+    use super::*;
     use crate::model::private_address::PrivateAddress;
     use crate::model::transaction_data::TransactionData;
 
