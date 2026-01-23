@@ -37,7 +37,7 @@ impl From<Key> for Base36 {
 mod tests {
 
     use super::*;
-    use crate::utils::to_base36;
+
     use crate::utils::FromBase36;
 
     #[test]
