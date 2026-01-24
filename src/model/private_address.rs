@@ -50,9 +50,7 @@ impl PrivateAddress {
 
         (private_key, public_key)
     }
-}
 
-impl PrivateAddress {
     pub fn sign(&self, bytes: &[u8]) -> Signature {
         let signing_key = SigningKey::from_bytes(self.get_private_key().get_bytes());
         let signature = signing_key.sign(bytes);
