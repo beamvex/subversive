@@ -1,6 +1,5 @@
 use crate::model::Base36;
 use crate::model::{address::Address, Key, Signature};
-use crate::utils::to_base36;
 use ed25519_dalek::Signer;
 use ed25519_dalek::SigningKey;
 
@@ -17,7 +16,7 @@ pub struct PrivateAddress {
 impl From<&PrivateAddress> for Base36 {
     fn from(private_address: &PrivateAddress) -> Self {
         let bytes: Vec<u8> = private_address.private_key.as_bytes().to_vec();
-        Base36::new(to_base36(&bytes))
+        Base36::from_bytes(&bytes)
     }
 }
 

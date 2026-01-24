@@ -1,7 +1,4 @@
-use crate::{
-    model::Base36,
-    utils::{to_base36, FromBase36},
-};
+use crate::{model::Base36, model::FromBase36};
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned};
 
 #[repr(C)]
@@ -41,7 +38,7 @@ impl From<&Signature> for Vec<u8> {
 
 impl From<&Signature> for Base36 {
     fn from(signature: &Signature) -> Self {
-        Base36::new(to_base36(&signature.get_signature().to_vec()))
+        Base36::from_bytes(&signature.get_signature().to_vec())
     }
 }
 

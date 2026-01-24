@@ -1,6 +1,5 @@
 use crate::model::Base36;
 use crate::model::{block_header, signature::Signature};
-use crate::utils::to_base36;
 use zerocopy::{AsBytes, FromBytes, FromZeroes};
 
 #[repr(C)]
@@ -33,7 +32,7 @@ impl From<&Block> for Vec<u8> {
 impl From<&Block> for Base36 {
     fn from(value: &Block) -> Self {
         let bytes: Vec<u8> = value.into();
-        Base36::new(to_base36(&bytes))
+        Base36::from_bytes(&bytes)
     }
 }
 

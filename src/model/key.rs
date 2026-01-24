@@ -1,5 +1,5 @@
+use crate::model::base36::FromBase36;
 use crate::model::Base36;
-use crate::utils::{to_base36, FromBase36};
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned};
 
 #[repr(C)]
@@ -29,7 +29,7 @@ impl From<[u8; 32]> for Key {
 impl From<Key> for Base36 {
     fn from(key: Key) -> Self {
         let bytes: Vec<u8> = key.as_bytes().to_vec();
-        Base36::new(to_base36(&bytes))
+        Base36::from_bytes(&bytes)
     }
 }
 
@@ -38,11 +38,9 @@ mod tests {
 
     use super::*;
 
-    use crate::utils::FromBase36;
-
     #[test]
     fn test_from_base36() {
-        let key = Key::from_base36("3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833");
+        let key = Key::from_base36_string("3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833");
 
         let key: Base36 = key.into();
         println!("key: {}", key);

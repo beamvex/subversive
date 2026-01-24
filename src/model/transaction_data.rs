@@ -1,5 +1,5 @@
+use crate::model::address::Address;
 use crate::model::Base36;
-use crate::{model::address::Address, utils::to_base36};
 use zerocopy::{AsBytes, FromBytes, FromZeroes};
 
 #[repr(C)]
@@ -32,7 +32,7 @@ impl From<&TransactionData> for Vec<u8> {
 impl From<&TransactionData> for Base36 {
     fn from(transaction_data: &TransactionData) -> Self {
         let bytes: Vec<u8> = transaction_data.into();
-        Base36::new(to_base36(&bytes))
+        Base36::from_bytes(&bytes)
     }
 }
 

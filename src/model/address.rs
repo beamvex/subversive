@@ -1,5 +1,6 @@
+use crate::model::base36::FromBase36;
+use crate::model::key::Key;
 use crate::model::{Base36, Signature};
-use crate::{model::key::Key, utils::to_base36};
 
 use ed25519_dalek::{Signature as Ed25519Signature, Verifier, VerifyingKey};
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned};
@@ -43,7 +44,7 @@ impl From<&Address> for Base36 {
     fn from(address: &Address) -> Self {
         let public_key = address.get_public_key();
         let public_key: Vec<u8> = public_key.as_bytes().to_vec();
-        Base36::new(to_base36(&public_key))
+        Base36::from_bytes(&public_key)
     }
 }
 

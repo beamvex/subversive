@@ -1,11 +1,8 @@
 use std::io::{Read, Write};
 
-use crate::{
-    model::{
-        address::Address, signature::Signature, transaction_data::TransactionData, Base36, Hash,
-        PrivateAddress,
-    },
-    utils::to_base36,
+use crate::model::{
+    address::Address, signature::Signature, transaction_data::TransactionData, Base36, Hash,
+    PrivateAddress,
 };
 use zerocopy::{AsBytes, FromBytes, FromZeroes};
 
@@ -68,7 +65,7 @@ impl Transaction {
 impl From<&Transaction> for Base36 {
     fn from(transaction: &Transaction) -> Self {
         let bytes: Vec<u8> = transaction.as_bytes().to_vec();
-        Base36::new(to_base36(&bytes))
+        Base36::from_bytes(&bytes)
     }
 }
 
