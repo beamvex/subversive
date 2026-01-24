@@ -39,8 +39,8 @@ impl From<&TransactionData> for Base36 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::model::base36::FromBase36;
     use crate::model::key::Key;
-    use crate::utils::FromBase36;
 
     #[test]
     fn test_transaction() {

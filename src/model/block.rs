@@ -39,10 +39,10 @@ impl From<&Block> for Base36 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::model::base36::FromBase36;
     use crate::model::block_header::BlockHeader;
     use crate::model::hash::Hash;
     use crate::model::Base36;
-    use crate::utils::FromBase36;
     use zerocopy::AsBytes;
 
     #[test]

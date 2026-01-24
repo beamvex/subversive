@@ -37,10 +37,11 @@ impl From<Key> for Base36 {
 mod tests {
 
     use super::*;
+    use crate::model::base36::FromBase36;
 
     #[test]
     fn test_from_base36() {
-        let key = Key::from_base36_string("3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833");
+        let key = Key::from_base36("3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833");
 
         let key: Base36 = key.into();
         println!("key: {}", key);

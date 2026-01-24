@@ -55,8 +55,6 @@ mod tests {
     use crate::model::private_address::PrivateAddress;
     use crate::model::transaction_data::TransactionData;
 
-    use crate::utils::FromBase36;
-
     #[test]
     fn test_verify() {
         let private_address = PrivateAddress::default();
