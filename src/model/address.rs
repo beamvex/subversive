@@ -1,4 +1,3 @@
-use crate::model::base36::FromBase36;
 use crate::model::key::Key;
 use crate::model::{Base36, Signature};
 
@@ -55,6 +54,7 @@ mod tests {
     use crate::model::private_address::PrivateAddress;
     use crate::model::transaction_data::TransactionData;
 
+    use crate::model::base36::FromBase36;
     #[test]
     fn test_verify() {
         let private_address = PrivateAddress::default();
