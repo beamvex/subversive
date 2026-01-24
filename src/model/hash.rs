@@ -30,6 +30,11 @@ impl From<Hash> for Base36 {
     }
 }
 
+impl From<u64> for Hash {
+    fn from(value: u64) -> Self {
+        Hash::from_bytes(&value.to_le_bytes())
+    }
+}
 #[cfg(test)]
 mod tests {
 

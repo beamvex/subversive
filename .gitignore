@@ -16,3 +16,4 @@ tarpaulin-report.html
 
 *.bin
 tmp/*
+coverage/*

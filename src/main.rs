@@ -5,5 +5,6 @@ pub async fn main() {
 
 #[test]
 fn test() {
+    main();
     assert!(true);
 }
