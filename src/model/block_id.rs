@@ -22,7 +22,7 @@ impl Default for BlockId {
 }
 
 impl BlockId {
-    pub fn new(hash: Hash, ts: u64) -> Self {
+    fn new(hash: Hash, ts: u64) -> Self {
         Self { hash, ts }
     }
 
@@ -30,7 +30,7 @@ impl BlockId {
         &self.hash
     }
 
-    pub fn to_last_time_block(t: SystemTime) -> SystemTime {
+    fn to_last_time_block(t: SystemTime) -> SystemTime {
         let secs = t
             .duration_since(UNIX_EPOCH)
             .expect("system time must be after unix epoch")
@@ -40,7 +40,7 @@ impl BlockId {
         UNIX_EPOCH + Duration::from_secs(block_secs)
     }
 
-    pub fn get_last_time_block() -> SystemTime {
+    fn get_last_time_block() -> SystemTime {
         Self::to_last_time_block(SystemTime::now())
     }
 }
@@ -48,6 +48,17 @@ impl BlockId {
 impl From<&BlockId> for Vec<u8> {
     fn from(value: &BlockId) -> Vec<u8> {
         value.as_bytes().to_vec()
+    }
+}
+
+impl From<SystemTime> for BlockId {
+    fn from(value: SystemTime) -> Self {
+        let ts: u64 = Self::to_last_time_block(value)
+            .duration_since(UNIX_EPOCH)
+            .expect("system time must be after unix epoch")
+            .as_secs();
+        let hash = Hash::from(ts);
+        Self::new(hash, ts)
     }
 }
 
@@ -65,5 +76,19 @@ mod tests {
         println!("last_time_block: {}", iso);
 
         assert_eq!(last_time_block, base);
+    }
+
+    #[test]
+    fn test_default() {
+        let block_id = BlockId::default();
+
+        println!("block_id: {:?}", block_id);
+        assert_eq!(
+            block_id.ts,
+            BlockId::get_last_time_block()
+                .duration_since(UNIX_EPOCH)
+                .expect("system time must be after unix epoch")
+                .as_secs()
+        );
     }
 }
