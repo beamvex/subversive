@@ -1,5 +1,6 @@
-use crate::model::key::Key;
-use crate::model::{Base36, Signature};
+use crate::address::key::Key;
+use crate::model::Base36;
+use crate::model::Signature;
 
 use ed25519_dalek::{Signature as Ed25519Signature, Verifier, VerifyingKey};
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned};

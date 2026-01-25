@@ -1,24 +1,20 @@
-pub mod address;
+pub mod algorithm;
 pub mod base36;
 pub mod block;
 pub mod block_header;
 pub mod block_id;
 pub mod hash;
-pub mod key;
-pub mod private_address;
 pub mod signature;
 pub mod transaction;
 pub mod transaction_data;
 
-pub use address::Address;
+pub use algorithm::Algorithm;
 pub use base36::Base36;
 pub use base36::FromBase36;
 pub use block::Block;
 pub use block_header::BlockHeader;
 pub use block_id::BlockId;
 pub use hash::Hash;
-pub use key::Key;
-pub use private_address::PrivateAddress;
 pub use signature::Signature;
 pub use transaction::Transaction;
 pub use transaction_data::TransactionData;

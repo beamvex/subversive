@@ -1,5 +1,7 @@
+use crate::address::address::Address;
+use crate::address::key::Key;
 use crate::model::Base36;
-use crate::model::{address::Address, Key, Signature};
+use crate::model::Signature;
 use ed25519_dalek::Signer;
 use ed25519_dalek::SigningKey;
 
