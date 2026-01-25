@@ -1,15 +1,17 @@
-use crate::{impl_from_base36, impl_into_base36, serialise::Base36};
+use crate::{algorithm::AlgorithmType, impl_from_base36, impl_into_base36, serialise_base36};
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned};
 
 #[repr(C)]
 #[derive(Debug, FromZeroes, FromBytes, AsBytes, Unaligned)]
 pub struct Signature {
+    algorithm_type: AlgorithmType,
     signature: [u8; 64],
 }
 
 impl Default for Signature {
     fn default() -> Self {
         Self {
+            algorithm_type: AlgorithmType::default(),
             signature: [0u8; 64],
         }
     }
@@ -17,10 +19,25 @@ impl Default for Signature {
 
 impl Signature {
     pub fn new(signature: [u8; 64]) -> Self {
-        Signature { signature }
+        Signature {
+            algorithm_type: AlgorithmType::default(),
+            signature,
+        }
     }
+
+    pub fn new_with_algorithm(algorithm_type: AlgorithmType, signature: [u8; 64]) -> Self {
+        Signature {
+            algorithm_type,
+            signature,
+        }
+    }
+
     pub fn get_signature(&self) -> &[u8; 64] {
         &self.signature
+    }
+
+    pub fn get_algorithm_type(&self) -> &AlgorithmType {
+        &self.algorithm_type
     }
 }
 
@@ -30,13 +47,12 @@ impl From<&Signature> for Vec<u8> {
     }
 }
 
-impl_into_base36!(Signature);
-
-impl_from_base36!(Signature);
+serialise_base36!(Signature);
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::serialise::Base36;
     use ed25519_dalek::Signer;
     use ed25519_dalek::SigningKey;
     use rand_core::OsRng;

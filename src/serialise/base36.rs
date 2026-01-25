@@ -114,12 +114,20 @@ impl Display for Base36 {
 }
 
 #[macro_export]
+macro_rules! serialise_base36 {
+    ($t:ty) => {
+        impl_from_base36!($t);
+        impl_into_base36!($t);
+    };
+}
+
+#[macro_export]
 macro_rules! impl_from_base36 {
     ($t:ty) => {
-        impl From<&Base36> for $t {
-            fn from(value: &Base36) -> Self {
+        impl From<&$crate::serialise::Base36> for $t {
+            fn from(value: &$crate::serialise::Base36) -> Self {
                 let size: usize = std::mem::size_of::<Self>();
-                let bytes = Base36::from_base36(&value.get_string(), size);
+                let bytes = $crate::serialise::Base36::from_base36(&value.get_string(), size);
                 <$t>::read_from(&bytes).unwrap()
             }
         }
@@ -129,9 +137,9 @@ macro_rules! impl_from_base36 {
 #[macro_export]
 macro_rules! impl_into_base36 {
     ($t:ty) => {
-        impl From<&$t> for Base36 {
+        impl From<&$t> for $crate::serialise::Base36 {
             fn from(value: &$t) -> Self {
-                Base36::from_bytes(&value.as_bytes())
+                $crate::serialise::Base36::from_bytes(&value.as_bytes())
             }
         }
     };

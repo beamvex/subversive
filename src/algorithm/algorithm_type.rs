@@ -1,8 +1,11 @@
-#[repr(u8)]
-#[derive(Debug, Default, Eq, PartialEq)]
-pub enum AlgorithmType {
-    #[default]
-    Ed25519 = 0,
+use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned};
+
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone, Default, Eq, PartialEq, FromZeroes, FromBytes, AsBytes, Unaligned)]
+pub struct AlgorithmType(u8);
+
+impl AlgorithmType {
+    pub const ED25519: Self = Self(0);
 }
 
 #[cfg(test)]
@@ -13,6 +16,6 @@ mod tests {
     #[test]
     fn test_default() {
         let algorithm = AlgorithmType::default();
-        assert_eq!(algorithm, AlgorithmType::Ed25519);
+        assert_eq!(algorithm, AlgorithmType::ED25519);
     }
 }
