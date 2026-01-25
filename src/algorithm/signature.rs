@@ -1,7 +1,4 @@
-use crate::{
-    impl_from_base36, impl_into_base36,
-    serialise::{Base36, FromBase36},
-};
+use crate::{impl_from_base36, impl_into_base36, serialise::Base36};
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned};
 
 #[repr(C)]
@@ -24,12 +21,6 @@ impl Signature {
     }
     pub fn get_signature(&self) -> &[u8; 64] {
         &self.signature
-    }
-}
-
-impl FromBase36 for Signature {
-    fn from_bytes(bytes: &[u8]) -> Self {
-        Signature::read_from(bytes).unwrap()
     }
 }
 

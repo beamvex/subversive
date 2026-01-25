@@ -113,10 +113,6 @@ impl Display for Base36 {
     }
 }
 
-pub trait FromBase36 {
-    fn from_bytes(bytes: &[u8]) -> Self;
-}
-
 #[macro_export]
 macro_rules! impl_from_base36 {
     ($t:ty) => {
