@@ -1,4 +1,4 @@
-use crate::{algorithm::AlgorithmType, serialise_base36};
+use crate::{algorithm::AlgorithmType, serialise, serialise_base36};
 use zerocopy::{AsBytes, FromBytes, FromZeroes};
 
 #[repr(C)]
@@ -48,6 +48,8 @@ impl From<&Signature> for Vec<u8> {
 }
 
 serialise_base36!(Signature);
+
+serialise!(Signature);
 
 #[cfg(test)]
 mod tests {

@@ -1,10 +1,19 @@
 use std::fmt::Display;
 
+use crate::serialise::SerialiseType;
+use crate::serialise::Serialiser;
+
 const ALPHABET: &[u8; 36] = b"0123456789abcdefghijklmnopqrstuvwxyz";
 
 #[derive(Debug)]
 pub struct Base36 {
     string: String,
+}
+
+impl Serialiser for Base36 {
+    fn get_serialise_type(&self) -> SerialiseType {
+        SerialiseType::Base36
+    }
 }
 
 impl Base36 {
