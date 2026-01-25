@@ -14,7 +14,7 @@ macro_rules! serialise {
             ) -> impl $crate::serialise::Serialiser {
                 match serialise_type {
                     $crate::serialise::SerialiseType::Base36 => {
-                        let b36: $crate::serialise::Base36 = (&value).into();
+                        let b36: $crate::serialise::Base36 = (value).into();
                         b36
                     }
                     _ => panic!("unknown serialise type"),
