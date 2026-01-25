@@ -1,5 +1,5 @@
 pub mod algorithm;
-pub mod base36;
+
 pub mod block;
 pub mod block_header;
 pub mod block_id;
@@ -9,8 +9,6 @@ pub mod transaction;
 pub mod transaction_data;
 
 pub use algorithm::Algorithm;
-pub use base36::Base36;
-pub use base36::FromBase36;
 pub use block::Block;
 pub use block_header::BlockHeader;
 pub use block_id::BlockId;
