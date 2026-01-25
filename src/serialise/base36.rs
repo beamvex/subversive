@@ -9,7 +9,7 @@ pub struct Base36 {
 
 impl Base36 {
     pub fn from_bytes(bytes: &[u8]) -> Self {
-        Self::from_base36_string(Self::to_base36(&bytes.to_vec()))
+        Self::from_base36_string(Self::to_base36(bytes))
     }
 
     pub fn from_base36_string(string: String) -> Self {
@@ -24,7 +24,7 @@ impl Base36 {
         Base36::base36_to_bytes(&self.string)
     }
 
-    fn to_base36(bytes: &Vec<u8>) -> String {
+    fn to_base36(bytes: &[u8]) -> String {
         if bytes.is_empty() {
             return "0".to_string();
         }

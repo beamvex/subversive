@@ -1,11 +1,13 @@
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned};
 
-#[repr(transparent)]
-#[derive(Debug, Copy, Clone, Default, Eq, PartialEq, FromZeroes, FromBytes, AsBytes, Unaligned)]
+#[repr(C)]
+#[derive(Debug, Copy, Clone, Default, Eq, PartialEq, AsBytes, Unaligned, FromZeroes, FromBytes)]
 pub struct AlgorithmType(u8);
 
 impl AlgorithmType {
-    pub const ED25519: Self = Self(0);
+    pub const ED25519: AlgorithmType = AlgorithmType(0);
+    pub const RSA: AlgorithmType = AlgorithmType(1);
+    pub const ECDSA: AlgorithmType = AlgorithmType(2);
 }
 
 #[cfg(test)]
