@@ -1,4 +1,7 @@
-use crate::{serialise::Base36, serialise::FromBase36};
+use crate::{
+    impl_from_base36, impl_into_base36,
+    serialise::{Base36, FromBase36},
+};
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned};
 
 #[repr(C)]
@@ -36,17 +39,9 @@ impl From<&Signature> for Vec<u8> {
     }
 }
 
-impl From<&Signature> for Base36 {
-    fn from(signature: &Signature) -> Self {
-        Base36::from_bytes(signature.get_signature())
-    }
-}
+impl_into_base36!(Signature);
 
-impl From<&Base36> for Signature {
-    fn from(value: &Base36) -> Self {
-        Signature::read_from(&value.as_bytes()).unwrap()
-    }
-}
+impl_from_base36!(Signature);
 
 #[cfg(test)]
 mod tests {
@@ -66,7 +61,7 @@ mod tests {
         println!("signature_b36: {}", b36);
 
         let signature_b36: Base36 = (&signature).into();
-        let signature2 = Signature::from_base36(&signature_b36.get_string());
+        let signature2: Signature = (&signature_b36).into();
         assert_eq!(signature.get_signature(), signature2.get_signature());
     }
 }

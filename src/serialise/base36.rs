@@ -89,6 +89,22 @@ impl Base36 {
 
         bytes
     }
+
+    pub fn from_base36(base36: &str, size: usize) -> Vec<u8> {
+        let mut bytes = Base36::base36_to_bytes(base36);
+
+        if bytes.len() > size {
+            panic!("base36 value does not fit in {} bytes", size);
+        }
+
+        if bytes.len() < size {
+            let mut padded = vec![0u8; size - bytes.len()];
+            padded.append(&mut bytes);
+            return padded;
+        }
+
+        bytes
+    }
 }
 
 impl Display for Base36 {
@@ -99,25 +115,28 @@ impl Display for Base36 {
 
 pub trait FromBase36 {
     fn from_bytes(bytes: &[u8]) -> Self;
+}
 
-    fn from_base36(base36: &str) -> Self
-    where
-        Self: Sized,
-    {
-        let size: usize = std::mem::size_of::<Self>();
-
-        let mut bytes = Base36::base36_to_bytes(base36);
-
-        if bytes.len() > size {
-            panic!("base36 value does not fit in {} bytes", size);
+#[macro_export]
+macro_rules! impl_from_base36 {
+    ($t:ty) => {
+        impl From<&Base36> for $t {
+            fn from(value: &Base36) -> Self {
+                let size: usize = std::mem::size_of::<Self>();
+                let bytes = Base36::from_base36(&value.get_string(), size);
+                <$t>::read_from(&bytes).unwrap()
+            }
         }
+    };
+}
 
-        if bytes.len() < size {
-            let mut padded = vec![0u8; size - bytes.len()];
-            padded.append(&mut bytes);
-            return Self::from_bytes(&padded);
+#[macro_export]
+macro_rules! impl_into_base36 {
+    ($t:ty) => {
+        impl From<&$t> for Base36 {
+            fn from(value: &$t) -> Self {
+                Base36::from_bytes(&value.as_bytes())
+            }
         }
-
-        Self::from_bytes(&bytes)
-    }
+    };
 }
