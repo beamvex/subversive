@@ -20,6 +20,6 @@ macro_rules! serialise {
                     _ => panic!("unknown serialise type"),
                 }
             }
-        };
+        }
     };
 }
