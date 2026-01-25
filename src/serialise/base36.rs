@@ -116,8 +116,8 @@ impl Display for Base36 {
 #[macro_export]
 macro_rules! serialise_base36 {
     ($t:ty) => {
-        impl_from_base36!($t);
-        impl_into_base36!($t);
+        $crate::impl_from_base36!($t);
+        $crate::impl_into_base36!($t);
     };
 }
 

@@ -1,4 +1,4 @@
-use crate::{algorithm::AlgorithmType, impl_from_base36, impl_into_base36, serialise_base36};
+use crate::{algorithm::AlgorithmType, serialise_base36};
 use zerocopy::{AsBytes, FromBytes, FromZeroes};
 
 #[repr(C)]
