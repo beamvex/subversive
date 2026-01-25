@@ -20,6 +20,10 @@ impl Base36 {
         &self.string
     }
 
+    pub fn as_bytes(&self) -> Vec<u8> {
+        Base36::base36_to_bytes(&self.string)
+    }
+
     fn to_base36(bytes: &Vec<u8>) -> String {
         if bytes.is_empty() {
             return "0".to_string();

@@ -42,6 +42,12 @@ impl From<&Signature> for Base36 {
     }
 }
 
+impl From<&Base36> for Signature {
+    fn from(value: &Base36) -> Self {
+        Signature::read_from(&value.as_bytes()).unwrap()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
