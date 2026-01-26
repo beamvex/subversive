@@ -14,6 +14,10 @@ impl Serialiser for Base36 {
     fn get_serialise_type(&self) -> SerialiseType {
         SerialiseType::Base36
     }
+
+    fn into_base36(&self) -> Base36 {
+        Base36::from_base36_string(self.string.clone())
+    }
 }
 
 impl Base36 {

@@ -74,6 +74,9 @@ mod tests {
         let serialised: &dyn Serialiser = &signature.serialise(SerialiseType::Base36);
         println!("serialised: {:?}", serialised);
 
+        let deserialised: Signature = Signature::from(serialised);
+        assert_eq!(signature.get_signature(), deserialised.get_signature());
+
         let signature_b36: Base36 = (&signature).into();
 
         println!("signature_b36: {}", signature_b36.get_string());
