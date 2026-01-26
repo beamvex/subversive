@@ -55,6 +55,8 @@ serialise!(Signature);
 mod tests {
     use super::*;
     use crate::serialise::Base36;
+    use crate::serialise::SerialiseType;
+    use crate::serialise::Serialiser;
     use ed25519_dalek::Signer;
     use ed25519_dalek::SigningKey;
     use rand_core::OsRng;
@@ -68,6 +70,9 @@ mod tests {
         let signature = Signature::new_with_algorithm(AlgorithmType::ED25519, sig);
         let b36: Base36 = (&signature).into();
         println!("signature_b36: {}", b36);
+
+        let serialised: &dyn Serialiser = &signature.serialise(SerialiseType::Base36);
+        println!("serialised: {:?}", serialised);
 
         let signature_b36: Base36 = (&signature).into();
 
