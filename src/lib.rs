@@ -11,3 +11,5 @@ pub mod serialise;
 
 //#[path = "address/mod.rs"]
 //pub mod address;
+
+pub mod hashing;
