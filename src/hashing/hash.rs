@@ -1,5 +1,8 @@
-use crate::model::{Base36, FromBase36};
-use sha3::{Digest, Keccak256};
+use crate::{
+    hashing::{HashAlgorithm, Keccak256},
+    serialise,
+};
+
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned};
 
 #[repr(C)]
@@ -8,53 +11,36 @@ pub struct Hash {
     bytes: [u8; 32],
 }
 
-impl FromBase36 for Hash {
-    fn from_bytes(bytes: &[u8]) -> Self {
-        Hash::read_from(bytes).unwrap()
-    }
-}
-
 impl Hash {
-    pub fn from_bytes(bytes: &[u8]) -> Self {
-        let mut hasher = Keccak256::default();
-        hasher.update(bytes);
-        let result = hasher.finalize();
-        let bytes = result.into();
+    pub fn new(bytes: [u8; 32]) -> Self {
         Hash { bytes }
     }
 }
 
-impl From<Hash> for Base36 {
-    fn from(hash: Hash) -> Self {
-        Base36::from_bytes(&hash.bytes)
+impl Hash {
+    fn from(bytes: &[u8], hash_algorithm: HashAlgorithm) -> Self {
+        match hash_algorithm {
+            HashAlgorithm::Keccak256 => Keccak256::from_bytes(bytes),
+            _default => panic!("hash algorithm not supported"),
+        }
     }
 }
 
-impl From<u64> for Hash {
-    fn from(value: u64) -> Self {
-        Hash::from_bytes(&value.to_le_bytes())
-    }
-}
+serialise!(Hash);
+
 #[cfg(test)]
 mod tests {
 
     use super::*;
-    use crate::model::transaction_data::TransactionData;
-    use crate::model::PrivateAddress;
+    use crate::serialise::SerialString;
+    use crate::serialise::SerialiseType;
 
     #[test]
     fn test_hash() {
-        let from_private_address = PrivateAddress::default();
-        let from_address = from_private_address.get_address();
-        let to_private_address = PrivateAddress::default();
-        let to_address = to_private_address.get_address();
+        let bytes: Vec<u8> = vec![1, 2, 3];
+        let hash = Hash::from(&bytes, HashAlgorithm::Keccak256);
 
-        let transaction = TransactionData::new(from_address, to_address, 1, 0);
-
-        let bytes: Vec<u8> = (&transaction).into();
-        let hash = Hash::from_bytes(&bytes);
-
-        let hash: Base36 = hash.into();
+        let hash: SerialString = hash.into_serial_string(SerialiseType::Base36);
         println!("hash: {}", hash.get_string());
     }
 }
