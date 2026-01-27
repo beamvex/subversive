@@ -15,9 +15,7 @@ impl Hash {
     pub fn new(bytes: [u8; 32]) -> Self {
         Hash { bytes }
     }
-}
 
-impl Hash {
     fn from(bytes: &[u8], hash_algorithm: HashAlgorithm) -> Self {
         match hash_algorithm {
             HashAlgorithm::Keccak256 => Keccak256::from_bytes(bytes),
