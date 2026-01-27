@@ -1,4 +1,4 @@
-use crate::{algorithm::AlgorithmType, serialise, serialise_base36};
+use crate::{algorithm::AlgorithmType, serialise};
 use zerocopy::{AsBytes, FromBytes, FromZeroes};
 
 #[repr(C)]
@@ -47,16 +47,13 @@ impl From<&Signature> for Vec<u8> {
     }
 }
 
-serialise_base36!(Signature);
-
 serialise!(Signature);
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::serialise::Base36;
     use crate::serialise::SerialiseType;
-    use crate::serialise::Serialiser;
+
     use ed25519_dalek::Signer;
     use ed25519_dalek::SigningKey;
     use rand_core::OsRng;
@@ -68,24 +65,14 @@ mod tests {
         let sig = signing_key.sign(data).to_bytes();
 
         let signature = Signature::new_with_algorithm(AlgorithmType::ED25519, sig);
-        let b36: Base36 = (&signature).into();
-        println!("signature_b36: {}", b36);
 
-        let serialised: &dyn Serialiser = &signature.serialise(SerialiseType::Base36);
-        println!("serialised: {:?}", serialised);
+        let serialised = signature.into_serial_string(SerialiseType::Base36);
 
-        let deserialised: Signature = Signature::from(serialised);
-        assert_eq!(signature.get_signature(), deserialised.get_signature());
+        println!("serialised: {}", serialised);
+        println!("serialised debug: {:?}", serialised);
 
-        let signature_b36: Base36 = (&signature).into();
+        let signature2: Signature = (&serialised).into();
 
-        println!("signature_b36: {}", signature_b36.get_string());
-
-        let b36_string = signature_b36.get_string();
-
-        let b36 = Base36::from_base36_string(b36_string.clone());
-
-        let signature2: Signature = (&b36).into();
         assert_eq!(signature.get_signature(), signature2.get_signature());
     }
 }

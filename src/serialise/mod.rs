@@ -1,4 +1,4 @@
-mod base36;
+pub mod base36;
 pub mod serial_string;
 pub mod serialise_type;
 

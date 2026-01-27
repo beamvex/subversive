@@ -1,5 +1,6 @@
 use crate::serialise::SerialiseType;
 
+#[derive(Debug)]
 pub struct SerialString {
     serialise_type: SerialiseType,
     string: String,
@@ -12,9 +13,13 @@ impl SerialString {
             string,
         }
     }
+
+    pub fn get_string(&self) -> &String {
+        &self.string
+    }
 }
 
-impl Display for SerialString {
+impl std::fmt::Display for SerialString {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.string)
     }
@@ -34,7 +39,8 @@ macro_rules! impl_from {
         impl From<&$crate::serialise::SerialString> for $t {
             fn from(value: &$crate::serialise::SerialString) -> Self {
                 let size: usize = std::mem::size_of::<Self>();
-                let bytes = $crate::serialise::SerialString::from_base36(&value.get_string(), size);
+                let bytes =
+                    $crate::serialise::base36::Base36::from_base36(&value.get_string(), size);
                 <$t>::read_from(&bytes).unwrap()
             }
         }
@@ -52,7 +58,7 @@ macro_rules! impl_into {
                 match serialise_type {
                     $crate::serialise::SerialiseType::Base36 => {
                         let bytes = self.as_bytes();
-                        let string = $crate::serialise::SerialString::to_base36(&bytes);
+                        let string = $crate::serialise::base36::Base36::to_base36(&bytes);
                         $crate::serialise::SerialString::new(serialise_type, string)
                     }
                     _ => {
