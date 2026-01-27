@@ -8,18 +8,20 @@ use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned};
 #[repr(C)]
 #[derive(Debug, Default, FromZeroes, FromBytes, AsBytes, Unaligned)]
 pub struct Hash {
+    algorithm: HashAlgorithm,
     bytes: [u8; 32],
 }
 
 impl Hash {
-    pub fn new(bytes: [u8; 32]) -> Self {
-        Hash { bytes }
+    pub fn new(algorithm: HashAlgorithm, bytes: [u8; 32]) -> Self {
+        Hash { algorithm, bytes }
     }
 
     fn from(bytes: &[u8], hash_algorithm: HashAlgorithm) -> Self {
         match hash_algorithm {
-            HashAlgorithm::Keccak256 => Keccak256::from_bytes(bytes),
-            HashAlgorithm::Sha256 => Sha256::from_bytes(bytes),
+            HashAlgorithm::KECCAK256 => Keccak256::from_bytes(bytes),
+            HashAlgorithm::SHA256 => Sha256::from_bytes(bytes),
+            _ => panic!("Unknown hash algorithm"),
         }
     }
 }
@@ -36,14 +38,16 @@ mod tests {
     #[test]
     fn test_hash() {
         let bytes: Vec<u8> = vec![1, 2, 3];
-        let hash = Hash::from(&bytes, HashAlgorithm::Keccak256);
+        let hash = Hash::from(&bytes, HashAlgorithm::KECCAK256);
 
-        let hash: SerialString = hash.into_serial_string(SerialiseType::Base36);
-        println!("hash: {}", hash.get_string());
+        let hash_str: SerialString = hash.into_serial_string(SerialiseType::Base36);
+        println!("hash: {}", hash_str.get_string());
+        println!("hash debug: {:?}", hash);
 
-        let hash = Hash::from(&bytes, HashAlgorithm::Sha256);
+        let hash = Hash::from(&bytes, HashAlgorithm::SHA256);
 
-        let hash: SerialString = hash.into_serial_string(SerialiseType::Base36);
-        println!("hash: {}", hash.get_string());
+        let hash_str: SerialString = hash.into_serial_string(SerialiseType::Base36);
+        println!("hash: {}", hash_str.get_string());
+        println!("hash debug: {:?}", hash);
     }
 }

@@ -1,6 +1,10 @@
-#[derive(Debug, Copy, Clone, Default)]
-pub enum HashAlgorithm {
-    #[default]
-    Keccak256,
-    Sha256,
+use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned};
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone, Default, Eq, PartialEq, AsBytes, Unaligned, FromZeroes, FromBytes)]
+pub struct HashAlgorithm(u8);
+
+impl HashAlgorithm {
+    pub const KECCAK256: HashAlgorithm = HashAlgorithm(0);
+    pub const SHA256: HashAlgorithm = HashAlgorithm(1);
 }

@@ -1,4 +1,4 @@
-use crate::hashing::Hash;
+use crate::hashing::{Hash, HashAlgorithm};
 use sha2::{Digest, Sha256 as Sha256Impl};
 
 pub struct Sha256 {}
@@ -9,6 +9,6 @@ impl Sha256 {
         hasher.update(bytes);
         let result = hasher.finalize();
         let bytes = result.into();
-        Hash::new(bytes)
+        Hash::new(HashAlgorithm::SHA256, bytes)
     }
 }

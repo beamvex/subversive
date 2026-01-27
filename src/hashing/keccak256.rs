@@ -1,4 +1,4 @@
-use crate::hashing::Hash;
+use crate::hashing::{Hash, HashAlgorithm};
 use sha3::{Digest, Keccak256 as Keccak256Impl};
 
 pub struct Keccak256 {}
@@ -9,6 +9,6 @@ impl Keccak256 {
         hasher.update(bytes);
         let result = hasher.finalize();
         let bytes = result.into();
-        Hash::new(bytes)
+        Hash::new(HashAlgorithm::KECCAK256, bytes)
     }
 }
