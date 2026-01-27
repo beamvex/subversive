@@ -1,43 +1,10 @@
-use std::fmt::Display;
-
-use crate::serialise::SerialiseType;
-use crate::serialise::Serialiser;
-
 const ALPHABET: &[u8; 36] = b"0123456789abcdefghijklmnopqrstuvwxyz";
 
 #[derive(Debug)]
-pub struct Base36 {
-    string: String,
-}
-
-impl Serialiser for Base36 {
-    fn get_serialise_type(&self) -> SerialiseType {
-        SerialiseType::Base36
-    }
-
-    fn into_base36(&self) -> Base36 {
-        Base36::from_base36_string(self.string.clone())
-    }
-}
+pub struct Base36 {}
 
 impl Base36 {
-    pub fn from_bytes(bytes: &[u8]) -> Self {
-        Self::from_base36_string(Self::to_base36(bytes))
-    }
-
-    pub fn from_base36_string(string: String) -> Self {
-        Self { string }
-    }
-
-    pub fn get_string(&self) -> &String {
-        &self.string
-    }
-
-    pub fn as_bytes(&self) -> Vec<u8> {
-        Base36::base36_to_bytes(&self.string)
-    }
-
-    fn to_base36(bytes: &[u8]) -> String {
+    pub fn to_base36(bytes: &[u8]) -> String {
         if bytes.is_empty() {
             return "0".to_string();
         }
@@ -118,42 +85,4 @@ impl Base36 {
 
         bytes
     }
-}
-
-impl Display for Base36 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.string)
-    }
-}
-
-#[macro_export]
-macro_rules! serialise_base36 {
-    ($t:ty) => {
-        $crate::impl_from_base36!($t);
-        $crate::impl_into_base36!($t);
-    };
-}
-
-#[macro_export]
-macro_rules! impl_from_base36 {
-    ($t:ty) => {
-        impl From<&$crate::serialise::Base36> for $t {
-            fn from(value: &$crate::serialise::Base36) -> Self {
-                let size: usize = std::mem::size_of::<Self>();
-                let bytes = $crate::serialise::Base36::from_base36(&value.get_string(), size);
-                <$t>::read_from(&bytes).unwrap()
-            }
-        }
-    };
-}
-
-#[macro_export]
-macro_rules! impl_into_base36 {
-    ($t:ty) => {
-        impl From<&$t> for $crate::serialise::Base36 {
-            fn from(value: &$t) -> Self {
-                $crate::serialise::Base36::from_bytes(&value.as_bytes())
-            }
-        }
-    };
 }

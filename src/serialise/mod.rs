@@ -1,7 +1,6 @@
-pub mod base36;
+mod base36;
+pub mod serial_string;
 pub mod serialise_type;
-pub mod serialiser;
 
-pub use base36::Base36;
+pub use serial_string::SerialString;
 pub use serialise_type::SerialiseType;
-pub use serialiser::Serialiser;
