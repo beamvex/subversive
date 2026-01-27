@@ -1,5 +1,5 @@
 use crate::{
-    hashing::{HashAlgorithm, Keccak256},
+    hashing::{HashAlgorithm, Keccak256, Sha256},
     serialise,
 };
 
@@ -21,7 +21,7 @@ impl Hash {
     fn from(bytes: &[u8], hash_algorithm: HashAlgorithm) -> Self {
         match hash_algorithm {
             HashAlgorithm::Keccak256 => Keccak256::from_bytes(bytes),
-            _default => panic!("hash algorithm not supported"),
+            HashAlgorithm::Sha256 => Sha256::from_bytes(bytes),
         }
     }
 }
@@ -39,6 +39,11 @@ mod tests {
     fn test_hash() {
         let bytes: Vec<u8> = vec![1, 2, 3];
         let hash = Hash::from(&bytes, HashAlgorithm::Keccak256);
+
+        let hash: SerialString = hash.into_serial_string(SerialiseType::Base36);
+        println!("hash: {}", hash.get_string());
+
+        let hash = Hash::from(&bytes, HashAlgorithm::Sha256);
 
         let hash: SerialString = hash.into_serial_string(SerialiseType::Base36);
         println!("hash: {}", hash.get_string());
