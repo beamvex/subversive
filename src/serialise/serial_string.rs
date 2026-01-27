@@ -14,6 +14,10 @@ impl SerialString {
         }
     }
 
+    pub fn get_serialise_type(&self) -> SerialiseType {
+        self.serialise_type
+    }
+
     pub fn get_string(&self) -> &String {
         &self.string
     }
