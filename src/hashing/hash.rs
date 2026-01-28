@@ -54,7 +54,7 @@ macro_rules! impl_hash {
 macro_rules! impl_verify {
     ($t:ty) => {
         impl $t {
-            pub fn verify(&self, hash: &$crate::hashing::Hash) -> bool {
+            pub fn verify(&self, _hash: &$crate::hashing::Hash) -> bool {
                 unimplemented!()
             }
         }
