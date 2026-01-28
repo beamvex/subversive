@@ -1,4 +1,4 @@
-use crate::{algorithm::AlgorithmType, serialise};
+use crate::{algorithm::AlgorithmType, hashable, serialise};
 use zerocopy::{AsBytes, FromBytes, FromZeroes};
 
 #[repr(C)]
@@ -48,12 +48,14 @@ impl From<&Signature> for Vec<u8> {
 }
 
 serialise!(Signature);
+hashable!(Signature);
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::serialise::SerialiseType;
 
+    use crate::hashing::HashAlgorithm;
     use ed25519_dalek::Signer;
     use ed25519_dalek::SigningKey;
     use rand_core::OsRng;
@@ -74,5 +76,11 @@ mod tests {
         let signature2: Signature = (&serialised).into();
 
         assert_eq!(signature.get_signature(), signature2.get_signature());
+
+        let hash = signature.hash(HashAlgorithm::KECCAK256);
+        println!("signature hash: {:?}", hash);
+
+        let hash = signature.hash(HashAlgorithm::SHA256);
+        println!("signature hash sha2-256: {:?}", hash);
     }
 }

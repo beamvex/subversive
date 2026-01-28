@@ -17,7 +17,7 @@ impl Hash {
         Hash { algorithm, bytes }
     }
 
-    fn from(bytes: &[u8], hash_algorithm: HashAlgorithm) -> Self {
+    pub fn hash_bytes(bytes: &[u8], hash_algorithm: HashAlgorithm) -> Self {
         match hash_algorithm {
             HashAlgorithm::KECCAK256 => Keccak256::from_bytes(bytes),
             HashAlgorithm::SHA256 => Sha256::from_bytes(bytes),
@@ -27,6 +27,39 @@ impl Hash {
 }
 
 serialise!(Hash);
+
+#[macro_export]
+macro_rules! hashable {
+    ($t:ty) => {
+        $crate::impl_hash!($t);
+        $crate::impl_verify!($t);
+    };
+}
+
+#[macro_export]
+macro_rules! impl_hash {
+    ($t:ty) => {
+        impl $t {
+            pub fn hash(
+                &self,
+                hash_algorithm: $crate::hashing::HashAlgorithm,
+            ) -> $crate::hashing::Hash {
+                $crate::hashing::Hash::hash_bytes(self.as_bytes(), hash_algorithm)
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! impl_verify {
+    ($t:ty) => {
+        impl $t {
+            pub fn verify(&self, hash: &$crate::hashing::Hash) -> bool {
+                unimplemented!()
+            }
+        }
+    };
+}
 
 #[cfg(test)]
 mod tests {
@@ -38,13 +71,13 @@ mod tests {
     #[test]
     fn test_hash() {
         let bytes: Vec<u8> = vec![1, 2, 3];
-        let hash = Hash::from(&bytes, HashAlgorithm::KECCAK256);
+        let hash = Hash::hash_bytes(&bytes, HashAlgorithm::KECCAK256);
 
         let hash_str: SerialString = hash.into_serial_string(SerialiseType::Base36);
         println!("hash: {}", hash_str.get_string());
         println!("hash debug: {:?}", hash);
 
-        let hash = Hash::from(&bytes, HashAlgorithm::SHA256);
+        let hash = Hash::hash_bytes(&bytes, HashAlgorithm::SHA256);
 
         let hash_str: SerialString = hash.into_serial_string(SerialiseType::Base36);
         println!("hash: {}", hash_str.get_string());
