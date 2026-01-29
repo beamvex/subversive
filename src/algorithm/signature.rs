@@ -56,6 +56,7 @@ mod tests {
     use crate::serialise::SerialiseType;
 
     use crate::hashing::HashAlgorithm;
+    use crate::serialise::serialise_type;
     use ed25519_dalek::Signer;
     use ed25519_dalek::SigningKey;
     use rand_core::OsRng;
@@ -78,9 +79,15 @@ mod tests {
         assert_eq!(signature.get_signature(), signature2.get_signature());
 
         let hash = signature.hash(HashAlgorithm::KECCAK256);
-        println!("signature hash: {:?}", hash);
+        let hash_str = hash.into_serial_string(SerialiseType::Base36);
+        println!("signature hash keccak-256: {}", hash_str);
 
         let hash = signature.hash(HashAlgorithm::SHA256);
-        println!("signature hash sha2-256: {:?}", hash);
+        let hash_str = hash.into_serial_string(SerialiseType::Base36);
+        println!("signature hash sha2-256: {}", hash_str);
+
+        let hash = signature.hash384(HashAlgorithm::KECCAK384);
+        let hash_str = hash.into_serial_string(SerialiseType::Base36);
+        println!("signature hash keccak-384: {}", hash_str);
     }
 }

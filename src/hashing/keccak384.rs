@@ -1,4 +1,4 @@
-use crate::hashing::variable_size_hash::Hash384;
+use crate::hashing::Hash384;
 use crate::hashing::HashAlgorithm;
 use sha3::{Digest, Keccak384 as Keccak384Impl};
 
