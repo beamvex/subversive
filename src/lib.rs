@@ -2,7 +2,7 @@
 //#[path = "algorithm/mod.rs"]
 //pub mod algorithm;
 //#[path = "serialise/mod.rs"]
-//pub mod serialise;
+//
 //#[path = "model/mod.rs"]
 //pub mod model;
 
@@ -13,3 +13,4 @@
 //pub mod address;
 
 pub mod hashing;
+pub mod serialise;

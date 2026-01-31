@@ -45,7 +45,7 @@ macro_rules! impl_from {
                 let size: usize = std::mem::size_of::<Self>();
                 let bytes =
                     $crate::serialise::base36::Base36::from_base36(&value.get_string(), size);
-                <$t>::read_from(&bytes).unwrap()
+                <$t>::from_bytes(&bytes)
             }
         }
     };

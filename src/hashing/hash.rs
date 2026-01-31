@@ -1,5 +1,11 @@
-use crate::hashing::{HashAlgorithm, Keccak256, Keccak384, Sha256};
+use crate::serialise::{AsBytes, FromBytes};
 
+use crate::{
+    hashing::{HashAlgorithm, Keccak256, Keccak384, Sha256},
+    serialise,
+};
+
+#[derive(Debug)]
 pub struct Hash {
     algorithm: HashAlgorithm,
     bytes: Vec<u8>,
@@ -23,11 +29,28 @@ impl Hash {
             HashAlgorithm::KECCAK256 => Keccak256::from_bytes(bytes),
             HashAlgorithm::SHA256 => Sha256::from_bytes(bytes),
             HashAlgorithm::KECCAK384 => Keccak384::from_bytes(bytes),
-
-            _ => panic!("Unknown hash algorithm"),
         }
     }
 }
+
+impl AsBytes for Hash {
+    fn as_bytes(&self) -> Vec<u8> {
+        let mut bytes = vec![];
+        bytes.push(self.algorithm as u8);
+        bytes.extend_from_slice(&self.bytes);
+        bytes
+    }
+}
+
+impl FromBytes for Hash {
+    fn from_bytes(bytes: &[u8]) -> Self {
+        let algorithm = HashAlgorithm::from(bytes[0]);
+        let bytes = bytes[1..].to_vec();
+        Hash::new(algorithm, bytes)
+    }
+}
+
+serialise!(Hash);
 
 #[cfg(test)]
 mod tests {
