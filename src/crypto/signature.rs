@@ -75,7 +75,6 @@ hashable!(Signature);
 mod tests {
     use super::*;
     use crate::hashing::HashAlgorithm;
-    use crate::serialise::base36::Base36;
     use crate::serialise::SerialiseType;
 
     use ed25519_dalek::Signer;

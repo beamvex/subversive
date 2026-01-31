@@ -1,3 +1,4 @@
+pub mod rsa;
 pub mod signature;
 pub mod signing_algorithm;
 
