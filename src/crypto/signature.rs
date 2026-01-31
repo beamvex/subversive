@@ -1,5 +1,6 @@
 use crate::{
     crypto::SigningAlgorithm,
+    hashable,
     serialise::{AsBytes, FromBytes},
 };
 
@@ -68,13 +69,14 @@ impl FromBytes for Signature {
 
 serialisable!(Signature);
 
+hashable!(Signature);
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::serialise::SerialiseType;
 
     use crate::hashing::HashAlgorithm;
-    use crate::serialise::serialise_type;
     use ed25519_dalek::Signer;
     use ed25519_dalek::SigningKey;
     use rand_core::OsRng;
@@ -83,9 +85,9 @@ mod tests {
     fn test_signature() {
         let signing_key = SigningKey::generate(&mut OsRng);
         let data = b"test";
-        let sig = signing_key.sign(data).to_bytes();
+        let sig = signing_key.sign(data).to_bytes().to_vec();
 
-        let signature = Signature::new_with_algorithm(AlgorithmType::ED25519, sig);
+        let signature = Signature::new_with_algorithm(SigningAlgorithm::ED25519, sig);
 
         let serialised = signature.into_serial_string(SerialiseType::Base36);
 
@@ -104,7 +106,7 @@ mod tests {
         let hash_str = hash.into_serial_string(SerialiseType::Base36);
         println!("signature hash sha2-256: {}", hash_str);
 
-        let hash = signature.hash384(HashAlgorithm::KECCAK384);
+        let hash = signature.hash(HashAlgorithm::KECCAK384);
         let hash_str = hash.into_serial_string(SerialiseType::Base36);
         println!("signature hash keccak-384: {}", hash_str);
     }

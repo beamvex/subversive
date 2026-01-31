@@ -52,6 +52,20 @@ impl FromBytes for Hash {
 
 serialisable!(Hash);
 
+#[macro_export]
+macro_rules! hashable {
+    ($x:ty) => {
+        impl $x {
+            pub fn hash(
+                &self,
+                hash_algorithm: $crate::hashing::HashAlgorithm,
+            ) -> $crate::hashing::Hash {
+                $crate::hashing::Hash::hash_bytes(&self.as_bytes(), hash_algorithm)
+            }
+        }
+    };
+}
+
 #[cfg(test)]
 mod tests {
 

@@ -1,7 +1,21 @@
 {
     "editor.formatOnPaste": true,
     "editor.formatOnSave": true,
+    "rust-analyzer.check.overrideCommand": [
+        "cargo",
+        "clippy",
+        "--all",
+        "--all-targets",
+        "--all-features",
+        "--message-format=json",
+        "--",
+        "-D",
+        "clippy::all"
+    ],
     "rust-analyzer.cargo.cfgs":[
+        "test"
+    ],
+    "rust-analyzer.check.targets":[
         "test"
     ],
     "rust-analyzer.cargo.features": [
@@ -10,9 +24,5 @@
     "rust-analyzer.check.features": [
         "poc"
     ],
-    "rust-analyzer.check.overrideCommand": [
-        "cargo",
-        "clippy",
-        "--message-format=json"
-    ]
+ 
 }
