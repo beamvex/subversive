@@ -53,7 +53,7 @@ impl From<&Signature> for Vec<u8> {
 impl AsBytes for Signature {
     fn as_bytes(&self) -> Vec<u8> {
         let mut bytes = vec![];
-        bytes.push(self.algorithm as u8);
+        bytes.push(self.algorithm.into());
         bytes.extend_from_slice(&self.signature);
         bytes
     }
@@ -74,9 +74,10 @@ hashable!(Signature);
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::hashing::HashAlgorithm;
+    use crate::serialise::base36::Base36;
     use crate::serialise::SerialiseType;
 
-    use crate::hashing::HashAlgorithm;
     use ed25519_dalek::Signer;
     use ed25519_dalek::SigningKey;
     use rand_core::OsRng;
@@ -95,7 +96,8 @@ mod tests {
         println!("serialised debug: {:?}", serialised);
 
         let signature2: Signature = (&serialised).into();
-        /*
+        println!("signature2: {:?}", signature2.get_signature());
+
         assert_eq!(signature.get_signature(), signature2.get_signature());
 
         let hash = signature.hash(HashAlgorithm::KECCAK256);
@@ -109,6 +111,5 @@ mod tests {
         let hash = signature.hash(HashAlgorithm::KECCAK384);
         let hash_str = hash.into_serial_string(SerialiseType::Base36);
         println!("signature hash keccak-384: {}", hash_str);
-        */
     }
 }
