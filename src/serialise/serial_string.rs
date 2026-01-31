@@ -42,8 +42,16 @@ macro_rules! impl_from {
     ($t:ty) => {
         impl From<&$crate::serialise::SerialString> for $t {
             fn from(value: &$crate::serialise::SerialString) -> Self {
-                let bytes = $crate::serialise::base36::Base36::from_base36(&value.get_string(), 0);
-                <$t>::from_bytes(&bytes)
+                match value.get_serialise_type() {
+                    $crate::serialise::SerialiseType::Base36 => {
+                        let bytes =
+                            $crate::serialise::base36::Base36::from_base36(&value.get_string(), 0);
+                        <$t>::from_bytes(&bytes)
+                    }
+                    _ => {
+                        panic!("Unsupported serialise type");
+                    }
+                }
             }
         }
     };
