@@ -1,43 +1,45 @@
-use crate::{algorithm::AlgorithmType, hashable, serialise};
-use zerocopy::{AsBytes, FromBytes, FromZeroes};
+use crate::{
+    crypto::SigningAlgorithm,
+    serialise::{AsBytes, FromBytes},
+};
 
-#[repr(C)]
-#[derive(Debug, FromZeroes, FromBytes, AsBytes)]
+use crate::serialisable;
+
 pub struct Signature {
-    algorithm_type: AlgorithmType,
-    signature: [u8; 64],
+    algorithm: SigningAlgorithm,
+    signature: Vec<u8>,
 }
 
 impl Default for Signature {
     fn default() -> Self {
         Self {
-            algorithm_type: AlgorithmType::ED25519,
-            signature: [0u8; 64],
+            algorithm: SigningAlgorithm::ED25519,
+            signature: vec![0u8; 64],
         }
     }
 }
 
 impl Signature {
-    pub fn new(signature: [u8; 64]) -> Self {
+    pub fn new(signature: Vec<u8>) -> Self {
         Signature {
-            algorithm_type: AlgorithmType::ED25519,
+            algorithm: SigningAlgorithm::ED25519,
             signature,
         }
     }
 
-    pub fn new_with_algorithm(algorithm_type: AlgorithmType, signature: [u8; 64]) -> Self {
+    pub fn new_with_algorithm(algorithm: SigningAlgorithm, signature: Vec<u8>) -> Self {
         Signature {
-            algorithm_type,
+            algorithm,
             signature,
         }
     }
 
-    pub fn get_signature(&self) -> &[u8; 64] {
+    pub fn get_signature(&self) -> &Vec<u8> {
         &self.signature
     }
 
-    pub fn get_algorithm_type(&self) -> AlgorithmType {
-        self.algorithm_type
+    pub fn get_algorithm(&self) -> SigningAlgorithm {
+        self.algorithm
     }
 }
 
@@ -47,8 +49,24 @@ impl From<&Signature> for Vec<u8> {
     }
 }
 
-serialise!(Signature);
-hashable!(Signature);
+impl AsBytes for Signature {
+    fn as_bytes(&self) -> Vec<u8> {
+        let mut bytes = vec![];
+        bytes.push(self.algorithm as u8);
+        bytes.extend_from_slice(&self.signature);
+        bytes
+    }
+}
+
+impl FromBytes for Signature {
+    fn from_bytes(bytes: &[u8]) -> Self {
+        let algorithm = SigningAlgorithm::from(bytes[0]);
+        let bytes = bytes[1..].to_vec();
+        Signature::new_with_algorithm(algorithm, bytes)
+    }
+}
+
+serialisable!(Signature);
 
 #[cfg(test)]
 mod tests {

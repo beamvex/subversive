@@ -2,7 +2,7 @@ use crate::serialise::{AsBytes, FromBytes};
 
 use crate::{
     hashing::{HashAlgorithm, Keccak256, Keccak384, Sha256},
-    serialise,
+    serialisable,
 };
 
 #[derive(Debug)]
@@ -50,7 +50,7 @@ impl FromBytes for Hash {
     }
 }
 
-serialise!(Hash);
+serialisable!(Hash);
 
 #[cfg(test)]
 mod tests {

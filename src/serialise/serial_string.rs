@@ -30,7 +30,7 @@ impl std::fmt::Display for SerialString {
 }
 
 #[macro_export]
-macro_rules! serialise {
+macro_rules! serialisable {
     ($t:ty) => {
         $crate::impl_from!($t);
         $crate::impl_into!($t);
