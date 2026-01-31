@@ -73,11 +73,11 @@ impl Base36 {
     pub fn from_base36(base36: &str, size: usize) -> Vec<u8> {
         let mut bytes = Base36::base36_to_bytes(base36);
 
-        if bytes.len() > size {
+        if bytes.len() > size && size > 0 {
             panic!("base36 value does not fit in {} bytes", size);
         }
 
-        if bytes.len() < size {
+        if bytes.len() < size && size > 0 {
             let mut padded = vec![0u8; size - bytes.len()];
             padded.append(&mut bytes);
             return padded;

@@ -42,9 +42,7 @@ macro_rules! impl_from {
     ($t:ty) => {
         impl From<&$crate::serialise::SerialString> for $t {
             fn from(value: &$crate::serialise::SerialString) -> Self {
-                let size: usize = std::mem::size_of::<Self>();
-                let bytes =
-                    $crate::serialise::base36::Base36::from_base36(&value.get_string(), size);
+                let bytes = $crate::serialise::base36::Base36::from_base36(&value.get_string(), 0);
                 <$t>::from_bytes(&bytes)
             }
         }
