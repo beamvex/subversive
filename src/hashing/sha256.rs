@@ -8,7 +8,7 @@ impl Sha256 {
         let mut hasher = Sha256Impl::new();
         hasher.update(bytes);
         let result = hasher.finalize();
-        let bytes = result.into();
+        let bytes = result.to_vec();
         Hash::new(HashAlgorithm::SHA256, bytes)
     }
 }

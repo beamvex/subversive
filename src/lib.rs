@@ -1,8 +1,8 @@
 // pub mod game;
-#[path = "algorithm/mod.rs"]
-pub mod algorithm;
-#[path = "serialise/mod.rs"]
-pub mod serialise;
+//#[path = "algorithm/mod.rs"]
+//pub mod algorithm;
+//#[path = "serialise/mod.rs"]
+//pub mod serialise;
 //#[path = "model/mod.rs"]
 //pub mod model;
 

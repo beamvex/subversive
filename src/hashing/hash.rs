@@ -1,89 +1,32 @@
 use crate::hashing::{HashAlgorithm, Keccak256, Keccak384, Sha256};
 
-use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned};
-
-#[macro_export]
-macro_rules! hash_bytes_fn {
-    ($name:ident, 32) => {
-        pub fn hash_bytes(bytes: &[u8], hash_algorithm: HashAlgorithm) -> Self {
-            match hash_algorithm {
-                HashAlgorithm::KECCAK256 => Keccak256::from_bytes(bytes),
-                HashAlgorithm::SHA256 => Sha256::from_bytes(bytes),
-                _ => panic!("Unknown hash algorithm"),
-            }
-        }
-    };
-
-    ($name:ident, 48) => {
-        pub fn hash_bytes(bytes: &[u8], hash_algorithm: HashAlgorithm) -> Self {
-            match hash_algorithm {
-                HashAlgorithm::KECCAK384 => Keccak384::from_bytes(bytes),
-                _ => panic!("Unknown hash algorithm"),
-            }
-        }
-    };
+pub struct Hash {
+    algorithm: HashAlgorithm,
+    bytes: Vec<u8>,
 }
 
-#[macro_export]
-macro_rules! variable_size_hash {
-    ($name:ident, $size:tt) => {
-        #[repr(C)]
-        #[derive(Debug, FromZeroes, FromBytes, AsBytes, Unaligned)]
-        pub struct $name {
-            algorithm: HashAlgorithm,
-            bytes: [u8; $size],
+impl Hash {
+    pub fn new(algorithm: HashAlgorithm, bytes: Vec<u8>) -> Self {
+        Hash { algorithm, bytes }
+    }
+
+    pub fn get_bytes(&self) -> &Vec<u8> {
+        &self.bytes
+    }
+
+    pub fn get_algorithm(&self) -> HashAlgorithm {
+        self.algorithm
+    }
+
+    pub fn hash_bytes(bytes: &[u8], hash_algorithm: HashAlgorithm) -> Self {
+        match hash_algorithm {
+            HashAlgorithm::KECCAK256 => Keccak256::from_bytes(bytes),
+            HashAlgorithm::SHA256 => Sha256::from_bytes(bytes),
+            HashAlgorithm::KECCAK384 => Keccak384::from_bytes(bytes),
+
+            _ => panic!("Unknown hash algorithm"),
         }
-
-        impl $name {
-            pub fn new(algorithm: HashAlgorithm, bytes: [u8; $size]) -> Self {
-                $name { algorithm, bytes }
-            }
-
-            $crate::hash_bytes_fn!($name, $size);
-        }
-        $crate::serialise!($name);
-    };
-}
-
-variable_size_hash!(Hash, 32);
-variable_size_hash!(Hash384, 48);
-
-#[macro_export]
-macro_rules! hashable {
-    ($t:ty) => {
-        $crate::impl_hash_by_type!($t, $crate::hashing::Hash, hash);
-        $crate::impl_hash_by_type!($t, $crate::hashing::Hash384, hash384);
-        $crate::impl_verify!($t);
-    };
-}
-
-#[macro_export]
-macro_rules! hashable_by_type {
-    ($t:ty, $h:ty, $fn_name:ident) => {
-        $crate::impl_hash_by_type!($t, $h, $fn_name);
-    };
-}
-
-#[macro_export]
-macro_rules! impl_hash_by_type {
-    ($t:ty, $h:ty, $fn_name:ident) => {
-        impl $t {
-            pub fn $fn_name(&self, hash_algorithm: $crate::hashing::HashAlgorithm) -> $h {
-                <$h>::hash_bytes(self.as_bytes(), hash_algorithm)
-            }
-        }
-    };
-}
-
-#[macro_export]
-macro_rules! impl_verify {
-    ($t:ty) => {
-        impl $t {
-            pub fn verify(&self, _hash: &$crate::hashing::Hash) -> bool {
-                unimplemented!()
-            }
-        }
-    };
+    }
 }
 
 #[cfg(test)]
@@ -108,7 +51,7 @@ mod tests {
         println!("hash: {}", hash_str.get_string());
         println!("hash debug: {:?}", hash);
 
-        let hash = Hash384::hash_bytes(&bytes, HashAlgorithm::KECCAK384);
+        let hash = Hash::hash_bytes(&bytes, HashAlgorithm::KECCAK384);
 
         let hash_str: SerialString = hash.into_serial_string(SerialiseType::Base36);
         println!("hash: {}", hash_str.get_string());

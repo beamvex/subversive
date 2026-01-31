@@ -8,7 +8,7 @@ impl Keccak256 {
         let mut hasher = Keccak256Impl::new();
         hasher.update(bytes);
         let result = hasher.finalize();
-        let bytes = result.into();
+        let bytes = result.to_vec();
         Hash::new(HashAlgorithm::KECCAK256, bytes)
     }
 }

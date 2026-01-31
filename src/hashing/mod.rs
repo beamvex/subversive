@@ -5,7 +5,6 @@ pub mod keccak384;
 pub mod sha256;
 
 pub use hash::Hash;
-pub use hash::Hash384;
 pub use hash_algorithm::HashAlgorithm;
 pub use keccak256::Keccak256;
 pub use keccak384::Keccak384;
