@@ -1,37 +1,9 @@
-use crate::address::address::Address;
 use crate::address::key::Key;
-use crate::model::Base36;
-use crate::model::Signature;
-use ed25519_dalek::Signer;
-use ed25519_dalek::SigningKey;
+use crate::address::public_address::PublicAddress;
 
-use rand_core::OsRng;
-use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned};
-
-#[repr(C)]
-#[derive(Debug, FromZeroes, FromBytes, AsBytes, Unaligned)]
 pub struct PrivateAddress {
     private_key: Key,
-    address: Address,
-}
-
-impl From<&PrivateAddress> for Base36 {
-    fn from(private_address: &PrivateAddress) -> Self {
-        let bytes: Vec<u8> = private_address.private_key.as_bytes().to_vec();
-        Base36::from_bytes(&bytes)
-    }
-}
-
-impl Default for PrivateAddress {
-    fn default() -> Self {
-        let (private_key, public_key) = Self::generate_key();
-        let address = Address::new(public_key);
-
-        PrivateAddress {
-            private_key,
-            address,
-        }
-    }
+    public_address: PublicAddress,
 }
 
 impl PrivateAddress {
@@ -39,27 +11,12 @@ impl PrivateAddress {
         &self.private_key
     }
 
-    pub fn get_address(&self) -> &Address {
-        &self.address
-    }
-
-    fn generate_key() -> (Key, Key) {
-        let signing_key = SigningKey::generate(&mut OsRng);
-        let verifying_key = signing_key.verifying_key();
-
-        let private_key = Key::from(signing_key.to_bytes());
-        let public_key = Key::from(verifying_key.to_bytes());
-
-        (private_key, public_key)
-    }
-
-    pub fn sign(&self, bytes: &[u8]) -> Signature {
-        let signing_key = SigningKey::from_bytes(self.get_private_key().get_bytes());
-        let signature = signing_key.sign(bytes);
-        Signature::new(signature.to_bytes())
+    pub fn get_address(&self) -> &PublicAddress {
+        &self.public_address
     }
 }
 
+/*
 #[cfg(test)]
 mod tests {
 
@@ -105,3 +62,4 @@ mod tests {
         println!("signature: {}", signature_b36);
     }
 }
+*/

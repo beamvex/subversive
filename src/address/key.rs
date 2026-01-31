@@ -1,49 +1,60 @@
-use crate::model::base36::FromBase36;
-use crate::model::Base36;
-use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned};
+use crate::{
+    hashable, serialisable,
+    serialise::{AsBytes, FromBytes},
+};
 
-#[repr(C)]
-#[derive(Debug, Default, FromZeroes, FromBytes, AsBytes, Unaligned)]
 pub struct Key {
-    bytes: [u8; 32],
+    bytes: Vec<u8>,
 }
 
 impl Key {
-    pub fn get_bytes(&self) -> &[u8; 32] {
+    pub fn get_bytes(&self) -> &Vec<u8> {
         &self.bytes
     }
 }
 
-impl FromBase36 for Key {
-    fn from_bytes(bytes: &[u8]) -> Self {
-        Key::read_from(bytes).unwrap()
-    }
-}
-
-impl From<[u8; 32]> for Key {
-    fn from(bytes: [u8; 32]) -> Self {
+impl From<Vec<u8>> for Key {
+    fn from(bytes: Vec<u8>) -> Self {
         Key { bytes }
     }
 }
 
-impl From<Key> for Base36 {
-    fn from(key: Key) -> Self {
-        let bytes: Vec<u8> = key.as_bytes().to_vec();
-        Base36::from_bytes(&bytes)
+impl AsBytes for Key {
+    fn as_bytes(&self) -> Vec<u8> {
+        let mut bytes = vec![];
+        bytes.extend_from_slice(&self.bytes);
+        bytes
     }
 }
+
+impl FromBytes for Key {
+    fn from_bytes(bytes: &[u8]) -> Self {
+        let bytes = bytes.to_vec();
+        Key::from(bytes)
+    }
+}
+
+serialisable!(Key);
+
+hashable!(Key);
 
 #[cfg(test)]
 mod tests {
 
+    use crate::serialise::{serial_string, SerialiseType};
+
     use super::*;
-    use crate::model::base36::FromBase36;
 
     #[test]
     fn test_from_base36() {
-        let key = Key::from_base36("3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833");
+        let b36_string = "3375t72oexdn8n814mi1z8yjpubm9yy1uxz1f9o1hpz0qye833";
+        let serial_string = serial_string::SerialString::new(
+            crate::serialise::SerialiseType::Base36,
+            b36_string.to_string(),
+        );
+        let key = Key::from(&serial_string);
 
-        let key: Base36 = key.into();
+        let key: serial_string::SerialString = key.into_serial_string(SerialiseType::Base36);
         println!("key: {}", key);
 
         assert_eq!(
