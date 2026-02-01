@@ -91,24 +91,24 @@ mod tests {
 
         let serialised = signature.into_serial_string(SerialiseType::Base36);
 
-        println!("serialised: {}", serialised);
-        println!("serialised debug: {:?}", serialised);
+        crate::debug!("serialised: {}", serialised);
+        crate::debug!("serialised debug: {:?}", serialised);
 
         let signature2: Signature = (&serialised).into();
-        println!("signature2: {:?}", signature2.get_signature());
+        crate::debug!("signature2: {:?}", signature2.get_signature());
 
         assert_eq!(signature.get_signature(), signature2.get_signature());
 
         let hash = signature.hash(HashAlgorithm::KECCAK256);
         let hash_str = hash.into_serial_string(SerialiseType::Base36);
-        println!("signature hash keccak-256: {}", hash_str);
+        crate::debug!("signature hash keccak-256: {}", hash_str);
 
         let hash = signature.hash(HashAlgorithm::SHA256);
         let hash_str = hash.into_serial_string(SerialiseType::Base36);
-        println!("signature hash sha2-256: {}", hash_str);
+        crate::debug!("signature hash sha2-256: {}", hash_str);
 
         let hash = signature.hash(HashAlgorithm::KECCAK384);
         let hash_str = hash.into_serial_string(SerialiseType::Base36);
-        println!("signature hash keccak-384: {}", hash_str);
+        crate::debug!("signature hash keccak-384: {}", hash_str);
     }
 }

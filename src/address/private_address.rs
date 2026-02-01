@@ -30,8 +30,8 @@ mod tests {
         let private_address_b36: Base36 = (&private_address).into();
         let public_address_b36: Base36 = private_address.get_address().into();
 
-        println!("1. private_key_b36: {}", private_address_b36);
-        println!("2. public_key_b36: {}", public_address_b36);
+        crate::debug!("1. private_key_b36: {}", private_address_b36);
+        crate::debug!("2. public_key_b36: {}", public_address_b36);
 
         assert_eq!(private_address.get_private_key().get_bytes().len(), 32);
         assert_eq!(
@@ -43,7 +43,7 @@ mod tests {
             32
         );
 
-        println!("private_address_bytes: {}", private_address_b36);
+        crate::debug!("private_address_bytes: {}", private_address_b36);
     }
 
     #[test]
@@ -59,7 +59,7 @@ mod tests {
         let signature = from_private_address.sign(&bytes);
 
         let signature_b36: Base36 = (&signature).into();
-        println!("signature: {}", signature_b36);
+        crate::debug!("signature: {}", signature_b36);
     }
 }
 */

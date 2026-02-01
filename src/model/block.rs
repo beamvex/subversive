@@ -68,9 +68,9 @@ mod tests {
         );
 
         let block_bytes: Vec<u8> = (&block).into();
-        println!("Block bytes: {}", block_bytes.len());
+        crate::debug!("Block bytes: {}", block_bytes.len());
 
         let block_base36: Base36 = (&block).into();
-        println!("Block base36: {}", block_base36.get_string());
+        crate::debug!("Block base36: {}", block_base36.get_string());
     }
 }

@@ -60,7 +60,7 @@ mod tests {
 
         let transaction_bytes: Base36 = (&transaction).into();
 
-        println!("transaction_bytes: {}", &transaction_bytes);
+        crate::debug!("transaction_bytes: {}", &transaction_bytes);
     }
 
     #[test]
@@ -81,6 +81,6 @@ mod tests {
 
         let transaction_bytes: Base36 = (&transaction).into();
 
-        println!("transaction_bytes: {}", &transaction_bytes);
+        crate::debug!("transaction_bytes: {}", &transaction_bytes);
     }
 }

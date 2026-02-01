@@ -79,19 +79,19 @@ mod tests {
         let hash = Hash::hash_bytes(&bytes, HashAlgorithm::KECCAK256);
 
         let hash_str: SerialString = hash.into_serial_string(SerialiseType::Base36);
-        println!("hash: {}", hash_str.get_string());
-        println!("hash debug: {:?}", hash);
+        crate::debug!("hash: {}", hash_str.get_string());
+        crate::debug!("hash debug: {:?}", hash);
 
         let hash = Hash::hash_bytes(&bytes, HashAlgorithm::SHA256);
 
         let hash_str: SerialString = hash.into_serial_string(SerialiseType::Base36);
-        println!("hash: {}", hash_str.get_string());
-        println!("hash debug: {:?}", hash);
+        crate::debug!("hash: {}", hash_str.get_string());
+        crate::debug!("hash debug: {:?}", hash);
 
         let hash = Hash::hash_bytes(&bytes, HashAlgorithm::KECCAK384);
 
         let hash_str: SerialString = hash.into_serial_string(SerialiseType::Base36);
-        println!("hash: {}", hash_str.get_string());
-        println!("hash debug: {:?}", hash);
+        crate::debug!("hash: {}", hash_str.get_string());
+        crate::debug!("hash debug: {:?}", hash);
     }
 }

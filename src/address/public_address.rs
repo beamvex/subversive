@@ -66,7 +66,7 @@ mod tests {
 
         let address_bytes: Base36 = (&address).into();
 
-        println!("address_bytes: {}", address_bytes);
+        crate::debug!("address_bytes: {}", address_bytes);
     }
 }
 */

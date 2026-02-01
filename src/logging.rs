@@ -1,10 +1,144 @@
 #[macro_export]
 macro_rules! log {
     ($fmt:expr) => {
-        println!("[{}:{}] {}", file!(), line!(), $fmt);
+        {
+            let ts = ::chrono::Utc::now().to_rfc3339();
+            println!(
+                "[{}] [\x1b[1;32m{}\x1b[0m:\x1b[35m{}\x1b[0m] {}",
+                ts,
+                file!(),
+                line!(),
+                $fmt
+            );
+        }
     };
 
     ($fmt:expr, $($arg:tt)*) => {
-        println!("[{}:{}] {}", file!(), line!(), format_args!($fmt, $($arg)*));
+        {
+            let ts = ::chrono::Utc::now().to_rfc3339();
+            println!(
+                "[{}] [\x1b[1;32m{}\x1b[0m:\x1b[35m{}\x1b[0m] {}",
+                ts,
+                file!(),
+                line!(),
+                format_args!($fmt, $($arg)*)
+            );
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! debug {
+    ($fmt:expr) => {
+        {
+            let ts = ::chrono::Utc::now().to_rfc3339();
+            println!(
+                "[{}] [\x1b[36mDEBUG\x1b[0m] [\x1b[1;32m{}\x1b[0m:\x1b[35m{}\x1b[0m] {}",
+                ts,
+                file!(),
+                line!(),
+                $fmt
+            );
+        }
+    };
+
+    ($fmt:expr, $($arg:tt)*) => {
+        {
+            let ts = ::chrono::Utc::now().to_rfc3339();
+            println!(
+                "[{}] [\x1b[36mDEBUG\x1b[0m] [\x1b[1;32m{}\x1b[0m:\x1b[35m{}\x1b[0m] {}",
+                ts,
+                file!(),
+                line!(),
+                format_args!($fmt, $($arg)*)
+            );
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! info {
+    ($fmt:expr) => {
+        {
+            let ts = ::chrono::Utc::now().to_rfc3339();
+            println!(
+                "[{}] [\x1b[32mINFO\x1b[0m] [\x1b[1;32m{}\x1b[0m:\x1b[35m{}\x1b[0m] {}",
+                ts,
+                file!(),
+                line!(),
+                $fmt
+            );
+        }
+    };
+
+    ($fmt:expr, $($arg:tt)*) => {
+        {
+            let ts = ::chrono::Utc::now().to_rfc3339();
+            println!(
+                "[{}] [\x1b[32mINFO\x1b[0m] [\x1b[1;32m{}\x1b[0m:\x1b[35m{}\x1b[0m] {}",
+                ts,
+                file!(),
+                line!(),
+                format_args!($fmt, $($arg)*)
+            );
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! warn {
+    ($fmt:expr) => {
+        {
+            let ts = ::chrono::Utc::now().to_rfc3339();
+            println!(
+                "[{}] [\x1b[33mWARN\x1b[0m] [\x1b[1;32m{}\x1b[0m:\x1b[35m{}\x1b[0m] {}",
+                ts,
+                file!(),
+                line!(),
+                $fmt
+            );
+        }
+    };
+
+    ($fmt:expr, $($arg:tt)*) => {
+        {
+            let ts = ::chrono::Utc::now().to_rfc3339();
+            println!(
+                "[{}] [\x1b[33mWARN\x1b[0m] [\x1b[1;32m{}\x1b[0m:\x1b[35m{}\x1b[0m] {}",
+                ts,
+                file!(),
+                line!(),
+                format_args!($fmt, $($arg)*)
+            );
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! error {
+    ($fmt:expr) => {
+        {
+            let ts = ::chrono::Utc::now().to_rfc3339();
+            eprintln!(
+                "[{}] [\x1b[31mERROR\x1b[0m] [\x1b[1;32m{}\x1b[0m:\x1b[35m{}\x1b[0m] {}",
+                ts,
+                file!(),
+                line!(),
+                $fmt
+            );
+        }
+    };
+
+    ($fmt:expr, $($arg:tt)*) => {
+        {
+            let ts = ::chrono::Utc::now().to_rfc3339();
+            eprintln!(
+                "[{}] [\x1b[31mERROR\x1b[0m] [\x1b[1;32m{}\x1b[0m:\x1b[35m{}\x1b[0m] {}",
+                ts,
+                file!(),
+                line!(),
+                format_args!($fmt, $($arg)*)
+            );
+        }
     };
 }

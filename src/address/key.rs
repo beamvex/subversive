@@ -55,7 +55,7 @@ mod tests {
         let key = Key::from(&serial_string);
 
         let key: serial_string::SerialString = key.into_serial_string(SerialiseType::Base36);
-        println!("key: {}", key);
+        crate::debug!("key: {}", key);
 
         assert_eq!(
             key.get_string(),

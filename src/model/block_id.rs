@@ -73,7 +73,7 @@ mod tests {
         let last_time_block = BlockId::to_last_time_block(t);
 
         let iso = chrono::DateTime::<chrono::Utc>::from(last_time_block).to_rfc3339();
-        println!("last_time_block: {}", iso);
+        crate::debug!("last_time_block: {}", iso);
 
         assert_eq!(last_time_block, base);
     }
@@ -82,7 +82,7 @@ mod tests {
     fn test_default() {
         let block_id = BlockId::default();
 
-        println!("block_id: {:?}", block_id);
+        crate::debug!("block_id: {:?}", block_id);
         assert_eq!(
             block_id.ts,
             BlockId::get_last_time_block()

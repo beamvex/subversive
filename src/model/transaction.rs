@@ -85,7 +85,7 @@ mod tests {
             Transaction::new(&from_private_address, &to_private_address.get_address(), 1);
 
         let transaction_b36: Base36 = (&transaction).into();
-        println!("transaction: {}", transaction_b36);
+        crate::debug!("transaction: {}", transaction_b36);
     }
 
     #[test]
@@ -97,7 +97,7 @@ mod tests {
             Transaction::new(&from_private_address, &to_private_address.get_address(), 1);
 
         let transaction_b36: Base36 = (&transaction).into();
-        println!("transaction: {}", transaction_b36);
+        crate::debug!("transaction: {}", transaction_b36);
 
         let bytes = transaction.as_bytes();
 
@@ -105,7 +105,7 @@ mod tests {
 
         let verified = parsed_transaction.verify(&from_private_address.get_address());
 
-        println!("verified: {:?}", verified);
+        crate::debug!("verified: {:?}", verified);
     }
 
     #[test]
@@ -117,7 +117,7 @@ mod tests {
             Transaction::new(&from_private_address, &to_private_address.get_address(), 1);
 
         let transaction_b36: Base36 = (&transaction).into();
-        println!("transaction: {}", transaction_b36);
+        crate::debug!("transaction: {}", transaction_b36);
 
         let bytes = transaction.as_bytes();
 
@@ -125,13 +125,13 @@ mod tests {
 
         let verified = parsed_transaction.verify(&from_private_address.get_address());
 
-        println!("verified: {:?}", verified);
+        crate::debug!("verified: {:?}", verified);
 
         let db_path = "./tmp/db_{}";
         crate::config::CONFIG.with(|config| {
             config.borrow_mut().set_db_path(db_path);
         });
-        println!(
+        crate::debug!(
             "db_path: {}",
             crate::config::CONFIG.with(|config| config.borrow().get_db_path().clone())
         );
@@ -141,10 +141,10 @@ mod tests {
         let loaded_transaction = Transaction::load();
 
         let loaded_transaction_b36: Base36 = (&loaded_transaction).into();
-        println!("loaded_transaction: {}", loaded_transaction_b36);
+        crate::debug!("loaded_transaction: {}", loaded_transaction_b36);
 
         let verified = loaded_transaction.verify(&from_private_address.get_address());
 
-        println!("verified: {:?}", verified);
+        crate::debug!("verified: {:?}", verified);
     }
 }
