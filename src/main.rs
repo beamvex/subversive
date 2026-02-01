@@ -1,6 +1,8 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use subversive::log;
+
 const LOGO: &str = r#"
   _________    ___.                            .__              
  /   _____/__ _\_ |_____  __ ___________  _____|__|__  __ ____  
@@ -30,7 +32,7 @@ impl<'a> Subversive<'a> {
 }
 
 pub fn main() {
-    println!("Hello, world!");
+    log!("Hello, world!");
 
     let subversive = Subversive::new("0.0.2");
     subversive.borrow().run();
