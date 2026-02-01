@@ -3,11 +3,11 @@ mod tests {
 
     use rand::rngs::OsRng;
     use rsa::pkcs1::EncodeRsaPrivateKey;
+    use rsa::pkcs1v15::Pkcs1v15Sign;
     use rsa::pkcs8::LineEnding;
     use rsa::traits::PublicKeyParts;
     use rsa::RsaPrivateKey;
-
-    use crate::address::private_address;
+    use sha2::{Digest, Sha256};
 
     #[test]
     fn test_rsa() {
@@ -18,7 +18,10 @@ mod tests {
         println!("prem {}", pem.as_str());
 
         let test = b"test";
-        let signature = private_key.sign(test);
-        println!("signature {}", signature.as_str());
+        let digest = Sha256::digest(test);
+        let signature = private_key
+            .sign(Pkcs1v15Sign::new_unprefixed(), digest.as_slice())
+            .unwrap();
+        println!("signature_len {}", signature.len());
     }
 }
