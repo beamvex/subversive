@@ -23,5 +23,6 @@ mod tests {
             .sign(Pkcs1v15Sign::new_unprefixed(), digest.as_slice())
             .unwrap();
         crate::debug!("signature_len {}", signature.len());
+        crate::debug!("signature {:?}", signature.as_slice());
     }
 }
