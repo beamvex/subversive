@@ -86,22 +86,70 @@ mod tests {
 
         let signature = Signature::new_with_algorithm(SigningAlgorithm::ED25519, sig);
 
-        let serialised: SerialString = {
-            let b36: Base36 = (&signature).into();
-            b36.into()
-        };
+        let serialised: SerialString = Base36::from(&signature).into();
 
         crate::debug!("serialised: {}", serialised);
         crate::debug!("serialised debug: {:?}", serialised);
 
-        /*
-        let signature2: Signature = (&serialised).into();
-        crate::debug!("signature2: {:?}", signature2.get_signature());
+        let signature2: Signature = serialised.into();
+        crate::debug!("signature2: {:?}", signature2.get_signature());43ewwwwwwwwwwwwwwwwwwwwwwwwwwwwww
 
         assert_eq!(signature.get_signature(), signature2.get_signature());
 
+        /*
         let hash = signature.hash(HashAlgorithm::KECCAK256);
         let hash_str = {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
             let hashb36: Base36 = hash.into();
             hashb36.into()
         };

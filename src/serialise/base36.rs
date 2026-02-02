@@ -115,8 +115,28 @@ macro_rules! impl_to_base36 {
     };
 }
 
+#[macro_export]
+macro_rules! impl_from_base36 {
+    ($t:ty) => {
+        impl From<$crate::serialise::Base36> for $t {
+            fn from(value: $crate::serialise::Base36) -> Self {
+                let serialised = value.get_serialised();
+                let base36 = serialised.get_string();
+                let bytes = $crate::serialise::Base36::from_base36(&base36, 0);
+                <$t>::from_bytes(&bytes)
+            }
+        }
+    };
+}
+
 impl From<Base36> for SerialString {
     fn from(value: Base36) -> SerialString {
         value.get_serialised()
+    }
+}
+
+impl From<SerialString> for Base36 {
+    fn from(value: SerialString) -> Base36 {
+        Base36::new(value)
     }
 }
