@@ -92,7 +92,7 @@ mod tests {
         crate::debug!("serialised debug: {:?}", serialised);
 
         let signature2: Signature = serialised.into();
-        crate::debug!("signature2: {:?}", signature2.get_signature());43ewwwwwwwwwwwwwwwwwwwwwwwwwwwwww
+        crate::debug!("signature2: {:?}", signature2.get_signature());
 
         assert_eq!(signature.get_signature(), signature2.get_signature());
 
@@ -149,7 +149,7 @@ mod tests {
 
 
 
-        
+
             let hashb36: Base36 = hash.into();
             hashb36.into()
         };
