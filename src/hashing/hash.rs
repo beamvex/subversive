@@ -70,27 +70,36 @@ macro_rules! hashable {
 mod tests {
 
     use super::*;
+    use crate::serialise::Base36;
     use crate::serialise::SerialString;
-    use crate::serialise::SerialiseType;
 
     #[test]
     fn test_hash() {
         let bytes: Vec<u8> = vec![1, 2, 3];
         let hash = Hash::hash_bytes(&bytes, HashAlgorithm::KECCAK256);
 
-        let hash_str: SerialString = hash.into_serial_string(SerialiseType::Base36);
+        let hash_str: SerialString = {
+            let hashb36: Base36 = hash.into();
+            hashb36.into()
+        };
         crate::debug!("hash: {}", hash_str.get_string());
         crate::debug!("hash debug: {:?}", hash);
 
         let hash = Hash::hash_bytes(&bytes, HashAlgorithm::SHA256);
 
-        let hash_str: SerialString = hash.into_serial_string(SerialiseType::Base36);
+        let hash_str: SerialString = {
+            let hashb36: Base36 = hash.into();
+            hashb36.into()
+        };
         crate::debug!("hash: {}", hash_str.get_string());
         crate::debug!("hash debug: {:?}", hash);
 
         let hash = Hash::hash_bytes(&bytes, HashAlgorithm::KECCAK384);
 
-        let hash_str: SerialString = hash.into_serial_string(SerialiseType::Base36);
+        let hash_str: SerialString = {
+            let hashb36: Base36 = hash.into();
+            hashb36.into()
+        };
         crate::debug!("hash: {}", hash_str.get_string());
         crate::debug!("hash debug: {:?}", hash);
     }

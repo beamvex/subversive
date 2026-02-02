@@ -1,9 +1,21 @@
+use crate::serialise::SerialString;
+
 const ALPHABET: &[u8; 36] = b"0123456789abcdefghijklmnopqrstuvwxyz";
 
 #[derive(Debug)]
-pub struct Base36 {}
+pub struct Base36 {
+    serialised: SerialString,
+}
 
 impl Base36 {
+    pub fn new(serialised: SerialString) -> Self {
+        Self { serialised }
+    }
+
+    pub fn get_serialised(&self) -> &SerialString {
+        &self.serialised
+    }
+
     pub fn to_base36(bytes: &[u8]) -> String {
         if bytes.is_empty() {
             return "0".to_string();
@@ -85,4 +97,33 @@ impl Base36 {
 
         bytes
     }
+}
+
+#[macro_export]
+macro_rules! impl_to_base36 {
+    ($t:ty) => {
+        impl From<&$t> for $crate::serialise::Base36 {
+            fn from(value: &$t) -> Self {
+                let bytes = value.as_bytes();
+                let string = $crate::serialise::Base36::to_base36(&bytes);
+                $crate::serialise::Base36::new($crate::serialise::SerialString::new(
+                    $crate::serialise::SerialiseType::Base36,
+                    string,
+                ))
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! impl_from_base36 {
+    ($t:ty) => {
+        impl From<$crate::serialise::Base36> for $t {
+            fn from(value: $crate::serialise::Base36) -> Self {
+                let bytes: Vec<u8> =
+                    $crate::serialise::Base36::from_base36(value.get_serialised().get_string(), 0);
+                Self::from_bytes(&bytes)
+            }
+        }
+    };
 }

@@ -1,4 +1,4 @@
-use crate::serialise::SerialiseType;
+use crate::serialise::{base36::Base36, SerialiseType};
 
 #[derive(Debug)]
 pub struct SerialString {
@@ -32,8 +32,12 @@ impl std::fmt::Display for SerialString {
 #[macro_export]
 macro_rules! serialisable {
     ($t:ty) => {
-        $crate::impl_from!($t);
-        $crate::impl_into!($t);
+        // base36
+        $crate::impl_to_base36!($t);
+        $crate::impl_from_base36!($t);
+
+        // generic
+        //$crate::impl_from!($t);
     };
 }
 
@@ -44,32 +48,9 @@ macro_rules! impl_from {
             fn from(value: &$crate::serialise::SerialString) -> Self {
                 match value.get_serialise_type() {
                     $crate::serialise::SerialiseType::Base36 => {
-                        let bytes =
-                            $crate::serialise::base36::Base36::from_base36(&value.get_string(), 0);
-                        <$t>::from_bytes(&bytes)
-                    }
-                    _ => {
-                        panic!("Unsupported serialise type");
-                    }
-                }
-            }
-        }
-    };
-}
+                        let base36: &$crate::serialise::base36::Base36 = value.into();
 
-#[macro_export]
-macro_rules! impl_into {
-    ($t:ty) => {
-        impl $t {
-            pub fn into_serial_string(
-                &self,
-                serialise_type: $crate::serialise::SerialiseType,
-            ) -> $crate::serialise::SerialString {
-                match serialise_type {
-                    $crate::serialise::SerialiseType::Base36 => {
-                        let bytes = self.as_bytes();
-                        let string = $crate::serialise::base36::Base36::to_base36(&bytes);
-                        $crate::serialise::SerialString::new(serialise_type, string)
+                        base36.into()
                     }
                     _ => {
                         panic!("Unsupported serialise type");

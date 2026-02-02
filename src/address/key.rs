@@ -41,7 +41,7 @@ hashable!(Key);
 #[cfg(test)]
 mod tests {
 
-    use crate::serialise::{serial_string, SerialiseType};
+    use crate::serialise::{serial_string, Base36, SerialiseType};
 
     use super::*;
 
@@ -54,7 +54,10 @@ mod tests {
         );
         let key = Key::from(&serial_string);
 
-        let key: serial_string::SerialString = key.into_serial_string(SerialiseType::Base36);
+        let key: serial_string::SerialString = {
+            let hashb36: Base36 = key.into();
+            hashb36.into()
+        };
         crate::debug!("key: {}", key);
 
         assert_eq!(

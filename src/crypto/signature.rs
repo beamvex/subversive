@@ -1,6 +1,5 @@
 use crate::{
     crypto::SigningAlgorithm,
-    hashable,
     serialise::{AsBytes, FromBytes},
 };
 
@@ -69,12 +68,11 @@ impl FromBytes for Signature {
 
 serialisable!(Signature);
 
-hashable!(Signature);
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::hashing::HashAlgorithm;
+    use crate::serialise::Base36;
+    use crate::serialise::SerialString;
     use crate::serialise::SerialiseType;
 
     use ed25519_dalek::Signer;
@@ -89,7 +87,8 @@ mod tests {
 
         let signature = Signature::new_with_algorithm(SigningAlgorithm::ED25519, sig);
 
-        let serialised = signature.into_serial_string(SerialiseType::Base36);
+        let b36: Base36 = (&signature).into();
+        let serialised: SerialString = b36.into();
 
         crate::debug!("serialised: {}", serialised);
         crate::debug!("serialised debug: {:?}", serialised);
@@ -100,15 +99,24 @@ mod tests {
         assert_eq!(signature.get_signature(), signature2.get_signature());
 
         let hash = signature.hash(HashAlgorithm::KECCAK256);
-        let hash_str = hash.into_serial_string(SerialiseType::Base36);
+        let hash_str = {
+            let hashb36: Base36 = hash.into();
+            hashb36.into()
+        };
         crate::debug!("signature hash keccak-256: {}", hash_str);
 
         let hash = signature.hash(HashAlgorithm::SHA256);
-        let hash_str = hash.into_serial_string(SerialiseType::Base36);
+        let hash_str = {
+            let hashb36: Base36 = hash.into();
+            hashb36.into()
+        };
         crate::debug!("signature hash sha2-256: {}", hash_str);
 
         let hash = signature.hash(HashAlgorithm::KECCAK384);
-        let hash_str = hash.into_serial_string(SerialiseType::Base36);
+        let hash_str = {
+            let hashb36: Base36 = hash.into();
+            hashb36.into()
+        };
         crate::debug!("signature hash keccak-384: {}", hash_str);
     }
 }
