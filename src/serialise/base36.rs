@@ -12,8 +12,8 @@ impl Base36 {
         Self { serialised }
     }
 
-    pub fn get_serialised(&self) -> &SerialString {
-        &self.serialised
+    pub fn get_serialised(self) -> SerialString {
+        self.serialised
     }
 
     pub fn to_base36(bytes: &[u8]) -> String {
@@ -115,15 +115,8 @@ macro_rules! impl_to_base36 {
     };
 }
 
-#[macro_export]
-macro_rules! impl_from_base36 {
-    ($t:ty) => {
-        impl From<$crate::serialise::Base36> for $t {
-            fn from(value: $crate::serialise::Base36) -> Self {
-                let bytes: Vec<u8> =
-                    $crate::serialise::Base36::from_base36(value.get_serialised().get_string(), 0);
-                Self::from_bytes(&bytes)
-            }
-        }
-    };
+impl From<Base36> for SerialString {
+    fn from(value: Base36) -> SerialString {
+        value.get_serialised()
+    }
 }

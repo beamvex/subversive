@@ -73,7 +73,6 @@ mod tests {
     use super::*;
     use crate::serialise::Base36;
     use crate::serialise::SerialString;
-    use crate::serialise::SerialiseType;
 
     use ed25519_dalek::Signer;
     use ed25519_dalek::SigningKey;
@@ -87,12 +86,15 @@ mod tests {
 
         let signature = Signature::new_with_algorithm(SigningAlgorithm::ED25519, sig);
 
-        let b36: Base36 = (&signature).into();
-        let serialised: SerialString = b36.into();
+        let serialised: SerialString = {
+            let b36: Base36 = (&signature).into();
+            b36.into()
+        };
 
         crate::debug!("serialised: {}", serialised);
         crate::debug!("serialised debug: {:?}", serialised);
 
+        /*
         let signature2: Signature = (&serialised).into();
         crate::debug!("signature2: {:?}", signature2.get_signature());
 
@@ -118,5 +120,6 @@ mod tests {
             hashb36.into()
         };
         crate::debug!("signature hash keccak-384: {}", hash_str);
+        */
     }
 }

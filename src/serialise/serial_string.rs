@@ -1,4 +1,4 @@
-use crate::serialise::{base36::Base36, SerialiseType};
+use crate::serialise::SerialiseType;
 
 #[derive(Debug)]
 pub struct SerialString {
@@ -34,7 +34,6 @@ macro_rules! serialisable {
     ($t:ty) => {
         // base36
         $crate::impl_to_base36!($t);
-        $crate::impl_from_base36!($t);
 
         // generic
         //$crate::impl_from!($t);
