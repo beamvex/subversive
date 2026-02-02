@@ -1,9 +1,6 @@
 use crate::serialise::{AsBytes, FromBytes};
 
-use crate::{
-    hashing::{HashAlgorithm, Keccak256, Keccak384, Sha256},
-    serialisable,
-};
+use crate::{hashing::HashAlgorithm, serialisable};
 
 #[derive(Debug)]
 pub struct Hash {
@@ -22,14 +19,6 @@ impl Hash {
 
     pub fn get_algorithm(&self) -> HashAlgorithm {
         self.algorithm
-    }
-
-    pub fn hash_bytes(bytes: &[u8], hash_algorithm: HashAlgorithm) -> Self {
-        match hash_algorithm {
-            HashAlgorithm::KECCAK256 => Keccak256::from_bytes(bytes),
-            HashAlgorithm::SHA256 => Sha256::from_bytes(bytes),
-            HashAlgorithm::KECCAK384 => Keccak384::from_bytes(bytes),
-        }
     }
 }
 
@@ -55,6 +44,10 @@ serialisable!(Hash);
 #[macro_export]
 macro_rules! hashable {
     ($x:ty) => {
+        impl_keccak256_from_as_bytes!($x);
+        impl_sha256_from_as_bytes!($x);
+        impl_keccak384_from_as_bytes!($x);
+
         impl $x {
             pub fn hash(
                 &self,
@@ -70,36 +63,32 @@ macro_rules! hashable {
 mod tests {
 
     use super::*;
+    use crate::hashing::Keccak256;
+    use crate::hashing::Keccak384;
+    use crate::hashing::Sha256;
     use crate::serialise::Base36;
     use crate::serialise::SerialString;
 
     #[test]
     fn test_hash() {
         let bytes: Vec<u8> = vec![1, 2, 3];
-        let hash = Hash::hash_bytes(&bytes, HashAlgorithm::KECCAK256);
+        let hash: Hash = Keccak256::from_bytes(&bytes).into();
 
-        let hash_str: SerialString = {
-            let hashb36: Base36 = hash.into();
-            hashb36.into()
-        };
+        let hash_str: SerialString = Base36::from(&hash).into();
+
         crate::debug!("hash: {}", hash_str.get_string());
         crate::debug!("hash debug: {:?}", hash);
 
-        let hash = Hash::hash_bytes(&bytes, HashAlgorithm::SHA256);
+        let hash: Hash = Sha256::from_bytes(&bytes).into();
 
-        let hash_str: SerialString = {
-            let hashb36: Base36 = hash.into();
-            hashb36.into()
-        };
+        let hash_str: SerialString = Base36::from(&hash).into();
+
         crate::debug!("hash: {}", hash_str.get_string());
         crate::debug!("hash debug: {:?}", hash);
 
-        let hash = Hash::hash_bytes(&bytes, HashAlgorithm::KECCAK384);
+        let hash: Hash = Keccak384::from_bytes(&bytes).into();
 
-        let hash_str: SerialString = {
-            let hashb36: Base36 = hash.into();
-            hashb36.into()
-        };
+        let hash_str: SerialString = Base36::from(&hash).into();
         crate::debug!("hash: {}", hash_str.get_string());
         crate::debug!("hash debug: {:?}", hash);
     }

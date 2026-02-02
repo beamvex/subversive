@@ -29,3 +29,9 @@ macro_rules! impl_keccak384_from_as_bytes {
         }
     };
 }
+
+impl From<Keccak384> for Hash {
+    fn from(value: Keccak384) -> Hash {
+        value.hash
+    }
+}

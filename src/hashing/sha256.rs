@@ -34,3 +34,9 @@ macro_rules! impl_sha256_from_as_bytes {
         }
     };
 }
+
+impl From<Sha256> for Hash {
+    fn from(value: Sha256) -> Hash {
+        value.hash
+    }
+}
