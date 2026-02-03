@@ -19,7 +19,7 @@ pub struct Subversive<'a> {
 
 impl<'a> Subversive<'a> {
     #[must_use]
-    pub fn new(version: &'a str) -> Rc<RefCell<Subversive<'a>>> {
+    pub fn new(version: &'a str) -> Rc<RefCell<Self>> {
         Rc::new(RefCell::new(Subversive { version }))
     }
 
