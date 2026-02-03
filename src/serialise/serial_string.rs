@@ -8,7 +8,7 @@ pub struct SerialString {
 
 impl SerialString {
     #[must_use]
-    pub fn new(serialise_type: SerialiseType, string: String) -> Self {
+    pub const fn new(serialise_type: SerialiseType, string: String) -> Self {
         Self {
             serialise_type,
             string,
@@ -16,12 +16,12 @@ impl SerialString {
     }
 
     #[must_use]
-    pub fn get_serialise_type(&self) -> SerialiseType {
+    pub const fn get_serialise_type(&self) -> SerialiseType {
         self.serialise_type
     }
 
     #[must_use]
-    pub fn get_string(&self) -> &String {
+    pub const fn get_string(&self) -> &String {
         &self.string
     }
 }

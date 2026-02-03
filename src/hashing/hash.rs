@@ -36,9 +36,9 @@ impl AsBytes for Hash {
 
 impl FromBytes for Hash {
     fn from_bytes(bytes: &[u8]) -> Self {
-        let algorithm = HashAlgorithm::from(bytes[0]);
+        let algorithm = HashAlgorithm::try_from(bytes[0]).unwrap();
         let bytes = bytes[1..].to_vec();
-        Hash::new(algorithm, bytes)
+        Self::new(algorithm, bytes)
     }
 }
 

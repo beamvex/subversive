@@ -5,13 +5,15 @@ pub enum HashAlgorithm {
     KECCAK384,
 }
 
-impl From<u8> for HashAlgorithm {
-    fn from(value: u8) -> Self {
+impl TryFrom<u8> for HashAlgorithm {
+    type Error = &'static str;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
-            0 => HashAlgorithm::KECCAK256,
-            1 => HashAlgorithm::SHA256,
-            2 => HashAlgorithm::KECCAK384,
-            _ => panic!("Invalid hash algorithm"),
+            0 => Ok(HashAlgorithm::KECCAK256),
+            1 => Ok(HashAlgorithm::SHA256),
+            2 => Ok(HashAlgorithm::KECCAK384),
+            _ => Err("Invalid hash algorithm"),
         }
     }
 }

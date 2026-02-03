@@ -9,7 +9,7 @@ pub struct Base36 {
 
 impl Base36 {
     #[must_use]
-    pub fn new(serialised: SerialString) -> Self {
+    pub const fn new(serialised: SerialString) -> Self {
         Self { serialised }
     }
 
@@ -96,7 +96,7 @@ impl Base36 {
     /// Panics if the decoded value requires more than `size` bytes when `size > 0`.
     #[must_use]
     pub fn from_base36(base36: &str, size: usize) -> Vec<u8> {
-        let mut bytes = Base36::base36_to_bytes(base36);
+        let mut bytes = Self::base36_to_bytes(base36);
 
         assert!(
             !(bytes.len() > size && size > 0),
@@ -144,13 +144,13 @@ macro_rules! impl_from_base36 {
 }
 
 impl From<Base36> for SerialString {
-    fn from(value: Base36) -> SerialString {
+    fn from(value: Base36) -> Self {
         value.get_serialised()
     }
 }
 
 impl From<SerialString> for Base36 {
-    fn from(value: SerialString) -> Base36 {
-        Base36::new(value)
+    fn from(value: SerialString) -> Self {
+        Self::new(value)
     }
 }

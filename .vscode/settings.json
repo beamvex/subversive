@@ -12,7 +12,9 @@
         "-D",
         "clippy::all",
         "-D",
-        "clippy::pedantic"
+        "clippy::pedantic",
+        "-D",
+        "clippy::nursery",
     ],
     "rust-analyzer.cargo.cfgs":[
         "test"
