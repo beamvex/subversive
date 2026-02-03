@@ -19,6 +19,7 @@ impl Base36 {
     }
 
     #[must_use]
+    #[allow(clippy::missing_panics_doc)]
     pub fn to_base36(bytes: &[u8]) -> String {
         if bytes.is_empty() {
             return "0".to_string();
@@ -33,9 +34,9 @@ impl Base36 {
 
         while !n.is_empty() && n.iter().any(|&b| b != 0) {
             let mut rem: u32 = 0;
-            for b in n.iter_mut() {
-                let v = (rem << 8) | (*b as u32);
-                *b = (v / 36) as u8;
+            for b in &mut n {
+                let v = (rem << 8) | u32::from(*b);
+                *b = u8::try_from(v / 36).expect("base36 division quotient must fit in u8");
                 rem = v % 36;
             }
 
@@ -47,7 +48,7 @@ impl Base36 {
         }
 
         out.reverse();
-        String::from_utf8(out).expect("base36 alphabet is valid utf8")
+        out.into_iter().map(char::from).collect()
     }
 
     fn base36_to_bytes(base36: &str) -> Vec<u8> {
@@ -63,11 +64,12 @@ impl Base36 {
             let digit = ALPHABET
                 .iter()
                 .position(|&b| b == c)
-                .expect("invalid base36 character") as u32;
+                .map(|p| u32::try_from(p).expect("base36 digit index must fit in u32"))
+                .expect("invalid base36 character");
 
             let mut carry = digit;
             for b in bytes.iter_mut().rev() {
-                let v = (*b as u32) * 36 + carry;
+                let v = u32::from(*b) * 36 + carry;
                 *b = (v & 0xff) as u8;
                 carry = v >> 8;
             }
@@ -85,6 +87,13 @@ impl Base36 {
         bytes
     }
 
+    /// Decodes a base36 string into bytes, optionally left-padding to `size`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `base36` contains a character outside the base36 alphabet.
+    ///
+    /// Panics if the decoded value requires more than `size` bytes when `size > 0`.
     #[must_use]
     pub fn from_base36(base36: &str, size: usize) -> Vec<u8> {
         let mut bytes = Base36::base36_to_bytes(base36);

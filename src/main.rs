@@ -4,24 +4,26 @@ use std::rc::Rc;
 use subversive::debug;
 use subversive::log;
 
-const LOGO: &str = r#"
+const LOGO: &str = r"
   _________    ___.                            .__              
  /   _____/__ _\_ |_____  __ ___________  _____|__|__  __ ____  
  \_____  \|  |  \ __ \  \/ // __ \_  __ \/  ___/  \  \/ // __ \ 
  /        \  |  / \_\ \   /\  ___/|  | \/\___ \|  |\   /\  ___/ 
 /_______  /____/|___  /\_/  \___  >__|  /____  >__| \_/  \___  >
         \/          \/          \/           \/              \/ 
-"#;
+";
 
 pub struct Subversive<'a> {
     version: &'a str,
 }
 
 impl<'a> Subversive<'a> {
+    #[must_use]
     pub fn new(version: &'a str) -> Rc<RefCell<Subversive<'a>>> {
         Rc::new(RefCell::new(Subversive { version }))
     }
 
+    #[must_use]
     pub fn version(&self) -> &'a str {
         self.version
     }
