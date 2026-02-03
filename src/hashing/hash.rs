@@ -10,35 +10,37 @@ pub struct Hash {
 
 impl Hash {
     #[must_use]
-    pub fn new(algorithm: HashAlgorithm, bytes: Vec<u8>) -> Self {
-        Hash { algorithm, bytes }
+    pub const fn new(algorithm: HashAlgorithm, bytes: Vec<u8>) -> Self {
+        Self { algorithm, bytes }
     }
 
     #[must_use]
-    pub fn get_bytes(&self) -> &Vec<u8> {
+    pub const fn get_bytes(&self) -> &Vec<u8> {
         &self.bytes
     }
 
     #[must_use]
-    pub fn get_algorithm(&self) -> HashAlgorithm {
+    pub const fn get_algorithm(&self) -> HashAlgorithm {
         self.algorithm
     }
 }
 
 impl AsBytes for Hash {
-    fn as_bytes(&self) -> Vec<u8> {
+    type Error = &'static str;
+    fn try_as_bytes(&self) -> Result<Vec<u8>, Self::Error> {
         let mut bytes = vec![];
         bytes.push(self.algorithm as u8);
         bytes.extend_from_slice(&self.bytes);
-        bytes
+        Ok(bytes)
     }
 }
 
 impl FromBytes for Hash {
-    fn from_bytes(bytes: &[u8]) -> Self {
+    type Error = &'static str;
+    fn try_from_bytes(bytes: &[u8]) -> Result<Self, Self::Error> {
         let algorithm = HashAlgorithm::try_from(bytes[0]).unwrap();
         let bytes = bytes[1..].to_vec();
-        Self::new(algorithm, bytes)
+        Ok(Self::new(algorithm, bytes))
     }
 }
 

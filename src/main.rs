@@ -24,7 +24,7 @@ impl<'a> Subversive<'a> {
     }
 
     #[must_use]
-    pub fn version(&self) -> &'a str {
+    pub const fn version(&self) -> &'a str {
         self.version
     }
 

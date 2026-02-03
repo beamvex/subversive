@@ -1,3 +1,10 @@
 pub trait AsBytes {
-    fn as_bytes(&self) -> Vec<u8>;
+    type Error;
+
+    /// Convert `self` into a byte vector.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err` if `self` cannot be represented as bytes.
+    fn try_as_bytes(&self) -> Result<Vec<u8>, Self::Error>;
 }

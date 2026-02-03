@@ -22,52 +22,55 @@ impl Default for Signature {
 
 impl Signature {
     #[must_use]
-    pub fn new(signature: Vec<u8>) -> Self {
-        Signature {
+    pub const fn new(signature: Vec<u8>) -> Self {
+        Self {
             algorithm: SigningAlgorithm::ED25519,
             signature,
         }
     }
 
     #[must_use]
-    pub fn new_with_algorithm(algorithm: SigningAlgorithm, signature: Vec<u8>) -> Self {
-        Signature {
+    pub const fn new_with_algorithm(algorithm: SigningAlgorithm, signature: Vec<u8>) -> Self {
+        Self {
             algorithm,
             signature,
         }
     }
 
     #[must_use]
-    pub fn get_signature(&self) -> &Vec<u8> {
+    pub const fn get_signature(&self) -> &Vec<u8> {
         &self.signature
     }
 
     #[must_use]
-    pub fn get_algorithm(&self) -> SigningAlgorithm {
+    pub const fn get_algorithm(&self) -> SigningAlgorithm {
         self.algorithm
     }
 }
 
-impl From<&Signature> for Vec<u8> {
-    fn from(value: &Signature) -> Self {
-        value.as_bytes().clone()
+impl TryFrom<&Signature> for Vec<u8> {
+    type Error = &'static str;
+    fn try_from(value: &Signature) -> Result<Self, Self::Error> {
+        value.try_as_bytes()
     }
 }
 
 impl AsBytes for Signature {
-    fn as_bytes(&self) -> Vec<u8> {
+    type Error = &'static str;
+    fn try_as_bytes(&self) -> Result<Vec<u8>, Self::Error> {
         let mut bytes = vec![];
         bytes.push(self.algorithm.into());
         bytes.extend_from_slice(&self.signature);
-        bytes
+        Ok(bytes)
     }
 }
 
 impl FromBytes for Signature {
-    fn from_bytes(bytes: &[u8]) -> Self {
-        let algorithm = SigningAlgorithm::from(bytes[0]);
+    type Error = &'static str;
+    fn try_from_bytes(bytes: &[u8]) -> Result<Self, Self::Error> {
+        let algorithm = SigningAlgorithm::try_from(bytes[0]).unwrap();
         let bytes = bytes[1..].to_vec();
-        Signature::new_with_algorithm(algorithm, bytes)
+        Ok(Self::new_with_algorithm(algorithm, bytes))
     }
 }
 

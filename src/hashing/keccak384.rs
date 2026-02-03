@@ -7,7 +7,7 @@ pub struct Keccak384 {
 
 impl Keccak384 {
     #[must_use]
-    pub fn new(hash: Hash) -> Self {
+    pub const fn new(hash: Hash) -> Self {
         Self { hash }
     }
 
@@ -17,7 +17,7 @@ impl Keccak384 {
         hasher.update(bytes);
         let result = hasher.finalize();
         let bytes = result.to_vec();
-        Keccak384::new(Hash::new(HashAlgorithm::KECCAK384, bytes))
+        Self::new(Hash::new(HashAlgorithm::KECCAK384, bytes))
     }
 }
 
@@ -26,14 +26,14 @@ macro_rules! impl_keccak384_from_as_bytes {
     ($t:ty) => {
         impl From<&$t> for $crate::hashing::Keccak384 {
             fn from(value: &$t) -> Self {
-                $crate::hashing::Keccak384::from_bytes(&value.as_bytes())
+                $crate::hashing::Keccak384::from_bytes(&value.try_as_bytes().unwrap())
             }
         }
     };
 }
 
 impl From<Keccak384> for Hash {
-    fn from(value: Keccak384) -> Hash {
+    fn from(value: Keccak384) -> Self {
         value.hash
     }
 }

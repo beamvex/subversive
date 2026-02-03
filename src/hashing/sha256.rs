@@ -7,7 +7,7 @@ pub struct Sha256 {
 
 impl Sha256 {
     #[must_use]
-    pub fn new(hash: Hash) -> Self {
+    pub const fn new(hash: Hash) -> Self {
         Self { hash }
     }
 
@@ -19,7 +19,7 @@ impl Sha256 {
         let bytes = result.to_vec();
 
         let hash = Hash::new(HashAlgorithm::SHA256, bytes);
-        Sha256::new(hash)
+        Self::new(hash)
     }
 }
 
@@ -28,14 +28,14 @@ macro_rules! impl_sha256_from_as_bytes {
     ($t:ty) => {
         impl From<&$t> for $crate::hashing::Sha256 {
             fn from(value: &$t) -> Self {
-                $crate::hashing::Sha256::from_bytes(&value.as_bytes())
+                $crate::hashing::Sha256::from_bytes(&value.try_as_bytes().unwrap())
             }
         }
     };
 }
 
 impl From<Sha256> for Hash {
-    fn from(value: Sha256) -> Hash {
+    fn from(value: Sha256) -> Self {
         value.hash
     }
 }

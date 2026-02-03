@@ -5,13 +5,14 @@ pub enum SigningAlgorithm {
     ECDSA,
 }
 
-impl From<u8> for SigningAlgorithm {
-    fn from(value: u8) -> Self {
+impl TryFrom<u8> for SigningAlgorithm {
+    type Error = String;
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
-            100 => Self::ED25519,
-            101 => Self::RSA,
-            102 => Self::ECDSA,
-            _ => panic!("Invalid signing algorithm {value}"),
+            100 => Ok(Self::ED25519),
+            101 => Ok(Self::RSA),
+            102 => Ok(Self::ECDSA),
+            _ => Err(format!("Invalid signing algorithm {value}")),
         }
     }
 }

@@ -118,7 +118,7 @@ macro_rules! impl_to_base36 {
     ($t:ty) => {
         impl From<&$t> for $crate::serialise::Base36 {
             fn from(value: &$t) -> Self {
-                let bytes = value.as_bytes();
+                let bytes = value.try_as_bytes().unwrap();
                 let string = $crate::serialise::Base36::to_base36(&bytes);
                 $crate::serialise::Base36::new($crate::serialise::SerialString::new(
                     $crate::serialise::SerialiseType::Base36,
@@ -137,7 +137,7 @@ macro_rules! impl_from_base36 {
                 let serialised = value.get_serialised();
                 let base36 = serialised.get_string();
                 let bytes = $crate::serialise::Base36::from_base36(&base36, 0);
-                <$t>::from_bytes(&bytes)
+                <$t>::try_from_bytes(&bytes).unwrap()
             }
         }
     };
