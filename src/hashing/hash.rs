@@ -9,14 +9,17 @@ pub struct Hash {
 }
 
 impl Hash {
+    #[must_use]
     pub fn new(algorithm: HashAlgorithm, bytes: Vec<u8>) -> Self {
         Hash { algorithm, bytes }
     }
 
+    #[must_use]
     pub fn get_bytes(&self) -> &Vec<u8> {
         &self.bytes
     }
 
+    #[must_use]
     pub fn get_algorithm(&self) -> HashAlgorithm {
         self.algorithm
     }

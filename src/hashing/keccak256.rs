@@ -6,10 +6,12 @@ pub struct Keccak256 {
 }
 
 impl Keccak256 {
+    #[must_use]
     pub fn new(hash: Hash) -> Self {
         Self { hash }
     }
 
+    #[must_use]
     pub fn from_bytes(bytes: &[u8]) -> Self {
         let mut hasher = Keccak256Impl::new();
         hasher.update(bytes);

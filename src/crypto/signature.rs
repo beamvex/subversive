@@ -21,6 +21,7 @@ impl Default for Signature {
 }
 
 impl Signature {
+    #[must_use]
     pub fn new(signature: Vec<u8>) -> Self {
         Signature {
             algorithm: SigningAlgorithm::ED25519,
@@ -28,6 +29,7 @@ impl Signature {
         }
     }
 
+    #[must_use]
     pub fn new_with_algorithm(algorithm: SigningAlgorithm, signature: Vec<u8>) -> Self {
         Signature {
             algorithm,
@@ -35,10 +37,12 @@ impl Signature {
         }
     }
 
+    #[must_use]
     pub fn get_signature(&self) -> &Vec<u8> {
         &self.signature
     }
 
+    #[must_use]
     pub fn get_algorithm(&self) -> SigningAlgorithm {
         self.algorithm
     }
@@ -46,7 +50,7 @@ impl Signature {
 
 impl From<&Signature> for Vec<u8> {
     fn from(value: &Signature) -> Self {
-        value.as_bytes().to_vec()
+        value.as_bytes().clone()
     }
 }
 

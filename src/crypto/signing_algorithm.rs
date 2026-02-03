@@ -11,7 +11,7 @@ impl From<u8> for SigningAlgorithm {
             100 => Self::ED25519,
             101 => Self::RSA,
             102 => Self::ECDSA,
-            _ => panic!("Invalid signing algorithm {}", value),
+            _ => panic!("Invalid signing algorithm {value}"),
         }
     }
 }

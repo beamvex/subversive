@@ -6,17 +6,19 @@ pub struct Sha256 {
 }
 
 impl Sha256 {
+    #[must_use]
     pub fn new(hash: Hash) -> Self {
         Self { hash }
     }
 
+    #[must_use]
     pub fn from_bytes(bytes: &[u8]) -> Self {
         let mut hasher = Sha256Impl::new();
         hasher.update(bytes);
         let result = hasher.finalize();
         let bytes = result.to_vec();
 
-        let hash = Hash::new(HashAlgorithm::SHA256, bytes.to_vec());
+        let hash = Hash::new(HashAlgorithm::SHA256, bytes);
         Sha256::new(hash)
     }
 }

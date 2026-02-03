@@ -8,14 +8,17 @@ pub struct Base36 {
 }
 
 impl Base36 {
+    #[must_use]
     pub fn new(serialised: SerialString) -> Self {
         Self { serialised }
     }
 
+    #[must_use]
     pub fn get_serialised(self) -> SerialString {
         self.serialised
     }
 
+    #[must_use]
     pub fn to_base36(bytes: &[u8]) -> String {
         if bytes.is_empty() {
             return "0".to_string();
@@ -82,12 +85,14 @@ impl Base36 {
         bytes
     }
 
+    #[must_use]
     pub fn from_base36(base36: &str, size: usize) -> Vec<u8> {
         let mut bytes = Base36::base36_to_bytes(base36);
 
-        if bytes.len() > size && size > 0 {
-            panic!("base36 value does not fit in {} bytes", size);
-        }
+        assert!(
+            !(bytes.len() > size && size > 0),
+            "base36 value does not fit in {size} bytes"
+        );
 
         if bytes.len() < size && size > 0 {
             let mut padded = vec![0u8; size - bytes.len()];

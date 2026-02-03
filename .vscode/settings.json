@@ -10,7 +10,9 @@
         "--message-format=json",
         "--",
         "-D",
-        "clippy::all"
+        "clippy::all",
+        "-D",
+        "clippy::pedantic"
     ],
     "rust-analyzer.cargo.cfgs":[
         "test"
