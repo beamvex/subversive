@@ -26,10 +26,7 @@ macro_rules! impl_sha256_from_as_bytes {
     ($t:ty) => {
         impl From<&$t> for $crate::hashing::Sha256 {
             fn from(value: &$t) -> Self {
-                $crate::hashing::Sha256::new($crate::hashing::Hash::new(
-                    $crate::hashing::HashAlgorithm::SHA256,
-                    value.as_bytes(),
-                ))
+                $crate::hashing::Sha256::from_bytes(&value.as_bytes())
             }
         }
     };

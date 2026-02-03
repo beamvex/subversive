@@ -44,18 +44,9 @@ serialisable!(Hash);
 #[macro_export]
 macro_rules! hashable {
     ($x:ty) => {
-        impl_keccak256_from_as_bytes!($x);
-        impl_sha256_from_as_bytes!($x);
-        impl_keccak384_from_as_bytes!($x);
-
-        impl $x {
-            pub fn hash(
-                &self,
-                hash_algorithm: $crate::hashing::HashAlgorithm,
-            ) -> $crate::hashing::Hash {
-                $crate::hashing::Hash::hash_bytes(&self.as_bytes(), hash_algorithm)
-            }
-        }
+        $crate::impl_keccak256_from_as_bytes!($x);
+        $crate::impl_sha256_from_as_bytes!($x);
+        $crate::impl_keccak384_from_as_bytes!($x);
     };
 }
 

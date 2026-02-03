@@ -24,7 +24,7 @@ macro_rules! impl_keccak256_from_as_bytes {
     ($t:ty) => {
         impl From<&$t> for $crate::hashing::Keccak256 {
             fn from(value: &$t) -> Self {
-                $crate::hashing::Keccak256::from_bytes(value.as_bytes())
+                $crate::hashing::Keccak256::from_bytes(&value.as_bytes())
             }
         }
     };
