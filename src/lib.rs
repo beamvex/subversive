@@ -2,3 +2,6 @@ pub mod crypto;
 pub mod hashing;
 pub mod logging;
 pub mod serialise;
+
+#[cfg(test)]
+pub mod poc;
