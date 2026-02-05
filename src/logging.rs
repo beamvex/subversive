@@ -1,62 +1,48 @@
-#[macro_export]
-macro_rules! log {
-    ($fmt:expr) => {
-        {
-            let ts = ::chrono::Utc::now().format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
-            println!(
-                "[\x1b[97m{}\x1b[0m] [\x1b[1;32m{}\x1b[0m] [\x1b[36m{:?}\x1b[0m] \x1b[97m{}\x1b[0m",
-                ts,
-                file!(),
-                ::std::thread::current().id(),
-                $fmt
-            );
-        }
-    };
+pub mod colours {
+    pub const GREEN: &str = "\x1b[32m";
+    pub const YELLOW: &str = "\x1b[33m";
+    pub const RED: &str = "\x1b[31m";
+    pub const RESET: &str = "\x1b[0m";
+}
 
-    ($fmt:expr, $($arg:tt)*) => {
-        {
-            let ts = ::chrono::Utc::now().format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
-            println!(
-                "[\x1b[97m{}\x1b[0m] [\x1b[1;32m{}\x1b[0m] [\x1b[36m{:?}\x1b[0m] \x1b[97m{}\x1b[0m",
-                ts,
-                file!(),
-                ::std::thread::current().id(),
-                format_args!($fmt, $($arg)*)
-            );
-        }
+#[macro_export]
+macro_rules! green {
+    ($fmt:literal) => {
+        format!(
+            "{}{}{}",
+            $crate::logging::colours::GREEN,
+            $fmt,
+            $crate::logging::colours::RESET
+        )
+    };
+}
+
+#[macro_export]
+macro_rules! log_base {
+    ($level:expr, $fmt:expr) => {
+        let ts = ::chrono::Utc::now()
+            .format("%Y-%m-%dT%H:%M:%S%.3fZ")
+            .to_string();
+        let level = $level;
+        let fmt = format!($fmt);
+        let file = file!();
+        let line = line!();
+        let thread = std::thread::current().id();
+        println!("[\x1b[97m{ts}\x1b[0m] [{level}\x1b[0m] [{file}:{line}] [{thread:?}] {fmt}");
     };
 }
 
 #[macro_export]
 macro_rules! debug {
-    ($fmt:expr) => {
-        {
-            let ts = ::chrono::Utc::now().format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
-            println!(
-                "[\x1b[97m{}\x1b[0m] [\x1b[32mDEBUG\x1b[0m] [\x1b[36m{:?}\x1b[0m] \x1b[32m{}\x1b[0m",
-                ts,
-                ::std::thread::current().id(),
-                $fmt
-            );
-        }
-    };
-
-    ($fmt:expr, $($arg:tt)*) => {
-        {
-            let ts = ::chrono::Utc::now().format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
-            println!(
-                "[\x1b[97m{}\x1b[0m] [\x1b[32mDEBUG\x1b[0m] [\x1b[36m{:?}\x1b[0m] \x1b[32m{}\x1b[0m",
-                ts,
-                ::std::thread::current().id(),
-                format_args!($fmt, $($arg)*)
-            );
-        }
-    };
+    ($fmt:literal) => {{
+        let fmt = format!($fmt);
+        $crate::log_base!($crate::green!("DEBUG"), $crate::green!(fmt));
+    }};
 }
 
 #[macro_export]
 macro_rules! info {
-    ($fmt:expr) => {
+    ($fmt:literal) => {
         {
             let ts = ::chrono::Utc::now().format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
             println!(
@@ -83,7 +69,7 @@ macro_rules! info {
 
 #[macro_export]
 macro_rules! warn {
-    ($fmt:expr) => {
+    ($fmt:literal) => {
         {
             let ts = ::chrono::Utc::now().format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
             println!(
@@ -110,7 +96,7 @@ macro_rules! warn {
 
 #[macro_export]
 macro_rules! error {
-    ($fmt:expr) => {
+    ($fmt:literal) => {
         {
             let ts = ::chrono::Utc::now().format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
             eprintln!(
@@ -122,7 +108,7 @@ macro_rules! error {
         }
     };
 
-    ($fmt:expr, $($arg:tt)*) => {
+    ($fmt:literal, $($arg:tt)*) => {
         {
             let ts = ::chrono::Utc::now().format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
             eprintln!(

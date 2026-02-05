@@ -2,7 +2,6 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use subversive::debug;
-use subversive::log;
 
 const LOGO: &str = r"
   _________    ___.                            .__              
@@ -29,13 +28,14 @@ impl<'a> Subversive<'a> {
     }
 
     pub fn run(&self) {
-        debug!("\x1b[1;32m{}\x1b[0m", LOGO);
-        debug!("Subversive version: {}", self.version);
+        debug!("\x1b[1;32m{LOGO}\x1b[0m");
+        let version = self.version;
+        debug!("Subversive version: {version}");
     }
 }
 
 pub fn main() {
-    log!("Hello, world!");
+    debug!("Hello, world!");
 
     let subversive = Subversive::new("0.0.2");
     subversive.borrow().run();
