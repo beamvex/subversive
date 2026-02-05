@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use subversive::debug;
+use subversive::{debug, info};
 
 const LOGO: &str = r"
   _________    ___.                            .__              
@@ -28,9 +28,9 @@ impl<'a> Subversive<'a> {
     }
 
     pub fn run(&self) {
-        debug!("\x1b[1;32m{LOGO}\x1b[0m");
+        info!("\x1b[1;32m{LOGO}\x1b[0m");
         let version = self.version;
-        debug!("Subversive version: {version}");
+        info!("Subversive version: {version}");
     }
 }
 
