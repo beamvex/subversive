@@ -1,5 +1,6 @@
 pub mod as_bytes;
 pub mod base36;
+pub mod base58;
 pub mod from_bytes;
 pub mod serial_string;
 pub mod serialise_type;

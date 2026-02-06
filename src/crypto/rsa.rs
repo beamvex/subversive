@@ -6,7 +6,7 @@ mod tests {
     use rsa::pkcs1v15::Pkcs1v15Sign;
     use rsa::pkcs8::LineEnding;
     use rsa::traits::PublicKeyParts;
-    use rsa::RsaPrivateKey;
+    use rsa::{RsaPrivateKey, RsaPublicKey};
     use sha2::{Digest, Sha256};
 
     use crate::serialise::{Base36, SerialString};
@@ -21,6 +21,9 @@ mod tests {
         let pem = pem.as_str();
 
         crate::debug!("pem {pem}");
+
+        let _n = private_key.n();
+        let _e = private_key.e();
 
         let test = b"test";
         let digest = Sha256::digest(test);
