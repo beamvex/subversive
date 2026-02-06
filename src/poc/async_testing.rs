@@ -33,6 +33,8 @@ async fn test() {
     let joinhandle1 =
         tokio::task::spawn_blocking(move || tokio::runtime::Handle::current().block_on(fut1));
 
+    tokio::time::sleep(tokio::time::Duration::from_millis(10000)).await;
+
     while let Ok(msg) = rx.recv().await {
         let message = &msg.message;
         crate::debug!("received message: {message}");
