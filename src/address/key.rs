@@ -8,29 +8,32 @@ pub struct Key {
 }
 
 impl Key {
-    pub fn get_bytes(&self) -> &Vec<u8> {
+    #[must_use]
+    pub const fn get_bytes(&self) -> &Vec<u8> {
         &self.bytes
     }
 }
 
 impl From<Vec<u8>> for Key {
     fn from(bytes: Vec<u8>) -> Self {
-        Key { bytes }
+        Self { bytes }
     }
 }
 
 impl AsBytes for Key {
-    fn as_bytes(&self) -> Vec<u8> {
+    type Error = ();
+    fn try_as_bytes(&self) -> Result<Vec<u8>, Self::Error> {
         let mut bytes = vec![];
         bytes.extend_from_slice(&self.bytes);
-        bytes
+        Ok(bytes)
     }
 }
 
 impl FromBytes for Key {
-    fn from_bytes(bytes: &[u8]) -> Self {
+    type Error = ();
+    fn try_from_bytes(bytes: &[u8]) -> Result<Self, Self::Error> {
         let bytes = bytes.to_vec();
-        Key::from(bytes)
+        Ok(Self::from(bytes))
     }
 }
 
@@ -41,7 +44,7 @@ hashable!(Key);
 #[cfg(test)]
 mod tests {
 
-    use crate::serialise::{serial_string, Base36, SerialiseType};
+    use crate::serialise::{serial_string, Base36};
 
     use super::*;
 
@@ -52,13 +55,10 @@ mod tests {
             crate::serialise::SerialiseType::Base36,
             b36_string.to_string(),
         );
-        let key = Key::from(&serial_string);
+        let key = Key::from(serial_string);
 
-        let key: serial_string::SerialString = {
-            let hashb36: Base36 = key.into();
-            hashb36.into()
-        };
-        crate::debug!("key: {}", key);
+        let key: serial_string::SerialString = Base36::from(&key).into();
+        crate::debug!("key: {key}");
 
         assert_eq!(
             key.get_string(),

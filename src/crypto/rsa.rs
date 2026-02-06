@@ -14,6 +14,7 @@ mod tests {
         let mut rng = OsRng;
         let private_key = RsaPrivateKey::new(&mut rng, 1024).expect("failed to generate RSA key");
         assert_eq!(private_key.n().bits(), 1024);
+
         let pem = private_key.to_pkcs1_pem(LineEnding::LF).unwrap();
         let pem = pem.as_str();
         crate::debug!("prem {pem}");

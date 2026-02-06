@@ -9,26 +9,31 @@ pub struct PublicAddress {
 }
 
 impl PublicAddress {
-    pub fn new(public_key: Key) -> Self {
-        PublicAddress { public_key }
+    #[must_use]
+    pub const fn new(public_key: Key) -> Self {
+        Self { public_key }
     }
-    pub fn get_public_key(&self) -> &Key {
+
+    #[must_use]
+    pub const fn get_public_key(&self) -> &Key {
         &self.public_key
     }
 }
 
 impl AsBytes for PublicAddress {
-    fn as_bytes(&self) -> Vec<u8> {
+    type Error = ();
+    fn try_as_bytes(&self) -> Result<Vec<u8>, Self::Error> {
         let mut bytes = vec![];
-        bytes.extend_from_slice(&self.public_key.as_bytes());
-        bytes
+        bytes.extend_from_slice(&self.public_key.try_as_bytes().unwrap());
+        Ok(bytes)
     }
 }
 
 impl FromBytes for PublicAddress {
-    fn from_bytes(bytes: &[u8]) -> Self {
+    type Error = ();
+    fn try_from_bytes(bytes: &[u8]) -> Result<Self, Self::Error> {
         let bytes = bytes.to_vec();
-        PublicAddress::new(Key::from_bytes(&bytes))
+        Ok(Self::new(Key::try_from_bytes(&bytes).unwrap()))
     }
 }
 
