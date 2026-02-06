@@ -1,12 +1,22 @@
+#[derive(Clone)]
+pub struct Message {
+    pub message: String,
+}
+
 #[tokio::test]
 async fn test() {
-    let fut1 = async {
+    let (tx, rx) = tokio::sync::broadcast::channel::<Message>(1);
+
+    let fut1 = async move {
         crate::debug!("test");
+        let _result = tx.send(Message {
+            message: "test".to_string(),
+        });
         tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
         crate::debug!("test3");
     };
 
-    let fut2 = async {
+    let fut2 = async move {
         for _ in 0..10 {
             crate::debug!("test 2");
             tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
