@@ -1,4 +1,4 @@
-use crate::serialise::SerialString;
+use crate::serialise::{SerialString, SerialiseType};
 
 const ALPHABET: &[u8; 36] = b"0123456789abcdefghijklmnopqrstuvwxyz";
 
@@ -127,6 +127,17 @@ macro_rules! impl_to_base36 {
             }
         }
     };
+}
+
+impl TryFrom<&Vec<u8>> for Base36 {
+    type Error = ();
+
+    fn try_from(value: &Vec<u8>) -> Result<Self, Self::Error> {
+        Ok(Self::new(SerialString::new(
+            SerialiseType::Base36,
+            Self::to_base36(value),
+        )))
+    }
 }
 
 #[macro_export]
