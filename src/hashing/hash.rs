@@ -52,6 +52,7 @@ macro_rules! hashable {
         $crate::impl_keccak256_from_as_bytes!($x);
         $crate::impl_sha256_from_as_bytes!($x);
         $crate::impl_keccak384_from_as_bytes!($x);
+        $crate::impl_ripemd160_from_as_bytes!($x);
     };
 }
 
