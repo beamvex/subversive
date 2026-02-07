@@ -53,6 +53,8 @@ mod tests {
         let test = b"this is a really good test";
         let hash: Hash = Sha256::from_bytes(test).into();
         let serialised: SerialString = Base36::from(&hash).into();
+
+        assert!(hash.verify(test));
         crate::debug!("sha256 {serialised}");
     }
 }

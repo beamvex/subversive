@@ -51,6 +51,8 @@ mod tests {
         let test = b"this is a really good test";
         let hash: Hash = Keccak256::from_bytes(test).into();
         let serialised: SerialString = Base36::from(&hash).into();
+
+        assert!(hash.verify(test));
         crate::debug!("keccak256 {serialised}");
     }
 }

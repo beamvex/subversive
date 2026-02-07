@@ -1,3 +1,7 @@
+use crate::hashing::Keccak256;
+use crate::hashing::Keccak384;
+use crate::hashing::Ripemd160;
+use crate::hashing::Sha256;
 use crate::serialise::{AsBytes, FromBytes};
 
 use crate::{hashing::HashAlgorithm, serialisable};
@@ -22,6 +26,28 @@ impl Hash {
     #[must_use]
     pub const fn get_algorithm(&self) -> HashAlgorithm {
         self.algorithm
+    }
+
+    #[must_use]
+    pub fn verify(&self, bytes: &[u8]) -> bool {
+        match self.algorithm {
+            HashAlgorithm::KECCAK256 => {
+                let hash: Self = Keccak256::from_bytes(bytes).into();
+                hash.get_bytes() == self.get_bytes()
+            }
+            HashAlgorithm::SHA256 => {
+                let hash: Self = Sha256::from_bytes(bytes).into();
+                hash.get_bytes() == self.get_bytes()
+            }
+            HashAlgorithm::KECCAK384 => {
+                let hash: Self = Keccak384::from_bytes(bytes).into();
+                hash.get_bytes() == self.get_bytes()
+            }
+            HashAlgorithm::RIPEMD160 => {
+                let hash: Self = Ripemd160::from_bytes(bytes).into();
+                hash.get_bytes() == self.get_bytes()
+            }
+        }
     }
 }
 
