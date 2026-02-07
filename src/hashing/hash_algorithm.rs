@@ -3,6 +3,7 @@ pub enum HashAlgorithm {
     KECCAK256,
     SHA256,
     KECCAK384,
+    RIPEMD160,
 }
 
 impl TryFrom<u8> for HashAlgorithm {
@@ -13,6 +14,7 @@ impl TryFrom<u8> for HashAlgorithm {
             0 => Ok(Self::KECCAK256),
             1 => Ok(Self::SHA256),
             2 => Ok(Self::KECCAK384),
+            3 => Ok(Self::RIPEMD160),
             _ => Err("Invalid hash algorithm"),
         }
     }
