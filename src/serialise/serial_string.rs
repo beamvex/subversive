@@ -51,7 +51,7 @@ macro_rules! impl_from {
             fn from(value: $crate::serialise::SerialString) -> Self {
                 match value.get_serialise_type() {
                     $crate::serialise::SerialiseType::Base36 => {
-                        let base36: $crate::serialise::base36::Base36 = value.into();
+                        let base36: $crate::serialise::algorithm::Base36 = value.into();
 
                         base36.into()
                     }

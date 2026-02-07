@@ -6,7 +6,7 @@ mod tests {
     use rsa::pkcs1v15::Pkcs1v15Sign;
     use rsa::pkcs8::LineEnding;
     use rsa::traits::PublicKeyParts;
-    use rsa::{RsaPrivateKey, RsaPublicKey};
+    use rsa::RsaPrivateKey;
     use sha2::{Digest, Sha256};
 
     use crate::serialise::{Base36, SerialString};

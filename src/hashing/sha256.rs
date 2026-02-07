@@ -43,7 +43,7 @@ impl From<Sha256> for Hash {
 #[cfg(test)]
 mod tests {
 
-    use crate::serialise::base36::Base36;
+    use crate::serialise::algorithm::Base36;
     use crate::serialise::SerialString;
 
     use super::*;
