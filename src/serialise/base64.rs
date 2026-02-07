@@ -1,13 +1,13 @@
 use crate::serialise::{SerialString, SerialiseType};
 
-const ALPHABET: &[u8; 36] = b"0123456789abcdefghijklmnopqrstuvwxyz";
+const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 #[derive(Debug)]
-pub struct Base36 {
+pub struct Base64 {
     serialised: SerialString,
 }
 
-impl Base36 {
+impl Base64 {
     #[must_use]
     pub const fn new(serialised: SerialString) -> Self {
         Self { serialised }
@@ -20,7 +20,7 @@ impl Base36 {
 
     #[must_use]
     #[allow(clippy::missing_panics_doc)]
-    pub fn to_base36(bytes: &[u8]) -> String {
+    pub fn to_base64(bytes: &[u8]) -> String {
         if bytes.is_empty() {
             return "0".to_string();
         }
@@ -36,8 +36,8 @@ impl Base36 {
             let mut rem: u32 = 0;
             for b in &mut n {
                 let v = (rem << 8) | u32::from(*b);
-                *b = u8::try_from(v / 36).expect("base36 division quotient must fit in u8");
-                rem = v % 36;
+                *b = u8::try_from(v / 64).expect("base64 division quotient must fit in u8");
+                rem = v % 64;
             }
 
             out.push(ALPHABET[rem as usize]);
@@ -51,8 +51,8 @@ impl Base36 {
         out.into_iter().map(char::from).collect()
     }
 
-    fn base36_to_bytes(base36: &str) -> Vec<u8> {
-        let s = base36.trim();
+    fn base64_to_bytes(base64: &str) -> Vec<u8> {
+        let s = base64.trim();
         if s.is_empty() || s == "0" {
             return vec![0];
         }
@@ -60,16 +60,15 @@ impl Base36 {
         let mut bytes: Vec<u8> = vec![0];
 
         for c in s.bytes() {
-            let c = c.to_ascii_lowercase();
             let digit = ALPHABET
                 .iter()
                 .position(|&b| b == c)
-                .map(|p| u32::try_from(p).expect("base36 digit index must fit in u32"))
-                .expect("invalid base36 character");
+                .map(|p| u32::try_from(p).expect("base64 digit index must fit in u32"))
+                .expect("invalid base64 character");
 
             let mut carry = digit;
             for b in bytes.iter_mut().rev() {
-                let v = u32::from(*b) * 36 + carry;
+                let v = u32::from(*b) * 64 + carry;
                 *b = (v & 0xff) as u8;
                 carry = v >> 8;
             }
@@ -87,20 +86,20 @@ impl Base36 {
         bytes
     }
 
-    /// Decodes a base36 string into bytes, optionally left-padding to `size`.
+    /// Decodes a base64 string into bytes, optionally left-padding to `size`.
     ///
     /// # Panics
     ///
-    /// Panics if `base36` contains a character outside the base36 alphabet.
+    /// Panics if `base64` contains a character outside the base64 alphabet.
     ///
     /// Panics if the decoded value requires more than `size` bytes when `size > 0`.
     #[must_use]
-    pub fn from_base36(base36: &str, size: usize) -> Vec<u8> {
-        let mut bytes = Self::base36_to_bytes(base36);
+    pub fn from_base64(base64: &str, size: usize) -> Vec<u8> {
+        let mut bytes = Self::base64_to_bytes(base64);
 
         assert!(
             !(bytes.len() > size && size > 0),
-            "base36 value does not fit in {size} bytes"
+            "base64 value does not fit in {size} bytes"
         );
 
         if bytes.len() < size && size > 0 {
@@ -114,14 +113,14 @@ impl Base36 {
 }
 
 #[macro_export]
-macro_rules! impl_to_base36 {
+macro_rules! impl_to_base64 {
     ($t:ty) => {
-        impl From<&$t> for $crate::serialise::Base36 {
+        impl From<&$t> for $crate::serialise::Base64 {
             fn from(value: &$t) -> Self {
                 let bytes = value.try_as_bytes().unwrap();
-                let string = $crate::serialise::Base36::to_base36(&bytes);
-                $crate::serialise::Base36::new($crate::serialise::SerialString::new(
-                    $crate::serialise::SerialiseType::Base36,
+                let string = $crate::serialise::Base64::to_base64(&bytes);
+                $crate::serialise::Base64::new($crate::serialise::SerialString::new(
+                    $crate::serialise::SerialiseType::Base64,
                     string,
                 ))
             }
@@ -129,38 +128,38 @@ macro_rules! impl_to_base36 {
     };
 }
 
-impl TryFrom<&Vec<u8>> for Base36 {
+impl TryFrom<&Vec<u8>> for Base64 {
     type Error = ();
 
     fn try_from(value: &Vec<u8>) -> Result<Self, Self::Error> {
         Ok(Self::new(SerialString::new(
-            SerialiseType::Base36,
-            Self::to_base36(value),
+            SerialiseType::Base64,
+            Self::to_base64(value),
         )))
     }
 }
 
 #[macro_export]
-macro_rules! impl_from_base36 {
+macro_rules! impl_from_base64 {
     ($t:ty) => {
-        impl From<$crate::serialise::Base36> for $t {
-            fn from(value: $crate::serialise::Base36) -> Self {
+        impl From<$crate::serialise::Base64> for $t {
+            fn from(value: $crate::serialise::Base64) -> Self {
                 let serialised = value.get_serialised();
-                let base36 = serialised.get_string();
-                let bytes = $crate::serialise::Base36::from_base36(&base36, 0);
+                let base64 = serialised.get_string();
+                let bytes = $crate::serialise::Base64::from_base64(&base64, 0);
                 <$t>::try_from_bytes(&bytes).unwrap()
             }
         }
     };
 }
 
-impl From<Base36> for SerialString {
-    fn from(value: Base36) -> Self {
+impl From<Base64> for SerialString {
+    fn from(value: Base64) -> Self {
         value.get_serialised()
     }
 }
 
-impl From<SerialString> for Base36 {
+impl From<SerialString> for Base64 {
     fn from(value: SerialString) -> Self {
         Self::new(value)
     }
@@ -172,11 +171,11 @@ mod tests {
     use super::*;
 
     #[test]
-    pub fn test_base36() {
+    pub fn test_base64() {
         let test = b"this is a really good test";
-        let base36 = Base36::to_base36(test);
-        crate::debug!("base36 {base36}");
-        let bytes = Base36::from_base36(&base36, 0);
+        let base64 = Base64::to_base64(test);
+        crate::debug!("base64 {base64}");
+        let bytes = Base64::from_base64(&base64, 0);
         assert_eq!(test, bytes.as_slice());
     }
 }

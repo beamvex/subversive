@@ -13,7 +13,7 @@ async fn test() {
             let _result = tx.send(Message {
                 message: "test".to_string(),
             });
-            tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+            tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
         }
     };
 
@@ -23,7 +23,7 @@ async fn test() {
             let _result = tx2.send(Message {
                 message: "test 2".to_string(),
             });
-            tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+            tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
         }
     };
 
@@ -33,7 +33,7 @@ async fn test() {
     let joinhandle1 =
         tokio::task::spawn_blocking(move || tokio::runtime::Handle::current().block_on(fut1));
 
-    tokio::time::sleep(tokio::time::Duration::from_millis(10000)).await;
+    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
 
     while let Ok(msg) = rx.recv().await {
         let message = &msg.message;
