@@ -115,14 +115,18 @@ mod tests {
 
         let hash: Hash = Sha256::from_bytes(&bytes).into();
 
-        let hash_str: SerialString = Base36::from(&hash).into();
+        let hash_str: SerialString = Base36::try_from(Bytes::try_from(&hash).unwrap())
+            .unwrap()
+            .into();
         let hash_str = hash_str.get_string();
         crate::debug!("hash: {hash_str}");
         crate::debug!("hash debug: {hash:?}");
 
         let hash: Hash = Keccak384::from_bytes(&bytes).into();
 
-        let hash_str: SerialString = Base36::from(&hash).into();
+        let hash_str: SerialString = Base36::try_from(Bytes::try_from(&hash).unwrap())
+            .unwrap()
+            .into();
         let hash_str = hash_str.get_string();
         crate::debug!("hash: {hash_str}");
         crate::debug!("hash debug: {hash:?}");
