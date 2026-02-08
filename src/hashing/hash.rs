@@ -72,9 +72,9 @@ impl FromBytes for Hash {
     }
 }
 
-impl TryFrom<Hash> for Bytes {
+impl TryFrom<&Hash> for Bytes {
     type Error = &'static str;
-    fn try_from(value: Hash) -> Result<Self, Self::Error> {
+    fn try_from(value: &Hash) -> Result<Self, Self::Error> {
         Ok(Self::new(StructType::HASH, value.try_as_bytes().unwrap()))
     }
 }
@@ -106,7 +106,9 @@ mod tests {
         let bytes: Vec<u8> = vec![1, 2, 3];
         let hash: Hash = Keccak256::from_bytes(&bytes).into();
 
-        let hash_str: SerialString = Base36::from(&hash).into();
+        let hash_str: SerialString = Base36::try_from(Bytes::try_from(&hash).unwrap())
+            .unwrap()
+            .into();
         let hash_str = hash_str.get_string();
         crate::debug!("hash: {hash_str}");
         crate::debug!("hash debug: {hash:?}");

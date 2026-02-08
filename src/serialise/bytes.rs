@@ -18,7 +18,7 @@ impl Bytes {
     }
 
     #[must_use]
-    pub const fn get_bytes(&self) -> &Vec<u8> {
-        &self.bytes
+    pub fn get_bytes(self) -> Vec<u8> {
+        self.bytes
     }
 }

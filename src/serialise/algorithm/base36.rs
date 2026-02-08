@@ -1,4 +1,4 @@
-use crate::serialise::{SerialString, SerialiseType};
+use crate::serialise::{Bytes, SerialString, SerialiseType};
 
 const ALPHABET: &[u8; 36] = b"0123456789abcdefghijklmnopqrstuvwxyz";
 
@@ -136,6 +136,17 @@ impl TryFrom<&Vec<u8>> for Base36 {
         Ok(Self::new(SerialString::new(
             SerialiseType::Base36,
             Self::to_base36(value),
+        )))
+    }
+}
+
+impl TryFrom<Bytes> for Base36 {
+    type Error = ();
+
+    fn try_from(value: Bytes) -> Result<Self, Self::Error> {
+        Ok(Self::new(SerialString::new(
+            SerialiseType::Base36,
+            Self::to_base36(&value.get_bytes()),
         )))
     }
 }
