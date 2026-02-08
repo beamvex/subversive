@@ -1,7 +1,7 @@
 use crate::{
     address::key::Key,
     hashable, serialisable,
-    serialise::{AsBytes, FromBytes},
+    serialise::{AsBytes, Bytes, FromBytes, StructType},
 };
 
 pub struct PublicAddress {
@@ -34,6 +34,16 @@ impl FromBytes for PublicAddress {
     fn try_from_bytes(bytes: &[u8]) -> Result<Self, Self::Error> {
         let bytes = bytes.to_vec();
         Ok(Self::new(Key::try_from_bytes(&bytes).unwrap()))
+    }
+}
+
+impl TryFrom<PublicAddress> for Bytes {
+    type Error = &'static str;
+    fn try_from(value: PublicAddress) -> Result<Self, Self::Error> {
+        Ok(Self::new(
+            StructType::ADDRESS,
+            value.try_as_bytes().unwrap(),
+        ))
     }
 }
 

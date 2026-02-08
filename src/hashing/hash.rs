@@ -2,6 +2,8 @@ use crate::hashing::Keccak256;
 use crate::hashing::Keccak384;
 use crate::hashing::Ripemd160;
 use crate::hashing::Sha256;
+use crate::serialise::Bytes;
+use crate::serialise::StructType;
 use crate::serialise::{AsBytes, FromBytes};
 
 use crate::{hashing::HashAlgorithm, serialisable};
@@ -67,6 +69,13 @@ impl FromBytes for Hash {
         let algorithm = HashAlgorithm::try_from(bytes[0]).unwrap();
         let bytes = bytes[1..].to_vec();
         Ok(Self::new(algorithm, bytes))
+    }
+}
+
+impl TryFrom<Hash> for Bytes {
+    type Error = &'static str;
+    fn try_from(value: Hash) -> Result<Self, Self::Error> {
+        Ok(Self::new(StructType::HASH, value.try_as_bytes().unwrap()))
     }
 }
 

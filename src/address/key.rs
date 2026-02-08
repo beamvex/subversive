@@ -1,6 +1,6 @@
 use crate::{
     hashable, serialisable,
-    serialise::{AsBytes, FromBytes},
+    serialise::{AsBytes, Bytes, FromBytes, StructType},
 };
 
 pub struct Key {
@@ -34,6 +34,13 @@ impl FromBytes for Key {
     fn try_from_bytes(bytes: &[u8]) -> Result<Self, Self::Error> {
         let bytes = bytes.to_vec();
         Ok(Self::from(bytes))
+    }
+}
+
+impl TryFrom<Key> for Bytes {
+    type Error = &'static str;
+    fn try_from(value: Key) -> Result<Self, Self::Error> {
+        Ok(Self::new(StructType::KEY, value.try_as_bytes().unwrap()))
     }
 }
 

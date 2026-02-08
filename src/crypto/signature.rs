@@ -1,7 +1,7 @@
 use crate::{
     crypto::SigningAlgorithm,
     hashable,
-    serialise::{AsBytes, FromBytes},
+    serialise::{AsBytes, Bytes, FromBytes, StructType},
 };
 
 use crate::serialisable;
@@ -71,6 +71,16 @@ impl FromBytes for Signature {
         let algorithm = SigningAlgorithm::try_from(bytes[0]).unwrap();
         let bytes = bytes[1..].to_vec();
         Ok(Self::new_with_algorithm(algorithm, bytes))
+    }
+}
+
+impl TryFrom<Signature> for Bytes {
+    type Error = &'static str;
+    fn try_from(value: Signature) -> Result<Self, Self::Error> {
+        Ok(Self::new(
+            StructType::SIGNATURE,
+            value.try_as_bytes().unwrap(),
+        ))
     }
 }
 
