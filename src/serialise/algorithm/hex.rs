@@ -69,47 +69,6 @@ impl Hex {
     }
 }
 
-#[macro_export]
-macro_rules! impl_to_hex {
-    ($t:ty) => {
-        impl From<&$t> for $crate::serialise::Hex {
-            fn from(value: &$t) -> Self {
-                let bytes = value.try_as_bytes().unwrap();
-                let string = $crate::serialise::Hex::to_hex(&bytes);
-                $crate::serialise::Hex::new($crate::serialise::SerialString::new(
-                    $crate::serialise::SerialiseType::Hex,
-                    string,
-                ))
-            }
-        }
-    };
-}
-
-impl TryFrom<&Vec<u8>> for Hex {
-    type Error = ();
-
-    fn try_from(value: &Vec<u8>) -> Result<Self, Self::Error> {
-        Ok(Self::new(SerialString::new(
-            SerialiseType::Hex,
-            Self::to_hex(value),
-        )))
-    }
-}
-
-#[macro_export]
-macro_rules! impl_from_hex {
-    ($t:ty) => {
-        impl From<$crate::serialise::Hex> for $t {
-            fn from(value: $crate::serialise::Hex) -> Self {
-                let serialised = value.get_serialised();
-                let hex = serialised.get_string();
-                let bytes = $crate::serialise::Hex::from_hex(&hex);
-                <$t>::try_from_bytes(&bytes).unwrap()
-            }
-        }
-    };
-}
-
 impl From<Hex> for SerialString {
     fn from(value: Hex) -> Self {
         value.get_serialised()

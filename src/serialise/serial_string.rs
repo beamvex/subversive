@@ -31,35 +31,3 @@ impl std::fmt::Display for SerialString {
         write!(f, "{}", self.string)
     }
 }
-
-#[macro_export]
-macro_rules! serialisable {
-    ($t:ty) => {
-        // base36
-        $crate::impl_to_base36!($t);
-        $crate::impl_from_base36!($t);
-
-        // generic
-        $crate::impl_from!($t);
-    };
-}
-
-#[macro_export]
-macro_rules! impl_from {
-    ($t:ty) => {
-        impl From<$crate::serialise::SerialString> for $t {
-            fn from(value: $crate::serialise::SerialString) -> Self {
-                match value.get_serialise_type() {
-                    $crate::serialise::SerialiseType::Base36 => {
-                        let base36: $crate::serialise::algorithm::Base36 = value.into();
-
-                        base36.into()
-                    }
-                    _ => {
-                        panic!("Unsupported serialise type");
-                    }
-                }
-            }
-        }
-    };
-}

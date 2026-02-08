@@ -112,47 +112,6 @@ impl Base58 {
     }
 }
 
-#[macro_export]
-macro_rules! impl_to_base58 {
-    ($t:ty) => {
-        impl From<&$t> for $crate::serialise::Base58 {
-            fn from(value: &$t) -> Self {
-                let bytes = value.try_as_bytes().unwrap();
-                let string = $crate::serialise::Base58::to_base58(&bytes);
-                $crate::serialise::Base58::new($crate::serialise::SerialString::new(
-                    $crate::serialise::SerialiseType::Base58,
-                    string,
-                ))
-            }
-        }
-    };
-}
-
-impl TryFrom<&Vec<u8>> for Base58 {
-    type Error = ();
-
-    fn try_from(value: &Vec<u8>) -> Result<Self, Self::Error> {
-        Ok(Self::new(SerialString::new(
-            SerialiseType::Base58,
-            Self::to_base58(value),
-        )))
-    }
-}
-
-#[macro_export]
-macro_rules! impl_from_base58 {
-    ($t:ty) => {
-        impl From<$crate::serialise::Base58> for $t {
-            fn from(value: $crate::serialise::Base58) -> Self {
-                let serialised = value.get_serialised();
-                let base58 = serialised.get_string();
-                let bytes = $crate::serialise::Base58::from_base58(&base58, 0);
-                <$t>::try_from_bytes(&bytes).unwrap()
-            }
-        }
-    };
-}
-
 impl From<Base58> for SerialString {
     fn from(value: Base58) -> Self {
         value.get_serialised()

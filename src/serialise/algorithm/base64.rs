@@ -112,47 +112,6 @@ impl Base64 {
     }
 }
 
-#[macro_export]
-macro_rules! impl_to_base64 {
-    ($t:ty) => {
-        impl From<&$t> for $crate::serialise::Base64 {
-            fn from(value: &$t) -> Self {
-                let bytes = value.try_as_bytes().unwrap();
-                let string = $crate::serialise::Base64::to_base64(&bytes);
-                $crate::serialise::Base64::new($crate::serialise::SerialString::new(
-                    $crate::serialise::SerialiseType::Base64,
-                    string,
-                ))
-            }
-        }
-    };
-}
-
-impl TryFrom<&Vec<u8>> for Base64 {
-    type Error = ();
-
-    fn try_from(value: &Vec<u8>) -> Result<Self, Self::Error> {
-        Ok(Self::new(SerialString::new(
-            SerialiseType::Base64,
-            Self::to_base64(value),
-        )))
-    }
-}
-
-#[macro_export]
-macro_rules! impl_from_base64 {
-    ($t:ty) => {
-        impl From<$crate::serialise::Base64> for $t {
-            fn from(value: $crate::serialise::Base64) -> Self {
-                let serialised = value.get_serialised();
-                let base64 = serialised.get_string();
-                let bytes = $crate::serialise::Base64::from_base64(&base64, 0);
-                <$t>::try_from_bytes(&bytes).unwrap()
-            }
-        }
-    };
-}
-
 impl From<Base64> for SerialString {
     fn from(value: Base64) -> Self {
         value.get_serialised()

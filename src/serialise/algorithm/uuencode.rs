@@ -130,47 +130,6 @@ impl Uuencode {
     }
 }
 
-#[macro_export]
-macro_rules! impl_to_uuencode {
-    ($t:ty) => {
-        impl From<&$t> for $crate::serialise::Uuencode {
-            fn from(value: &$t) -> Self {
-                let bytes = value.try_as_bytes().unwrap();
-                let string = $crate::serialise::Uuencode::to_uuencode(&bytes);
-                $crate::serialise::Uuencode::new($crate::serialise::SerialString::new(
-                    $crate::serialise::SerialiseType::UUencode,
-                    string,
-                ))
-            }
-        }
-    };
-}
-
-impl TryFrom<&Vec<u8>> for Uuencode {
-    type Error = ();
-
-    fn try_from(value: &Vec<u8>) -> Result<Self, Self::Error> {
-        Ok(Self::new(SerialString::new(
-            SerialiseType::UUencode,
-            Self::to_uuencode(value),
-        )))
-    }
-}
-
-#[macro_export]
-macro_rules! impl_from_uuencode {
-    ($t:ty) => {
-        impl From<$crate::serialise::Uuencode> for $t {
-            fn from(value: $crate::serialise::Uuencode) -> Self {
-                let serialised = value.get_serialised();
-                let uu = serialised.get_string();
-                let bytes = $crate::serialise::Uuencode::from_uuencode(&uu);
-                <$t>::try_from_bytes(&bytes).unwrap()
-            }
-        }
-    };
-}
-
 impl From<Uuencode> for SerialString {
     fn from(value: Uuencode) -> Self {
         value.get_serialised()

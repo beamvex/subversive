@@ -1,4 +1,4 @@
-use crate::serialise::{Bytes, SerialString, SerialiseType};
+use crate::serialise::{Bytes, SerialString, SerialiseType, StructType};
 
 const ALPHABET: &[u8; 36] = b"0123456789abcdefghijklmnopqrstuvwxyz";
 
@@ -113,56 +113,29 @@ impl Base36 {
     }
 }
 
-#[macro_export]
-macro_rules! impl_to_base36 {
-    ($t:ty) => {
-        impl From<&$t> for $crate::serialise::Base36 {
-            fn from(value: &$t) -> Self {
-                let bytes = value.try_as_bytes().unwrap();
-                let string = $crate::serialise::Base36::to_base36(&bytes);
-                $crate::serialise::Base36::new($crate::serialise::SerialString::new(
-                    $crate::serialise::SerialiseType::Base36,
-                    string,
-                ))
-            }
-        }
-    };
-}
-
-impl TryFrom<&Vec<u8>> for Base36 {
-    type Error = ();
-
-    fn try_from(value: &Vec<u8>) -> Result<Self, Self::Error> {
-        Ok(Self::new(SerialString::new(
-            SerialiseType::Base36,
-            Self::to_base36(value),
-        )))
-    }
-}
-
 impl TryFrom<Bytes> for Base36 {
     type Error = ();
 
     fn try_from(value: Bytes) -> Result<Self, Self::Error> {
+        let mut vec: Vec<u8> = vec![];
+        vec.push(StructType::HASH);
+        vec.append(value.get_bytes());
         Ok(Self::new(SerialString::new(
             SerialiseType::Base36,
-            Self::to_base36(&value.get_bytes()),
+            Self::to_base36(&vec),
         )))
     }
 }
 
-#[macro_export]
-macro_rules! impl_from_base36 {
-    ($t:ty) => {
-        impl From<$crate::serialise::Base36> for $t {
-            fn from(value: $crate::serialise::Base36) -> Self {
-                let serialised = value.get_serialised();
-                let base36 = serialised.get_string();
-                let bytes = $crate::serialise::Base36::from_base36(&base36, 0);
-                <$t>::try_from_bytes(&bytes).unwrap()
-            }
-        }
-    };
+impl TryFrom<Base36> for Bytes {
+    type Error = ();
+
+    fn try_from(value: Base36) -> Result<Self, Self::Error> {
+        Ok(Self::new(
+            StructType::HASH,
+            Base36::from_base36(value.get_serialised().get_string(), 0),
+        ))
+    }
 }
 
 impl From<Base36> for SerialString {
