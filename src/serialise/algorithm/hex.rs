@@ -1,4 +1,4 @@
-use crate::serialise::{SerialString, SerialiseType};
+use crate::serialise::{Bytes, SerialString, SerialiseType};
 
 const ALPHABET: &[u8; 16] = b"0123456789abcdef";
 
@@ -119,6 +119,17 @@ impl From<Hex> for SerialString {
 impl From<SerialString> for Hex {
     fn from(value: SerialString) -> Self {
         Self::new(value)
+    }
+}
+
+impl TryFrom<Bytes> for Hex {
+    type Error = ();
+
+    fn try_from(value: Bytes) -> Result<Self, Self::Error> {
+        Ok(Self::new(SerialString::new(
+            SerialiseType::Hex,
+            Self::to_hex(&value.get_bytes()),
+        )))
     }
 }
 

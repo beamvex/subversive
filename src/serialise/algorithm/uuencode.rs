@@ -1,4 +1,4 @@
-use crate::serialise::{SerialString, SerialiseType};
+use crate::serialise::{Bytes, SerialString, SerialiseType};
 
 #[derive(Debug)]
 pub struct Uuencode {
@@ -180,6 +180,17 @@ impl From<Uuencode> for SerialString {
 impl From<SerialString> for Uuencode {
     fn from(value: SerialString) -> Self {
         Self::new(value)
+    }
+}
+
+impl TryFrom<Bytes> for Uuencode {
+    type Error = ();
+
+    fn try_from(value: Bytes) -> Result<Self, Self::Error> {
+        Ok(Self::new(SerialString::new(
+            SerialiseType::UUencode,
+            Self::to_uuencode(&value.get_bytes()),
+        )))
     }
 }
 
