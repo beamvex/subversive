@@ -118,7 +118,7 @@ impl TryFrom<Bytes> for Base36 {
 
     fn try_from(value: Bytes) -> Result<Self, Self::Error> {
         let mut vec: Vec<u8> = vec![];
-        vec.push(StructType::HASH.try_into().unwrap());
+        vec.push(value.get_serialise_type().try_into().unwrap());
         vec.extend_from_slice(&value.get_bytes());
         Ok(Self::new(SerialString::new(
             SerialiseType::Base36,
