@@ -1,4 +1,4 @@
-use crate::serialise::{Bytes, SerialString, SerialiseType, StructType};
+use crate::serialise::{Bytes, SerialString, SerialiseError, SerialiseType, StructType};
 
 const ALPHABET: &[u8; 36] = b"0123456789abcdefghijklmnopqrstuvwxyz";
 
@@ -114,7 +114,7 @@ impl Base36 {
 }
 
 impl TryFrom<Bytes> for Base36 {
-    type Error = ();
+    type Error = SerialiseError;
 
     fn try_from(value: Bytes) -> Result<Self, Self::Error> {
         let mut vec: Vec<u8> = vec![];
@@ -128,25 +128,31 @@ impl TryFrom<Bytes> for Base36 {
 }
 
 impl TryFrom<Base36> for Bytes {
-    type Error = ();
+    type Error = SerialiseError;
 
     fn try_from(value: Base36) -> Result<Self, Self::Error> {
-        Ok(Self::new(
-            StructType::HASH,
-            Base36::from_base36(value.get_serialised().get_string(), 0),
-        ))
+        let bytes = Base36::from_base36(value.get_serialised().get_string(), 0);
+        let type_code: Result<StructType, SerialiseError> = StructType::try_from(bytes[0]);
+        if let Err(error) = type_code {
+            return Err(error);
+        }
+        Ok(Self::new(type_code.unwrap(), bytes[1..].to_vec()))
     }
 }
 
-impl From<Base36> for SerialString {
-    fn from(value: Base36) -> Self {
-        value.get_serialised()
+impl TryFrom<Base36> for SerialString {
+    type Error = SerialiseError;
+
+    fn try_from(value: Base36) -> Result<Self, Self::Error> {
+        Ok(value.get_serialised())
     }
 }
 
-impl From<SerialString> for Base36 {
-    fn from(value: SerialString) -> Self {
-        Self::new(value)
+impl TryFrom<SerialString> for Base36 {
+    type Error = SerialiseError;
+
+    fn try_from(value: SerialString) -> Result<Self, Self::Error> {
+        Ok(Self::new(value))
     }
 }
 
@@ -158,9 +164,36 @@ mod tests {
     #[test]
     pub fn test_base36() {
         let test = b"this is a really good test";
-        let base36 = Base36::to_base36(test);
-        crate::debug!("base36 {base36}");
-        let bytes = Base36::from_base36(&base36, 0);
-        assert_eq!(test, bytes.as_slice());
+        let test_bytes = Bytes::new(StructType::HASH, test.to_vec());
+        let base36: Base36 = test_bytes.try_into().unwrap();
+        crate::debug!("base36 {base36:?}");
+        let serialised: SerialString = base36.try_into().unwrap();
+        let serialised_str = serialised.get_string();
+        crate::debug!("test_bytes_restored {serialised_str}");
+        let deserialised: Base36 = serialised.try_into().unwrap();
+        let test_bytes_restored: Bytes = deserialised.try_into().unwrap();
+        assert_eq!(test, test_bytes_restored.get_bytes().as_slice());
+    }
+
+    #[test]
+    pub fn test_invalid_base36() {
+        let test = b"this is a failure test; its a little bit manufactured as this shouldnt be possible via code";
+        let test_bytes = test.to_vec();
+        let mut badvec: Vec<u8> = vec![];
+        badvec.push(99);
+        badvec.extend_from_slice(&test_bytes);
+
+        let base36: Base36 = Base36::new(SerialString::new(
+            SerialiseType::Base36,
+            Base36::to_base36(&badvec),
+        ));
+        crate::debug!("base36 {base36:?}");
+
+        let serialised: SerialString = base36.try_into().unwrap();
+
+        let deserialised: Base36 = serialised.try_into().unwrap();
+        let test_bytes_restored: Result<Bytes, SerialiseError> = deserialised.try_into();
+
+        assert!(test_bytes_restored.is_err());
     }
 }

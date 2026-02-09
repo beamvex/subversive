@@ -1,3 +1,5 @@
+use crate::serialise::SerialiseError;
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum StructType {
     STRING,
@@ -8,7 +10,7 @@ pub enum StructType {
 }
 
 impl TryFrom<u8> for StructType {
-    type Error = &'static str;
+    type Error = SerialiseError;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
@@ -17,13 +19,13 @@ impl TryFrom<u8> for StructType {
             102 => Ok(Self::KEY),
             103 => Ok(Self::ADDRESS),
             104 => Ok(Self::SIGNATURE),
-            _ => Err("Invalid struct type"),
+            _ => Err(SerialiseError::new("Invalid struct type".to_string())),
         }
     }
 }
 
 impl TryFrom<StructType> for u8 {
-    type Error = &'static str;
+    type Error = SerialiseError;
     fn try_from(value: StructType) -> Result<Self, Self::Error> {
         match value {
             StructType::STRING => Ok(100),
