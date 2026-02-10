@@ -1,6 +1,7 @@
 use crate::{
     serialisable,
     serialise::{SerialString, SerialiseError, SerialiseType},
+    string_serialisable,
 };
 
 #[derive(Debug)]
@@ -151,6 +152,7 @@ impl TryFrom<Vec<u8>> for Uuencode {
 }
 
 serialisable!(Uuencode);
+string_serialisable!(Uuencode);
 
 #[cfg(test)]
 mod tests {

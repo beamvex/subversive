@@ -1,6 +1,7 @@
 use crate::{
     serialisable,
     serialise::{SerialString, SerialiseError, SerialiseType},
+    string_serialisable,
 };
 
 const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -133,6 +134,7 @@ impl TryFrom<Vec<u8>> for Base64 {
 }
 
 serialisable!(Base64);
+string_serialisable!(Base64);
 
 #[cfg(test)]
 mod tests {

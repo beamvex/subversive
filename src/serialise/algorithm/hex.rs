@@ -1,6 +1,7 @@
 use crate::{
     serialisable,
     serialise::{SerialString, SerialiseError, SerialiseType},
+    string_serialisable,
 };
 
 const ALPHABET: &[u8; 16] = b"0123456789abcdef";
@@ -90,6 +91,7 @@ impl TryFrom<Vec<u8>> for Hex {
 }
 
 serialisable!(Hex);
+string_serialisable!(Hex);
 
 #[cfg(test)]
 mod tests {

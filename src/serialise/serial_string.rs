@@ -35,7 +35,7 @@ impl std::fmt::Display for SerialString {
 #[macro_export]
 macro_rules! try_from_serial_string {
     ($t:ty) => {
-        impl TryFrom<$t> for SerialString {
+        impl TryFrom<$t> for $crate::serialise::SerialString {
             type Error = $crate::serialise::SerialiseError;
             fn try_from(value: $t) -> Result<Self, $crate::serialise::SerialiseError> {
                 Ok(value.get_serialised())
@@ -47,9 +47,11 @@ macro_rules! try_from_serial_string {
 #[macro_export]
 macro_rules! try_to_serial_string {
     ($t:ty) => {
-        impl TryFrom<SerialString> for $t {
+        impl TryFrom<$crate::serialise::SerialString> for $t {
             type Error = $crate::serialise::SerialiseError;
-            fn try_from(value: SerialString) -> Result<Self, $crate::serialise::SerialiseError> {
+            fn try_from(
+                value: $crate::serialise::SerialString,
+            ) -> Result<Self, $crate::serialise::SerialiseError> {
                 Ok(Self::new(value))
             }
         }

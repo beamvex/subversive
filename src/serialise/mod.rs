@@ -25,7 +25,12 @@ macro_rules! serialisable {
     ($t:ty) => {
         $crate::try_to_bytes!($t);
         $crate::try_from_bytes!($t);
+    };
+}
 
+#[macro_export]
+macro_rules! string_serialisable {
+    ($t:ty) => {
         $crate::try_to_serial_string!($t);
         $crate::try_from_serial_string!($t);
     };
