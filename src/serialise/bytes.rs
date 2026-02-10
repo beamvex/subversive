@@ -22,3 +22,56 @@ impl Bytes {
         self.bytes
     }
 }
+
+#[macro_export]
+macro_rules! try_from_bytes {
+    ($t:ty) => {
+        /**
+         * Create a new instance of $t from a serialised string.
+         */
+        impl TryFrom<$crate::serialise::Bytes> for $t {
+            type Error = $crate::serialise::SerialiseError;
+            fn try_from(
+                value: $crate::serialise::Bytes,
+            ) -> Result<Self, $crate::serialise::SerialiseError> {
+                let mut vec: Vec<u8> = vec![];
+                vec.push(value.get_serialise_type().try_into().unwrap());
+                vec.extend_from_slice(&value.get_bytes());
+                Ok(Self::new(SerialString::new(
+                    SerialiseType::Base36,
+                    Self::to_base36(&vec),
+                )))
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! try_to_bytes {
+    ($t:ty) => {
+        /**
+         * Create a new instance of Bytes from a serialised string.
+         */
+        impl TryFrom<$t> for $crate::serialise::Bytes {
+            type Error = $crate::serialise::SerialiseError;
+            fn try_from(value: $t) -> Result<Self, $crate::serialise::SerialiseError> {
+                // convert the string to bytes with the algorithm specified in the serialised string type
+                let bytes: Result<Vec<u8>, $crate::serialise::SerialiseError> = value.try_into();
+                if let Err(error) = bytes {
+                    // error converting to bytes
+                    return Err(error);
+                }
+                // bytes converted successfully
+                let bytes = bytes.unwrap();
+                // get the type code as the first byte
+                let type_code: Result<StructType, $crate::serialise::SerialiseError> =
+                    StructType::try_from(bytes[0]);
+                if let Err(error) = type_code {
+                    return Err(error);
+                }
+                // create the bytes type from the decoded bytes
+                Ok(Self::new(type_code.unwrap(), bytes[1..].to_vec()))
+            }
+        }
+    };
+}

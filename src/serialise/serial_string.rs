@@ -31,3 +31,27 @@ impl std::fmt::Display for SerialString {
         write!(f, "{}", self.string)
     }
 }
+
+#[macro_export]
+macro_rules! try_from_serial_string {
+    ($t:ty) => {
+        impl TryFrom<$t> for SerialString {
+            type Error = $crate::serialise::SerialiseError;
+            fn try_from(value: $t) -> Result<Self, $crate::serialise::SerialiseError> {
+                Ok(value.get_serialised())
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! try_to_serial_string {
+    ($t:ty) => {
+        impl TryFrom<SerialString> for $t {
+            type Error = $crate::serialise::SerialiseError;
+            fn try_from(value: SerialString) -> Result<Self, $crate::serialise::SerialiseError> {
+                Ok(Self::new(value))
+            }
+        }
+    };
+}

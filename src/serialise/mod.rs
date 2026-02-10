@@ -19,3 +19,14 @@ pub use serial_string::SerialString;
 pub use serialise_error::SerialiseError;
 pub use serialise_type::SerialiseType;
 pub use struct_type::StructType;
+
+#[macro_export]
+macro_rules! serialisable {
+    ($t:ty) => {
+        $crate::try_to_bytes!($t);
+        $crate::try_from_bytes!($t);
+
+        $crate::try_to_serial_string!($t);
+        $crate::try_from_serial_string!($t);
+    };
+}

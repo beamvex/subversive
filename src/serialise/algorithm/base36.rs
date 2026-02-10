@@ -1,4 +1,7 @@
-use crate::serialise::{Bytes, SerialString, SerialiseError, SerialiseType, StructType};
+use crate::{
+    serialisable,
+    serialise::{SerialString, SerialiseError, SerialiseType, StructType},
+};
 
 const ALPHABET: &[u8; 36] = b"0123456789abcdefghijklmnopqrstuvwxyz";
 
@@ -113,53 +116,23 @@ impl Base36 {
     }
 }
 
-impl TryFrom<Bytes> for Base36 {
+impl TryFrom<Base36> for Vec<u8> {
     type Error = SerialiseError;
-
-    fn try_from(value: Bytes) -> Result<Self, Self::Error> {
-        let mut vec: Vec<u8> = vec![];
-        vec.push(value.get_serialise_type().try_into().unwrap());
-        vec.extend_from_slice(&value.get_bytes());
-        Ok(Self::new(SerialString::new(
-            SerialiseType::Base36,
-            Self::to_base36(&vec),
-        )))
-    }
-}
-
-impl TryFrom<Base36> for Bytes {
-    type Error = SerialiseError;
-
     fn try_from(value: Base36) -> Result<Self, Self::Error> {
-        let bytes = Base36::from_base36(value.get_serialised().get_string(), 0);
-        let type_code: Result<StructType, SerialiseError> = StructType::try_from(bytes[0]);
-        if let Err(error) = type_code {
-            return Err(error);
-        }
-        Ok(Self::new(type_code.unwrap(), bytes[1..].to_vec()))
+        Ok(Base36::from_base36(value.get_serialised().get_string(), 0))
     }
 }
 
-impl TryFrom<Base36> for SerialString {
-    type Error = SerialiseError;
-
-    fn try_from(value: Base36) -> Result<Self, Self::Error> {
-        Ok(value.get_serialised())
-    }
-}
-
-impl TryFrom<SerialString> for Base36 {
-    type Error = SerialiseError;
-
-    fn try_from(value: SerialString) -> Result<Self, Self::Error> {
-        Ok(Self::new(value))
-    }
-}
+serialisable!(Base36);
 
 #[cfg(test)]
 mod tests {
 
     use super::*;
+    use crate::serialise::Bytes;
+    use crate::serialise::SerialString;
+    use crate::serialise::SerialiseError;
+    use crate::serialise::StructType;
 
     #[test]
     pub fn test_base36() {
