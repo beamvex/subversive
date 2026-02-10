@@ -1,4 +1,7 @@
-use crate::serialise::{Bytes, SerialString, SerialiseType};
+use crate::{
+    serialisable,
+    serialise::{SerialString, SerialiseError, SerialiseType},
+};
 
 const ALPHABET: &[u8; 16] = b"0123456789abcdef";
 
@@ -69,40 +72,64 @@ impl Hex {
     }
 }
 
-impl From<Hex> for SerialString {
-    fn from(value: Hex) -> Self {
-        value.get_serialised()
+impl TryFrom<Hex> for Vec<u8> {
+    type Error = SerialiseError;
+    fn try_from(value: Hex) -> Result<Self, Self::Error> {
+        Ok(Hex::from_hex(value.get_serialised().get_string()))
     }
 }
 
-impl From<SerialString> for Hex {
-    fn from(value: SerialString) -> Self {
-        Self::new(value)
-    }
-}
-
-impl TryFrom<Bytes> for Hex {
-    type Error = ();
-
-    fn try_from(value: Bytes) -> Result<Self, Self::Error> {
+impl TryFrom<Vec<u8>> for Hex {
+    type Error = SerialiseError;
+    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
         Ok(Self::new(SerialString::new(
             SerialiseType::Hex,
-            Self::to_hex(&value.get_bytes()),
+            Self::to_hex(&value),
         )))
     }
 }
+
+serialisable!(Hex);
 
 #[cfg(test)]
 mod tests {
 
     use super::*;
+    use crate::serialise::Bytes;
+    use crate::serialise::SerialString;
+    use crate::serialise::SerialiseError;
+    use crate::serialise::StructType;
 
     #[test]
     pub fn test_hex() {
         let test = b"this is a really good test";
-        let hex = Hex::to_hex(test);
-        crate::debug!("hex {hex}");
-        let bytes = Hex::from_hex(&hex);
-        assert_eq!(test, bytes.as_slice());
+        let test_bytes = Bytes::new(StructType::HASH, test.to_vec());
+        let hex: Hex = test_bytes.try_into().unwrap();
+        crate::debug!("hex {hex:?}");
+        let serialised: SerialString = hex.try_into().unwrap();
+        let serialised_str = serialised.get_string();
+        crate::debug!("test_bytes_restored {serialised_str}");
+        let deserialised: Hex = serialised.try_into().unwrap();
+        let test_bytes_restored: Bytes = deserialised.try_into().unwrap();
+        assert_eq!(test, test_bytes_restored.get_bytes().as_slice());
+    }
+
+    #[test]
+    pub fn test_invalid_hex() {
+        let test = b"this is a failure test; its a little bit manufactured as this shouldnt be possible via code";
+        let test_bytes = test.to_vec();
+        let mut badvec: Vec<u8> = vec![];
+        badvec.push(99);
+        badvec.extend_from_slice(&test_bytes);
+
+        let hex: Hex = Hex::new(SerialString::new(SerialiseType::Hex, Hex::to_hex(&badvec)));
+        crate::debug!("hex {hex:?}");
+
+        let serialised: SerialString = hex.try_into().unwrap();
+
+        let deserialised: Hex = serialised.try_into().unwrap();
+        let test_bytes_restored: Result<Bytes, SerialiseError> = deserialised.try_into();
+
+        assert!(test_bytes_restored.is_err());
     }
 }

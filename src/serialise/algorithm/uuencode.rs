@@ -1,4 +1,7 @@
-use crate::serialise::{Bytes, SerialString, SerialiseType};
+use crate::{
+    serialisable,
+    serialise::{SerialString, SerialiseError, SerialiseType},
+};
 
 #[derive(Debug)]
 pub struct Uuencode {
@@ -130,40 +133,67 @@ impl Uuencode {
     }
 }
 
-impl From<Uuencode> for SerialString {
-    fn from(value: Uuencode) -> Self {
-        value.get_serialised()
+impl TryFrom<Uuencode> for Vec<u8> {
+    type Error = SerialiseError;
+    fn try_from(value: Uuencode) -> Result<Self, Self::Error> {
+        Ok(Uuencode::from_uuencode(value.get_serialised().get_string()))
     }
 }
 
-impl From<SerialString> for Uuencode {
-    fn from(value: SerialString) -> Self {
-        Self::new(value)
-    }
-}
-
-impl TryFrom<Bytes> for Uuencode {
-    type Error = ();
-
-    fn try_from(value: Bytes) -> Result<Self, Self::Error> {
+impl TryFrom<Vec<u8>> for Uuencode {
+    type Error = SerialiseError;
+    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
         Ok(Self::new(SerialString::new(
             SerialiseType::UUencode,
-            Self::to_uuencode(&value.get_bytes()),
+            Self::to_uuencode(&value),
         )))
     }
 }
+
+serialisable!(Uuencode);
 
 #[cfg(test)]
 mod tests {
 
     use super::*;
+    use crate::serialise::Bytes;
+    use crate::serialise::SerialString;
+    use crate::serialise::SerialiseError;
+    use crate::serialise::StructType;
 
     #[test]
-    pub fn test_uuencode_roundtrip() {
+    pub fn test_uuencode() {
         let test = b"this is a really good test";
-        let uu = Uuencode::to_uuencode(test);
-        crate::debug!("uuencode {uu}");
-        let bytes = Uuencode::from_uuencode(&uu);
-        assert_eq!(test, bytes.as_slice());
+        let test_bytes = Bytes::new(StructType::HASH, test.to_vec());
+        let uuencode: Uuencode = test_bytes.try_into().unwrap();
+        crate::debug!("uuencode {uuencode:?}");
+        let serialised: SerialString = uuencode.try_into().unwrap();
+        let serialised_str = serialised.get_string();
+        crate::debug!("test_bytes_restored {serialised_str}");
+        let deserialised: Uuencode = serialised.try_into().unwrap();
+        let test_bytes_restored: Bytes = deserialised.try_into().unwrap();
+        assert_eq!(test, test_bytes_restored.get_bytes().as_slice());
+    }
+
+    #[test]
+    pub fn test_invalid_uuencode() {
+        let test = b"this is a failure test; its a little bit manufactured as this shouldnt be possible via code";
+        let test_bytes = test.to_vec();
+        let mut badvec: Vec<u8> = vec![];
+        badvec.push(99);
+        badvec.extend_from_slice(&test_bytes);
+
+        let uuencode: Uuencode = Uuencode::new(SerialString::new(
+            SerialiseType::UUencode,
+            Uuencode::to_uuencode(&badvec),
+        ));
+        crate::debug!("uuencode {uuencode:?}");
+
+        let serialised: SerialString = uuencode.try_into().unwrap();
+
+        let deserialised: Uuencode = serialised.try_into().unwrap();
+        let test_bytes_restored: Result<Bytes, SerialiseError> = deserialised.try_into();
+
+        assert!(test_bytes_restored.is_err());
     }
 }
