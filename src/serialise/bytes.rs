@@ -65,8 +65,10 @@ macro_rules! try_to_bytes {
                 // bytes converted successfully
                 let bytes = bytes.unwrap();
                 // get the type code as the first byte
-                let type_code: Result<StructType, $crate::serialise::SerialiseError> =
-                    StructType::try_from(bytes[0]);
+                let type_code: Result<
+                    $crate::serialise::StructType,
+                    $crate::serialise::SerialiseError,
+                > = $crate::serialise::StructType::try_from(bytes[0]);
                 if let Err(error) = type_code {
                     return Err(error);
                 }

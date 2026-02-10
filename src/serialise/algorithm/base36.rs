@@ -1,6 +1,6 @@
 use crate::{
     serialisable,
-    serialise::{SerialString, SerialiseError, SerialiseType, StructType},
+    serialise::{SerialString, SerialiseError, SerialiseType},
 };
 
 const ALPHABET: &[u8; 36] = b"0123456789abcdefghijklmnopqrstuvwxyz";

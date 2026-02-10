@@ -1,4 +1,7 @@
-use crate::serialise::{Bytes, SerialString, SerialiseType};
+use crate::{
+    serialisable,
+    serialise::{SerialString, SerialiseError, SerialiseType},
+};
 
 const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -112,40 +115,67 @@ impl Base64 {
     }
 }
 
-impl From<Base64> for SerialString {
-    fn from(value: Base64) -> Self {
-        value.get_serialised()
+impl TryFrom<Base64> for Vec<u8> {
+    type Error = SerialiseError;
+    fn try_from(value: Base64) -> Result<Self, Self::Error> {
+        Ok(Base64::from_base64(value.get_serialised().get_string(), 0))
     }
 }
 
-impl From<SerialString> for Base64 {
-    fn from(value: SerialString) -> Self {
-        Self::new(value)
-    }
-}
-
-impl TryFrom<Bytes> for Base64 {
-    type Error = ();
-
-    fn try_from(value: Bytes) -> Result<Self, Self::Error> {
+impl TryFrom<Vec<u8>> for Base64 {
+    type Error = SerialiseError;
+    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
         Ok(Self::new(SerialString::new(
             SerialiseType::Base64,
-            Self::to_base64(&value.get_bytes()),
+            Self::to_base64(&value),
         )))
     }
 }
+
+serialisable!(Base64);
 
 #[cfg(test)]
 mod tests {
 
     use super::*;
+    use crate::serialise::Bytes;
+    use crate::serialise::SerialString;
+    use crate::serialise::SerialiseError;
+    use crate::serialise::StructType;
 
     #[test]
     pub fn test_base64() {
         let test = b"this is a really good test";
-        let base64 = Base64::to_base64(test);
-        crate::debug!("base64 {base64}");
-        let bytes = Base64::from_base64(&base64, 0);
-        assert_eq!(test, bytes.as_slice());
+        let test_bytes = Bytes::new(StructType::HASH, test.to_vec());
+        let base64: Base64 = test_bytes.try_into().unwrap();
+        crate::debug!("base64 {base64:?}");
+        let serialised: SerialString = base64.try_into().unwrap();
+        let serialised_str = serialised.get_string();
+        crate::debug!("test_bytes_restored {serialised_str}");
+        let deserialised: Base64 = serialised.try_into().unwrap();
+        let test_bytes_restored: Bytes = deserialised.try_into().unwrap();
+        assert_eq!(test, test_bytes_restored.get_bytes().as_slice());
+    }
+
+    #[test]
+    pub fn test_invalid_base64() {
+        let test = b"this is a failure test; its a little bit manufactured as this shouldnt be possible via code";
+        let test_bytes = test.to_vec();
+        let mut badvec: Vec<u8> = vec![];
+        badvec.push(99);
+        badvec.extend_from_slice(&test_bytes);
+
+        let base64: Base64 = Base64::new(SerialString::new(
+            SerialiseType::Base64,
+            Base64::to_base64(&badvec),
+        ));
+        crate::debug!("base64 {base64:?}");
+
+        let serialised: SerialString = base64.try_into().unwrap();
+
+        let deserialised: Base64 = serialised.try_into().unwrap();
+        let test_bytes_restored: Result<Bytes, SerialiseError> = deserialised.try_into();
+
+        assert!(test_bytes_restored.is_err());
     }
 }
