@@ -37,10 +37,11 @@ macro_rules! try_from_bytes {
                 let mut vec: Vec<u8> = vec![];
                 vec.push(value.get_serialise_type().try_into().unwrap());
                 vec.extend_from_slice(&value.get_bytes());
-                Ok(Self::new(SerialString::new(
-                    SerialiseType::Base36,
-                    Self::to_base36(&vec),
-                )))
+                let vec: Result<$t, $crate::serialise::SerialiseError> = vec.try_into();
+                if let Err(error) = vec {
+                    return Err(error);
+                }
+                Ok(vec.unwrap())
             }
         }
     };

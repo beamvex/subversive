@@ -123,6 +123,16 @@ impl TryFrom<Base36> for Vec<u8> {
     }
 }
 
+impl TryFrom<Vec<u8>> for Base36 {
+    type Error = SerialiseError;
+    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
+        Ok(Self::new(SerialString::new(
+            SerialiseType::Base36,
+            Self::to_base36(&value),
+        )))
+    }
+}
+
 serialisable!(Base36);
 
 #[cfg(test)]
