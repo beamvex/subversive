@@ -51,7 +51,11 @@ impl AsBytes for Hash {
     type Error = SerialiseError;
     fn try_as_bytes(&self) -> Result<Vec<u8>, Self::Error> {
         let mut bytes = vec![];
-        bytes.push(self.algorithm.try_into().unwrap());
+        let algorithm: Result<u8, SerialiseError> = self.algorithm.try_into();
+        match algorithm {
+            Err(error) => return Err(error),
+            Ok(algorithm) => bytes.push(algorithm),
+        }
         bytes.extend_from_slice(&self.bytes);
         Ok(bytes)
     }
@@ -60,16 +64,24 @@ impl AsBytes for Hash {
 impl FromBytes for Hash {
     type Error = SerialiseError;
     fn try_from_bytes(bytes: &[u8]) -> Result<Self, Self::Error> {
-        let algorithm = HashAlgorithm::try_from(bytes[0]).unwrap();
-        let bytes = bytes[1..].to_vec();
-        Ok(Self::new(algorithm, bytes))
+        let algorithm = HashAlgorithm::try_from(bytes[0]);
+        match algorithm {
+            Err(error) => Err(error),
+            Ok(algorithm) => {
+                let bytes = bytes[1..].to_vec();
+                Ok(Self::new(algorithm, bytes))
+            }
+        }
     }
 }
 
 impl TryFrom<Hash> for Vec<u8> {
     type Error = SerialiseError;
     fn try_from(value: Hash) -> Result<Self, Self::Error> {
-        Ok(value.try_as_bytes().unwrap())
+        match value.try_as_bytes() {
+            Ok(bytes) => Ok(bytes),
+            Err(error) => Err(error),
+        }
     }
 }
 
