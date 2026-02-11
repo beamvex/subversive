@@ -134,7 +134,6 @@ impl TryFrom<Vec<u8>> for Base36 {
     }
 }
 
-serialisable!(Base36);
 string_serialisable!(Base36);
 
 #[cfg(test)]
