@@ -13,6 +13,11 @@ poc = []
 name = "subversive"
 path = "src/lib.rs"
 
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+allow-expect-in-tests = "allow"
+
 [dependencies]
 ed25519-dalek = { version = "2", features = ["rand_core"] }
 rand_core = { version = "0.6", features = ["getrandom"] }

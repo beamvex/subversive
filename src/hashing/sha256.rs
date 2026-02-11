@@ -43,15 +43,19 @@ impl From<Sha256> for Hash {
 #[cfg(test)]
 mod tests {
 
+    use crate::serialise::{Base36, Bytes, SerialString};
+
     use super::*;
 
     #[test]
     pub fn test_sha256() {
         let test = b"this is a really good test";
         let hash: Hash = Sha256::from_bytes(test).into();
-        //        let serialised: SerialString = Base36::from(&hash).into();
+        let bytes: Bytes = (&hash).try_into().unwrap();
+        let base36: Base36 = bytes.try_into().unwrap();
+        let serialised: SerialString = base36.try_into().unwrap();
 
-        //      assert!(hash.verify(test));
-        //    crate::debug!("sha256 {serialised}");
+        assert!(hash.verify(test));
+        crate::debug!("sha256 {serialised}");
     }
 }

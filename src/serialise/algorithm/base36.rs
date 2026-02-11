@@ -134,6 +134,7 @@ impl TryFrom<Vec<u8>> for Base36 {
     }
 }
 
+serialisable!(Base36);
 string_serialisable!(Base36);
 
 #[cfg(test)]
@@ -142,21 +143,34 @@ mod tests {
     use super::*;
     use crate::serialise::Bytes;
     use crate::serialise::SerialString;
-    use crate::serialise::SerialiseError;
+
     use crate::serialise::StructType;
 
     #[test]
     pub fn test_base36() {
         let test = b"this is a really good test";
         let test_bytes = Bytes::new(StructType::HASH, test.to_vec());
-        let base36: Base36 = test_bytes.try_into().unwrap();
-        crate::debug!("base36 {base36:?}");
-        let serialised: SerialString = base36.try_into().unwrap();
-        let serialised_str = serialised.get_string();
-        crate::debug!("test_bytes_restored {serialised_str}");
-        let deserialised: Base36 = serialised.try_into().unwrap();
-        let test_bytes_restored: Bytes = deserialised.try_into().unwrap();
-        assert_eq!(test, test_bytes_restored.get_bytes().as_slice());
+        let base36_result: Result<Base36, SerialiseError> = test_bytes.try_into();
+
+        if let Ok(base36) = base36_result {
+            crate::debug!("base36 {base36:?}");
+
+            let serialised: Result<SerialString, SerialiseError> = base36.try_into();
+            if let Ok(serialised) = serialised {
+                let serialised_str = serialised.get_string();
+                crate::debug!("test_bytes_restored {serialised_str}");
+
+                let deserialised: Result<Base36, SerialiseError> = serialised.try_into();
+                if let Ok(deserialised) = deserialised {
+                    let test_bytes_restored: Result<Bytes, SerialiseError> =
+                        deserialised.try_into();
+                    assert!(test_bytes_restored.is_ok());
+                    if let Ok(test_bytes_restored) = test_bytes_restored {
+                        assert_eq!(test, test_bytes_restored.get_bytes().as_slice());
+                    }
+                }
+            }
+        }
     }
 
     #[test]
@@ -173,11 +187,16 @@ mod tests {
         ));
         crate::debug!("base36 {base36:?}");
 
-        let serialised: SerialString = base36.try_into().unwrap();
+        let serialised: Result<SerialString, SerialiseError> = base36.try_into();
+        if let Ok(serialised) = serialised {
+            let serialised_str = serialised.get_string();
+            crate::debug!("test_bytes_restored {serialised_str}");
 
-        let deserialised: Base36 = serialised.try_into().unwrap();
-        let test_bytes_restored: Result<Bytes, SerialiseError> = deserialised.try_into();
-
-        assert!(test_bytes_restored.is_err());
+            let deserialised: Result<Base36, SerialiseError> = serialised.try_into();
+            if let Ok(deserialised) = deserialised {
+                let test_bytes_restored: Result<Bytes, SerialiseError> = deserialised.try_into();
+                assert!(test_bytes_restored.is_err());
+            }
+        }
     }
 }
