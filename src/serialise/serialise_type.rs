@@ -10,7 +10,7 @@ pub enum SerialiseType {
     Base58,
     /// Standard Base64 encoding
     Base64,
-    /// UUEncoding format
+    /// U-U Encoding format
     Uuencode,
     /// Hexadecimal encoding (0-9 and A-F)
     Hex,

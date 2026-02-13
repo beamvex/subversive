@@ -40,8 +40,8 @@ impl SerialString {
     /// # Returns
     /// The serialized string.
     #[must_use = "This returns the serialized string but does nothing if unused"]
-    pub fn get_string(self) -> String {
-        self.string
+    pub const fn get_string(&self) -> &String {
+        &self.string
     }
 }
 
