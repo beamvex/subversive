@@ -2,8 +2,11 @@
 //use crate::hashing::Keccak384;
 //use crate::hashing::Ripemd160;
 use crate::hashing::Sha256;
+use crate::serialise::Base36;
 use crate::serialise::Bytes;
+use crate::serialise::SerialString;
 use crate::serialise::SerialiseError;
+use crate::serialise::SerialiseType;
 use crate::serialise::StructType;
 use crate::serialise::{AsBytes, FromBytes};
 
@@ -43,6 +46,61 @@ impl Hash {
                 //hash.get_bytes() == self.get_bytes()
                 false
             }
+        }
+    }
+
+    /// Converts the hash into a encoded serial string.
+    ///
+    /// # Errors
+    ///
+    /// Returns `SerialiseError` if:
+    /// - The hash algorithm code cannot be converted to a byte
+    /// - The bytes cannot be converted to a base36 string
+    pub fn try_into_serialstring(
+        &self,
+        serialise_type: SerialiseType,
+    ) -> Result<SerialString, SerialiseError> {
+        match serialise_type {
+            SerialiseType::Base36 => self.try_into_serialstring_base36(),
+            _ => Err(SerialiseError::new("Inavlid SerialiseType".to_string())),
+        }
+    }
+
+    /// Converts the hash into a base36-encoded serial string.
+    ///
+    /// # Errors
+    ///
+    /// Returns `SerialiseError` if:
+    /// - The hash algorithm code cannot be converted to a byte
+    /// - The bytes cannot be converted to a base36 string
+    pub fn try_into_serialstring_base36(&self) -> Result<SerialString, SerialiseError> {
+        match Bytes::try_from(self) {
+            Ok(bytes) => match bytes.try_into_serialstring_base36() {
+                Ok(serialstring) => Ok(serialstring),
+                Err(error) => Err(error),
+            },
+            Err(error) => Err(error),
+        }
+    }
+
+    /// Attempts to create a Hash from a serialized string representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns `SerialiseError` if:
+    /// - The serial string cannot be converted to Base36
+    /// - The Base36 string cannot be converted to bytes
+    /// - The bytes cannot be converted to a valid Hash (invalid algorithm code or format)
+    pub fn try_from_serial_string(serial_string: SerialString) -> Result<Self, SerialiseError> {
+        match Base36::try_from(serial_string) {
+            Ok(base36) => match Bytes::try_from(base36) {
+                Ok(bytes) => match Hash::try_from(bytes) {
+                    Ok(hash) => Ok(hash),
+                    Err(error) => Err(error),
+                },
+                Err(error) => Err(error),
+            },
+            Err(error) => Err(error),
         }
     }
 }
@@ -132,34 +190,24 @@ mod tests {
     //use crate::hashing::Keccak256;
     //use crate::hashing::Keccak384;
     use crate::hashing::Sha256;
-    use crate::serialise::Base36;
-    use crate::serialise::SerialString;
 
     #[test]
     fn test_hash() {
         let bytes: Vec<u8> = vec![1, 2, 3];
         let hash: Hash = Sha256::from_bytes(&bytes).into();
-        match Bytes::try_from(&hash) {
-            Ok(bytes) => match bytes.try_into_serialstring_base36() {
-                Ok(hash_ss) => {
-                    let hash_str = hash_ss.get_string();
-                    crate::debug!("hash: {hash_str}");
-                    crate::debug!("hash debug: {hash:?}");
 
-                    match Base36::try_from(hash_ss) {
-                        Ok(base36) => match Bytes::try_from(base36) {
-                            Ok(bytes) => match Hash::try_from(bytes) {
-                                Ok(hash) => crate::debug!("hash debug: {hash:?}"),
-                                Err(error) => crate::debug!("hash error: {error:?}"),
-                            },
-                            Err(error) => crate::debug!("bytes error: {error:?}"),
-                        },
-                        Err(error) => crate::debug!("base36 error: {error:?}"),
-                    }
+        match hash.try_into_serialstring(SerialiseType::Base36) {
+            Ok(hash_ss) => {
+                let hash_str = hash_ss.get_string();
+                crate::debug!("hash: {hash_str}");
+                crate::debug!("hash debug: {hash:?}");
+
+                match Hash::try_from_serial_string(hash_ss) {
+                    Ok(hash) => crate::debug!("hash debug: {hash:?}"),
+                    Err(error) => crate::debug!("hash error: {error:?}"),
                 }
-                Err(error) => crate::debug!("serialstring error: {error:?}"),
-            },
-            Err(error) => crate::debug!("bytes error: {error:?}"),
+            }
+            Err(error) => crate::debug!("serialstring error: {error:?}"),
         }
         /*
         let hash_str: SerialString = Base36::try_from(Bytes::try_from(&hash).unwrap())
