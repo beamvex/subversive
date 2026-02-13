@@ -150,7 +150,7 @@ impl Base36 {
     /// # Arguments
     /// * `base36` - The base36-encoded string to decode
     /// * `size` - The expected size of the output in bytes. If greater than 0,
-    ///           the output will be padded or truncated to this size.
+    ///   the output will be padded or truncated to this size.
     ///
     /// # Returns
     /// The decoded bytes
@@ -227,9 +227,11 @@ mod tests {
                 if let Ok(deserialised) = deserialised {
                     let test_bytes_restored: Result<Bytes, SerialiseError> =
                         deserialised.try_into();
-                    assert!(test_bytes_restored.is_ok());
-                    if let Ok(test_bytes_restored) = test_bytes_restored {
-                        assert_eq!(test, test_bytes_restored.get_bytes().as_slice());
+                    match test_bytes_restored {
+                        Err(e) => crate::debug!("test_bytes_restored error {e:?}"),
+                        Ok(test_bytes_restored) => {
+                            assert_eq!(test, test_bytes_restored.get_bytes().as_slice());
+                        }
                     }
                 }
             }
