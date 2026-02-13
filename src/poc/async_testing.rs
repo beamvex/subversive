@@ -1,8 +1,28 @@
 #[derive(Clone)]
+/// A test harness for asynchronous code.
+///
+/// This struct provides a way to test asynchronous code by managing
+/// a broadcast channel for communication between tasks.
+#[derive(Debug)]
+pub struct AsyncTest {
+    /// The sender side of the broadcast channel
+    tx: tokio::sync::broadcast::Sender<String>,
+}
+
+/// A message that can be sent through the broadcast channel.
+///
+/// This struct represents a message that can be sent between tasks
+/// using the broadcast channel.
+#[derive(Clone)]
 pub struct Message {
+    /// The message content
     pub message: String,
 }
 
+/// Tests asynchronous communication between tasks.
+///
+/// This test demonstrates how to use broadcast channels for communication
+/// between multiple asynchronous tasks.
 #[tokio::test]
 async fn test() {
     let (tx, mut rx) = tokio::sync::broadcast::channel::<Message>(100);

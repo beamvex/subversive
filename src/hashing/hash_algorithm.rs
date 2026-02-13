@@ -1,10 +1,18 @@
 use crate::serialise::SerialiseError;
 
+/// Supported cryptographic hash algorithms.
+///
+/// This enum represents the different hash algorithms that can be used
+/// to create hash values in the system.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum HashAlgorithm {
+    /// Keccak-256 hash algorithm (used in Ethereum)
     KECCAK256,
+    /// SHA-256 hash algorithm from the SHA-2 family
     SHA256,
+    /// Keccak-384 hash algorithm
     KECCAK384,
+    /// RIPEMD-160 hash algorithm
     RIPEMD160,
 }
 

@@ -1,11 +1,21 @@
 use crate::serialise::SerialiseError;
 
+/// Types of serializable structures in the system.
+///
+/// This enum represents the different types of data structures that can be
+/// serialized and deserialized. Each variant corresponds to a specific
+/// type of data with its own serialization rules.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum StructType {
+    /// String data type
     STRING,
+    /// Cryptographic hash value
     HASH,
+    /// Cryptographic key (public or private)
     KEY,
+    /// Network or blockchain address
     ADDRESS,
+    /// Cryptographic signature
     SIGNATURE,
 }
 

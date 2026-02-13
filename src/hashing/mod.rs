@@ -1,8 +1,19 @@
+/// Core hash value type and traits.
 pub mod hash;
+
+/// Supported hash algorithms.
 pub mod hash_algorithm;
+
+///// Keccak-256 hash implementation.
 //pub mod keccak256;
+
+///// Keccak-384 hash implementation.
 //pub mod keccak384;
+
+///// RIPEMD-160 hash implementation.
 //pub mod ripemd160;
+
+/// SHA-256 hash implementation.
 pub mod sha256;
 
 pub use hash::Hash;

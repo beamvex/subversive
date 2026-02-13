@@ -1,28 +1,54 @@
 use crate::serialise::{Base36, SerialString, SerialiseError, SerialiseType, StructType};
 
-#[derive(Debug)]
+/// Raw byte representation of serializable data.
+///
+/// This type represents the raw bytes of a serializable structure along with
+/// its type information. It serves as an intermediate format between the
+/// original data and its string representation.
+#[derive(Debug, Clone)]
 pub struct Bytes {
+    /// The type of structure these bytes represent
     struct_type: StructType,
+    /// The raw byte data
     bytes: Vec<u8>,
 }
 
 impl Bytes {
-    #[must_use]
+    /// Creates a new `Bytes` instance.
+    ///
+    /// # Arguments
+    /// * `struct_type` - The type of structure these bytes represent
+    /// * `bytes` - The raw byte data
+    #[must_use = "This creates a new Bytes instance but does nothing if unused"]
     pub const fn new(struct_type: StructType, bytes: Vec<u8>) -> Self {
         Self { struct_type, bytes }
     }
 
-    #[must_use]
+    /// Returns the type of structure these bytes represent.
+    #[must_use = "This returns the structure type but does nothing if unused"]
     pub const fn get_struct_type(&self) -> StructType {
         self.struct_type
     }
 
-    #[must_use]
+    /// Returns the raw byte data.
+    #[must_use = "This returns the byte data but does nothing if unused"]
     pub fn get_bytes(self) -> Vec<u8> {
         self.bytes
     }
 
-    #[must_use]
+    /// Attempts to convert these bytes into a string representation.
+    ///
+    /// # Arguments
+    /// * `serialise_type` - The format to use for serialization
+    ///
+    /// # Returns
+    /// The serialized string representation
+    ///
+    /// # Errors
+    /// Returns `SerialiseError` if:
+    /// - The serialization format is not supported
+    /// - The bytes cannot be encoded in the specified format
+    #[must_use = "This returns a Result that must be handled"]
     pub fn try_into_serialstring(
         self,
         serialise_type: SerialiseType,
@@ -32,7 +58,16 @@ impl Bytes {
             _ => Err(SerialiseError::new("Inavlid SerialiseType".to_string())),
         }
     }
-    #[must_use]
+    /// Attempts to convert these bytes into a base36-encoded string.
+    ///
+    /// # Returns
+    /// The base36-encoded string representation
+    ///
+    /// # Errors
+    /// Returns `SerialiseError` if:
+    /// - The bytes cannot be encoded in base36 format
+    /// - The Base36 conversion fails
+    #[must_use = "This returns a Result that must be handled"]
     pub fn try_into_serialstring_base36(self) -> Result<SerialString, SerialiseError> {
         match Base36::try_from(self) {
             Ok(base36) => match base36.try_into() {
@@ -44,6 +79,13 @@ impl Bytes {
     }
 }
 
+/// Implements `TryFrom<Bytes>` for a type.
+///
+/// This macro generates an implementation that attempts to create an instance
+/// of the type from a `Bytes` value. The implementation will:
+/// 1. Extract the structure type and raw bytes
+/// 2. Verify the structure type matches
+/// 3. Convert the bytes into the target type
 #[macro_export]
 macro_rules! try_from_bytes {
     ($t:ty) => {
@@ -68,6 +110,13 @@ macro_rules! try_from_bytes {
     };
 }
 
+/// Implements `TryFrom<T> for Bytes` for a type.
+///
+/// This macro generates an implementation that attempts to convert an instance
+/// of the type into a `Bytes` value. The implementation will:
+/// 1. Convert the value into its byte representation
+/// 2. Extract the structure type
+/// 3. Create a new `Bytes` instance
 #[macro_export]
 macro_rules! try_to_bytes {
     ($t:ty) => {

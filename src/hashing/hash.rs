@@ -12,28 +12,48 @@ use crate::serialise::{AsBytes, FromBytes};
 
 use crate::hashing::HashAlgorithm;
 
+/// A cryptographic hash value with its associated algorithm.
+///
+/// This type represents the result of applying a cryptographic hash function to some data.
+/// It stores both the resulting hash value and the algorithm used to create it.
 #[derive(Debug)]
 pub struct Hash {
+    /// The algorithm used to create this hash
     algorithm: HashAlgorithm,
+    /// The raw bytes of the hash value
     bytes: Vec<u8>,
 }
 
 impl Hash {
+    /// Creates a new hash value with the specified algorithm and bytes.
+    ///
+    /// # Arguments
+    /// * `algorithm` - The hash algorithm used to create this hash
+    /// * `bytes` - The raw hash value bytes
     #[must_use]
     pub const fn new(algorithm: HashAlgorithm, bytes: Vec<u8>) -> Self {
         Self { algorithm, bytes }
     }
 
+    /// Returns a reference to the raw hash value bytes.
     #[must_use]
     pub const fn get_bytes(&self) -> &Vec<u8> {
         &self.bytes
     }
 
+    /// Returns the algorithm used to create this hash.
     #[must_use]
     pub const fn get_algorithm(&self) -> HashAlgorithm {
         self.algorithm
     }
 
+    /// Verifies that this hash matches the hash of the provided bytes.
+    ///
+    /// # Arguments
+    /// * `bytes` - The bytes to verify against this hash
+    ///
+    /// # Returns
+    /// `true` if the hash of the provided bytes matches this hash, `false` otherwise
     #[must_use]
     pub fn verify(&self, bytes: &[u8]) -> bool {
         match self.algorithm {
@@ -153,6 +173,10 @@ impl TryFrom<Vec<u8>> for Hash {
     }
 }
 
+/// Implements hashing traits for a type.
+///
+/// This macro implements the necessary traits to allow a type to be hashed using
+/// various algorithms (SHA256, Keccak256, etc).
 #[macro_export]
 macro_rules! hashable {
     ($x:ty) => {
