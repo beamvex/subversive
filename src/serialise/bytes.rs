@@ -1,4 +1,4 @@
-use crate::serialise::StructType;
+use crate::serialise::{Base36, SerialString, SerialiseError, SerialiseType, StructType};
 
 #[derive(Debug)]
 pub struct Bytes {
@@ -13,13 +13,34 @@ impl Bytes {
     }
 
     #[must_use]
-    pub const fn get_serialise_type(&self) -> StructType {
+    pub const fn get_struct_type(&self) -> StructType {
         self.struct_type
     }
 
     #[must_use]
     pub fn get_bytes(self) -> Vec<u8> {
         self.bytes
+    }
+
+    #[must_use]
+    pub fn try_into_serialstring(
+        self,
+        serialise_type: SerialiseType,
+    ) -> Result<SerialString, SerialiseError> {
+        match serialise_type {
+            SerialiseType::Base36 => self.try_into_serialstring_base36(),
+            _ => Err(SerialiseError::new("Inavlid SerialiseType".to_string())),
+        }
+    }
+    #[must_use]
+    pub fn try_into_serialstring_base36(self) -> Result<SerialString, SerialiseError> {
+        match Base36::try_from(self) {
+            Ok(base36) => match base36.try_into() {
+                Ok(serialstring) => Ok(serialstring),
+                Err(error) => Err(error),
+            },
+            Err(error) => Err(error),
+        }
     }
 }
 
@@ -35,7 +56,7 @@ macro_rules! try_from_bytes {
                 value: $crate::serialise::Bytes,
             ) -> Result<Self, $crate::serialise::SerialiseError> {
                 let mut vec: Vec<u8> = vec![];
-                vec.push(value.get_serialise_type().try_into().unwrap());
+                vec.push(value.get_struct_type().try_into().unwrap());
                 vec.extend_from_slice(&value.get_bytes());
                 let vec: Result<$t, $crate::serialise::SerialiseError> = vec.try_into();
                 if let Err(error) = vec {
