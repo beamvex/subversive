@@ -140,31 +140,27 @@ mod tests {
         let bytes: Vec<u8> = vec![1, 2, 3];
         let hash: Hash = Sha256::from_bytes(&bytes).into();
         match Bytes::try_from(&hash) {
-            Ok(bytes) => match Base36::try_from(bytes) {
-                Ok(base36) => match SerialString::try_from(base36) {
-                    Ok(hash_ss) => {
-                        let hash_str = hash_ss.get_string();
-                        crate::debug!("hash: {hash_str}");
-                        crate::debug!("hash debug: {hash:?}");
+            Ok(bytes) => match bytes.try_into_serialstring_base36() {
+                Ok(hash_ss) => {
+                    let hash_str = hash_ss.get_string();
+                    crate::debug!("hash: {hash_str}");
+                    crate::debug!("hash debug: {hash:?}");
 
-                        match Base36::try_from(hash_ss) {
-                            Ok(base36) => match Bytes::try_from(base36) {
-                                Ok(bytes) => match Hash::try_from(bytes) {
-                                    Ok(hash) => crate::debug!("hash debug: {hash:?}"),
-                                    Err(error) => crate::debug!("hash error: {error:?}"),
-                                },
-                                Err(error) => crate::debug!("bytes error: {error:?}"),
+                    match Base36::try_from(hash_ss) {
+                        Ok(base36) => match Bytes::try_from(base36) {
+                            Ok(bytes) => match Hash::try_from(bytes) {
+                                Ok(hash) => crate::debug!("hash debug: {hash:?}"),
+                                Err(error) => crate::debug!("hash error: {error:?}"),
                             },
-                            Err(error) => crate::debug!("base36 error: {error:?}"),
-                        }
+                            Err(error) => crate::debug!("bytes error: {error:?}"),
+                        },
+                        Err(error) => crate::debug!("base36 error: {error:?}"),
                     }
-                    Err(error) => crate::debug!("serialstring error: {error:?}"),
-                },
-                Err(error) => crate::debug!("base36 error: {error:?}"),
+                }
+                Err(error) => crate::debug!("serialstring error: {error:?}"),
             },
-            Err(error) => crate::debug!("hash error: {error:?}"),
+            Err(error) => crate::debug!("bytes error: {error:?}"),
         }
-
         /*
         let hash_str: SerialString = Base36::try_from(Bytes::try_from(&hash).unwrap())
             .unwrap()
