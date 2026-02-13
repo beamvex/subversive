@@ -12,5 +12,5 @@ impl Display for Bytes {
 #[test]
 fn test_rust() {
     let string = Bytes(b"this is a test".to_vec());
-    crate::debug!("{string:?}, {string}");
+    slogger::debug!("{string:?}, {string}");
 }

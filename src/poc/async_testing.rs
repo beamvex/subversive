@@ -29,7 +29,7 @@ async fn test() {
     let tx2 = tx.clone();
     let fut1 = async move {
         for _ in 0..10 {
-            crate::debug!("test");
+            slogger::debug!("test");
             let _result = tx.send(Message {
                 message: "test".to_string(),
             });
@@ -39,7 +39,7 @@ async fn test() {
 
     let fut2 = async move {
         for _ in 0..10 {
-            crate::debug!("test 2");
+            slogger::debug!("test 2");
             let _result = tx2.send(Message {
                 message: "test 2".to_string(),
             });
@@ -57,7 +57,7 @@ async fn test() {
 
     while let Ok(msg) = rx.recv().await {
         let message = &msg.message;
-        crate::debug!("received message: {message}");
+        slogger::debug!("received message: {message}");
     }
 
     let _ = tokio::join!(joinhandle1, joinhandle);

@@ -14,9 +14,6 @@
 /// Cryptographic hashing implementations and types
 pub mod hashing;
 
-/// Logging utilities with colored output and formatting
-pub mod logging;
-
 /// Serialization formats and utilities
 pub mod serialise;
 

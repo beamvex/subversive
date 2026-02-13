@@ -669,6 +669,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "slogger"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c7974dbdaad5153e94aaf099d534c771a0cbfdd864866ea96c5b45be405fb801"
+
+[[package]]
 name = "smallvec"
 version = "1.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -718,6 +724,7 @@ dependencies = [
  "rsa",
  "sha2",
  "sha3",
+ "slogger",
  "tokio",
 ]
 

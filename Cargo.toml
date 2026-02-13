@@ -28,4 +28,5 @@ rsa = "0.9"
 rand = "0.8"
 tokio = { version = "1", features = ["full"] }
 ripemd = "0.2.0-rc.5"
+slogger = "0.1.1"
 

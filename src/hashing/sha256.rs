@@ -65,6 +65,8 @@ impl From<Sha256> for Hash {
 #[cfg(test)]
 mod tests {
 
+    use slogger::debug;
+
     use crate::serialise::{Base36, Bytes, SerialString};
 
     use super::*;
@@ -78,6 +80,6 @@ mod tests {
         let serialised: SerialString = base36.try_into().unwrap();
 
         assert!(hash.verify(test));
-        crate::debug!("sha256 {serialised}");
+        debug!("sha256 {serialised}");
     }
 }

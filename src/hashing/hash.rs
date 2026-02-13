@@ -114,7 +114,7 @@ impl Hash {
     pub fn try_from_serial_string(serial_string: SerialString) -> Result<Self, SerialiseError> {
         match Base36::try_from(serial_string) {
             Ok(base36) => match Bytes::try_from(base36) {
-                Ok(bytes) => match Hash::try_from(bytes) {
+                Ok(bytes) => match Self::try_from(bytes) {
                     Ok(hash) => Ok(hash),
                     Err(error) => Err(error),
                 },
@@ -223,23 +223,23 @@ mod tests {
         match hash.try_into_serialstring(SerialiseType::Base36) {
             Ok(hash_ss) => {
                 let hash_str = hash_ss.get_string();
-                crate::debug!("hash: {hash_str}");
-                crate::debug!("hash debug: {hash:?}");
+                slogger::debug!("hash: {hash_str}");
+                slogger::debug!("hash debug: {hash:?}");
 
                 match Hash::try_from_serial_string(hash_ss) {
-                    Ok(hash) => crate::debug!("hash debug: {hash:?}"),
-                    Err(error) => crate::debug!("hash error: {error:?}"),
+                    Ok(hash) => slogger::debug!("hash debug: {hash:?}"),
+                    Err(error) => slogger::debug!("hash error: {error:?}"),
                 }
             }
-            Err(error) => crate::debug!("serialstring error: {error:?}"),
+            Err(error) => slogger::debug!("serialstring error: {error:?}"),
         }
         /*
         let hash_str: SerialString = Base36::try_from(Bytes::try_from(&hash).unwrap())
             .unwrap()
             .into();
         let hash_str = hash_str.get_string();
-        crate::debug!("hash: {hash_str}");
-        crate::debug!("hash debug: {hash:?}");
+        slogger::debug!("hash: {hash_str}");
+        slogger::debug!("hash debug: {hash:?}");
 
         let hash: Hash = Keccak384::from_bytes(&bytes).into();
 
@@ -247,8 +247,8 @@ mod tests {
             .unwrap()
             .into();
         let hash_str = hash_str.get_string();
-        crate::debug!("hash: {hash_str}");
-        crate::debug!("hash debug: {hash:?}");
+        slogger::debug!("hash: {hash_str}");
+        slogger::debug!("hash debug: {hash:?}");
         */
     }
 }

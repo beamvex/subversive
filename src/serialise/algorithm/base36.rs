@@ -214,13 +214,13 @@ mod tests {
         let base36_result: Result<Base36, SerialiseError> = test_bytes.try_into();
 
         if let Ok(base36) = base36_result {
-            crate::debug!("base36 {base36:?}");
+            slogger::debug!("base36 {base36:?}");
 
             let serialised: Result<SerialString, SerialiseError> =
                 base36.try_into_serialstring_base36();
             if let Ok(serialised) = serialised {
                 let serialised_str = serialised.get_string();
-                crate::debug!("test_bytes_restored {serialised_str}");
+                slogger::debug!("test_bytes_restored {serialised_str}");
 
                 let deserialised: Result<Base36, SerialiseError> =
                     Base36::try_from_serial_string(serialised);
@@ -228,7 +228,7 @@ mod tests {
                     let test_bytes_restored: Result<Bytes, SerialiseError> =
                         deserialised.try_into();
                     match test_bytes_restored {
-                        Err(e) => crate::debug!("test_bytes_restored error {e:?}"),
+                        Err(e) => slogger::debug!("test_bytes_restored error {e:?}"),
                         Ok(test_bytes_restored) => {
                             assert_eq!(test, test_bytes_restored.get_bytes().as_slice());
                         }
@@ -243,13 +243,13 @@ mod tests {
 
         let base36_str = Base36::to_base36(&badvec);
         let base36 = Base36::new(SerialString::new(SerialiseType::Base36, base36_str));
-        crate::debug!("base36 {base36:?}");
+        slogger::debug!("base36 {base36:?}");
 
         let serialised: Result<SerialString, SerialiseError> =
             base36.try_into_serialstring_base36();
         if let Ok(serialised) = serialised {
             let serialised_str = serialised.get_string();
-            crate::debug!("test_bytes_restored {serialised_str}");
+            slogger::debug!("test_bytes_restored {serialised_str}");
 
             let deserialised: Result<Base36, SerialiseError> =
                 Base36::try_from_serial_string(serialised);
@@ -272,13 +272,13 @@ mod tests {
             SerialiseType::Base36,
             Base36::to_base36(&badvec),
         ));
-        crate::debug!("base36 {base36:?}");
+        slogger::debug!("base36 {base36:?}");
 
         let serialised: Result<SerialString, SerialiseError> =
             base36.try_into_serialstring_base36();
         if let Ok(serialised) = serialised {
             let serialised_str = serialised.get_string();
-            crate::debug!("test_bytes_restored {serialised_str}");
+            slogger::debug!("test_bytes_restored {serialised_str}");
 
             let deserialised: Result<Base36, SerialiseError> =
                 Base36::try_from_serial_string(serialised);
