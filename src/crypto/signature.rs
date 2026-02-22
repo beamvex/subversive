@@ -84,13 +84,23 @@ mod tests {
     use ed25519_dalek::SigningKey;
     use rand_core::OsRng;
 
+    use sha2::Digest;
+    use sha3::Keccak512;
     use slogger::debug;
 
     #[test]
     fn test_signature() {
         let signing_key = SigningKey::generate(&mut OsRng);
         let data = b"test big long data test test big long data testtest big long data testtest big long data testtest big long data testtest big long data testtest big long data testtest big long data testtest big long data testtest big long data test";
-        let sig = signing_key.sign(data).to_bytes().to_vec();
+
+        let mut digest = Keccak512::new();
+        digest.update(data);
+
+        let sig = signing_key
+            .sign_prehashed(digest, Some(b""))
+            .unwrap()
+            .to_bytes()
+            .to_vec();
 
         let signature = Signature::new_with_algorithm(SigningAlgorithm::ED25519, sig);
 
