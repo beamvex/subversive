@@ -1,18 +1,26 @@
+use base_xx::SerialiseError;
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
+/// Supported signature algorithms.
 pub enum SigningAlgorithm {
+    /// Ed25519 Edwards-curve signature scheme.
     ED25519,
+    /// RSA signature scheme.
     RSA,
+    /// ECDSA signature scheme.
     ECDSA,
 }
 
 impl TryFrom<u8> for SigningAlgorithm {
-    type Error = String;
+    type Error = SerialiseError;
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
             100 => Ok(Self::ED25519),
             101 => Ok(Self::RSA),
             102 => Ok(Self::ECDSA),
-            _ => Err(format!("Invalid signing algorithm {value}")),
+            _ => Err(SerialiseError::new(format!(
+                "Invalid signing algorithm {value}"
+            ))),
         }
     }
 }

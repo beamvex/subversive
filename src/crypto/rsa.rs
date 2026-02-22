@@ -1,6 +1,40 @@
+use base_xx::{byte_vec::Encodable, ByteVec};
+
+struct Test {
+    data: Vec<u8>,
+}
+
+impl Test {
+    const fn new(data: Vec<u8>) -> Self {
+        Self { data }
+    }
+}
+
+impl TryFrom<ByteVec> for Test {
+    type Error = base_xx::SerialiseError;
+
+    fn try_from(value: ByteVec) -> Result<Self, Self::Error> {
+        Ok(Test {
+            data: value.get_bytes().to_vec(),
+        })
+    }
+}
+
+impl TryFrom<&Test> for ByteVec {
+    type Error = base_xx::SerialiseError;
+
+    fn try_from(value: &Test) -> Result<Self, Self::Error> {
+        Ok(ByteVec::new(value.data.clone()))
+    }
+}
+
+impl Encodable for Test {}
+
 #[cfg(test)]
 mod tests {
 
+    use super::*;
+    use base_xx::Encoding;
     use rand::rngs::OsRng;
     use rsa::pkcs1::EncodeRsaPrivateKey;
     use rsa::pkcs1v15::Pkcs1v15Sign;
@@ -9,7 +43,7 @@ mod tests {
     use rsa::RsaPrivateKey;
     use sha2::{Digest, Sha256};
 
-    use crate::serialise::{Base36, SerialString};
+    use slogger::debug;
 
     #[test]
     fn test_rsa() {
@@ -20,7 +54,7 @@ mod tests {
         let pem = private_key.to_pkcs1_pem(LineEnding::LF).unwrap();
         let pem = pem.as_str();
 
-        crate::debug!("pem {pem}");
+        debug!("pem {pem}");
 
         let _n = private_key.n();
         let _e = private_key.e();
@@ -31,17 +65,19 @@ mod tests {
 
         match signresult {
             Ok(signature) => {
-                let str: SerialString = Base36::try_from(&signature).unwrap().into();
-                crate::debug!("signature {str}");
+                let bytes = Test::new(signature);
+                let str = bytes.try_encode(Encoding::Base36).unwrap();
+                debug!("signature {str}");
             }
             Err(e) => {
-                crate::debug!("signing failed: {e}");
+                debug!("signing failed: {e}");
             }
         }
 
         let public_key = private_key.to_public_key();
         let n = public_key.n().to_bytes_be();
-        let str: SerialString = Base36::try_from(&n).unwrap().into();
-        crate::debug!("n {str}");
+        let bytes = Test::new(n);
+        let str = bytes.try_encode(Encoding::Base36).unwrap();
+        debug!("n {str}");
     }
 }

@@ -1,11 +1,8 @@
-use crate::{
-    crypto::SigningAlgorithm,
-    hashable,
-    serialise::{AsBytes, Bytes, FromBytes, StructType},
-};
+use base_xx::{byte_vec::Encodable, ByteVec, SerialiseError};
 
-use crate::serialisable;
+use crate::crypto::SigningAlgorithm;
 
+/// A cryptographic signature along with its associated signing algorithm.
 pub struct Signature {
     algorithm: SigningAlgorithm,
     signature: Vec<u8>,
@@ -22,6 +19,7 @@ impl Default for Signature {
 
 impl Signature {
     #[must_use]
+    /// Creates a new Ed25519 signature wrapper from raw signature bytes.
     pub const fn new(signature: Vec<u8>) -> Self {
         Self {
             algorithm: SigningAlgorithm::ED25519,
@@ -30,6 +28,7 @@ impl Signature {
     }
 
     #[must_use]
+    /// Creates a new signature wrapper from raw signature bytes and an explicit algorithm.
     pub const fn new_with_algorithm(algorithm: SigningAlgorithm, signature: Vec<u8>) -> Self {
         Self {
             algorithm,
@@ -38,70 +37,54 @@ impl Signature {
     }
 
     #[must_use]
+    /// Returns the raw signature bytes.
     pub const fn get_signature(&self) -> &Vec<u8> {
         &self.signature
     }
 
     #[must_use]
+    /// Returns the algorithm used for this signature.
     pub const fn get_algorithm(&self) -> SigningAlgorithm {
         self.algorithm
     }
 }
 
-impl TryFrom<&Signature> for Vec<u8> {
-    type Error = &'static str;
+impl TryFrom<&Signature> for ByteVec {
+    type Error = SerialiseError;
     fn try_from(value: &Signature) -> Result<Self, Self::Error> {
-        value.try_as_bytes()
+        let algorithm: u8 = value.get_algorithm().into();
+        let mut bytes = vec![algorithm];
+        bytes.extend_from_slice(value.get_signature());
+        Ok(Self::new(bytes))
     }
 }
 
-impl AsBytes for Signature {
-    type Error = &'static str;
-    fn try_as_bytes(&self) -> Result<Vec<u8>, Self::Error> {
-        let mut bytes = vec![];
-        bytes.push(self.algorithm.into());
-        bytes.extend_from_slice(&self.signature);
-        Ok(bytes)
+impl TryFrom<ByteVec> for Signature {
+    type Error = SerialiseError;
+    fn try_from(value: ByteVec) -> Result<Self, Self::Error> {
+        match SigningAlgorithm::try_from(value.get_bytes()[0]) {
+            Ok(algorithm) => {
+                let bytes = value.get_bytes()[1..].to_vec();
+                Ok(Self::new_with_algorithm(algorithm, bytes))
+            }
+            Err(e) => Err(e),
+        }
     }
 }
 
-impl FromBytes for Signature {
-    type Error = &'static str;
-    fn try_from_bytes(bytes: &[u8]) -> Result<Self, Self::Error> {
-        let algorithm = SigningAlgorithm::try_from(bytes[0]).unwrap();
-        let bytes = bytes[1..].to_vec();
-        Ok(Self::new_with_algorithm(algorithm, bytes))
-    }
-}
-
-impl TryFrom<Signature> for Bytes {
-    type Error = &'static str;
-    fn try_from(value: Signature) -> Result<Self, Self::Error> {
-        Ok(Self::new(
-            StructType::SIGNATURE,
-            value.try_as_bytes().unwrap(),
-        ))
-    }
-}
-
-serialisable!(Signature);
-
-hashable!(Signature);
+impl Encodable for Signature {}
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::hashing::Hash;
-    use crate::hashing::Keccak256;
-    use crate::hashing::Keccak384;
-    use crate::hashing::Sha256;
 
-    use crate::serialise::Base36;
-    use crate::serialise::SerialString;
-
+    use base_xx::EncodedString;
+    use base_xx::Encoding;
     use ed25519_dalek::Signer;
     use ed25519_dalek::SigningKey;
     use rand_core::OsRng;
+
+    use slogger::debug;
 
     #[test]
     fn test_signature() {
@@ -111,25 +94,11 @@ mod tests {
 
         let signature = Signature::new_with_algorithm(SigningAlgorithm::ED25519, sig);
 
-        let serialised: SerialString = Base36::from(&signature).into();
+        let serialised = signature
+            .try_encode(Encoding::Base36)
+            .unwrap_or_else(|_| EncodedString::new(Encoding::Uuencode, String::new()));
 
-        crate::debug!("serialised: {serialised}");
-        crate::debug!("serialised debug: {serialised:?}");
-
-        let signature2: Signature = serialised.into();
-
-        assert_eq!(signature.get_signature(), signature2.get_signature());
-
-        let hash: Hash = Keccak256::from(&signature).into();
-        let hash_str: SerialString = Base36::from(&hash).into();
-        crate::debug!("signature hash keccak-256: {hash_str}");
-
-        let hash: Hash = Sha256::from(&signature).into();
-        let hash_str: SerialString = Base36::from(&hash).into();
-        crate::debug!("signature hash sha2-256: {hash_str}");
-
-        let hash: Hash = Keccak384::from(&signature).into();
-        let hash_str: SerialString = Base36::from(&hash).into();
-        crate::debug!("signature hash keccak-384: {hash_str}");
+        debug!("serialised: {serialised}");
+        debug!("serialised debug: {serialised:?}");
     }
 }

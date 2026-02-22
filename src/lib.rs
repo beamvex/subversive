@@ -9,13 +9,9 @@
 //! - Proof of concept implementations
 
 //pub mod address;
-//pub mod crypto;
 
-/// Cryptographic hashing implementations and types
-pub mod hashing;
-
-/// Serialization formats and utilities
-pub mod serialise;
+/// Cryptographic primitives and related types.
+pub mod crypto;
 
 #[cfg(test)]
 /// Proof of concept implementations and examples

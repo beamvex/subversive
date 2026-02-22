@@ -9,6 +9,21 @@ pub struct AsyncTest {
     tx: tokio::sync::broadcast::Sender<String>,
 }
 
+impl AsyncTest {
+    /// Creates a new `AsyncTest` instance.
+    #[must_use]
+    pub fn new() -> Self {
+        let (tx, _rx) = tokio::sync::broadcast::channel::<String>(100);
+        Self { tx }
+    }
+}
+
+impl Default for AsyncTest {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// A message that can be sent through the broadcast channel.
 ///
 /// This struct represents a message that can be sent between tasks
