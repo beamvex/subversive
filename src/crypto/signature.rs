@@ -89,14 +89,14 @@ mod tests {
     #[test]
     fn test_signature() {
         let signing_key = SigningKey::generate(&mut OsRng);
-        let data = b"test";
+        let data = b"test big long data test test big long data testtest big long data testtest big long data testtest big long data testtest big long data testtest big long data testtest big long data testtest big long data testtest big long data test";
         let sig = signing_key.sign(data).to_bytes().to_vec();
 
         let signature = Signature::new_with_algorithm(SigningAlgorithm::ED25519, sig);
 
         let serialised = signature
             .try_encode(Encoding::Base36)
-            .unwrap_or_else(|_| EncodedString::new(Encoding::Uuencode, String::new()));
+            .unwrap_or_else(|_| EncodedString::new(Encoding::Base36, String::new()));
 
         debug!("serialised: {serialised}");
         debug!("serialised debug: {serialised:?}");

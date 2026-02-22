@@ -48,8 +48,8 @@ mod tests {
     #[test]
     fn test_rsa() {
         let mut rng = OsRng;
-        let private_key = RsaPrivateKey::new(&mut rng, 512).expect("failed to generate RSA key");
-        assert_eq!(private_key.n().bits(), 512);
+        let private_key = RsaPrivateKey::new(&mut rng, 256).expect("failed to generate RSA key");
+        assert_eq!(private_key.n().bits(), 256);
 
         let pem = private_key.to_pkcs1_pem(LineEnding::LF).unwrap();
         let pem = pem.as_str();
