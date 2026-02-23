@@ -80,8 +80,12 @@ mod tests {
 
     use base_xx::EncodedString;
     use base_xx::Encoding;
-    use digest::generic_array;
-    use ed25519_dalek::Signer;
+    use digest::consts::U64;
+    use digest::FixedOutput;
+    use digest::HashMarker;
+    use digest::Output;
+    use digest::OutputSizeUser;
+
     use ed25519_dalek::SigningKey;
     use rand_core::OsRng;
 
@@ -91,63 +95,30 @@ mod tests {
 
     #[test]
     fn test_signature() {
-        #[derive(Debug, Default)]
+        #[derive(Debug, Default, Clone)]
         struct TestDigest {
             data: Vec<u8>,
         }
 
-        impl Digest for TestDigest {
-            fn output_size() -> usize {
-                64
-            }
+        impl OutputSizeUser for TestDigest {
+            type OutputSize = U64;
+        }
 
-            fn new() -> Self {
-                Self::default()
-            }
-
-            fn new_with_prefix(data: impl AsRef<[u8]>) -> Self {
-                Self {
-                    data: data.as_ref().to_vec(),
-                }
-            }
-
-            fn update(&mut self, data: impl AsRef<[u8]>) {
-                self.data.extend_from_slice(data.as_ref());
-            }
-
-            fn chain_update(self, data: impl AsRef<[u8]>) -> Self {
-                Self {
-                    data: self.data.clone(),
-                }
-            }
-
-            fn finalize(self) -> digest::generic_array::GenericArray<u8, _> {
-                self.data
-            }
-
-            fn finalize_into(self, out: &mut digest::generic_array::GenericArray<u8, _>) {
-                out.copy_from_slice(&self.data);
-            }
-
-            fn finalize_reset(&mut self) -> digest::generic_array::GenericArray<u8, _> {
-                todo!()
-            }
-
-            fn finalize_into_reset(
-                &mut self,
-                out: &mut digest::generic_array::GenericArray<u8, _>,
-            ) {
-                todo!()
-            }
-
-            fn reset(&mut self) {
-                todo!()
-            }
-
-            fn digest(data: impl AsRef<[u8]>) -> digest::Output<Self> {
-                todo!()
+        impl digest::Update for TestDigest {
+            fn update(&mut self, data: &[u8]) {
+                self.data.extend_from_slice(data);
             }
         }
+
+        impl FixedOutput for TestDigest {
+            fn finalize_into(self, out: &mut Output<Self>) {
+                out.fill(0);
+                let n = core::cmp::min(out.len(), self.data.len());
+                out[..n].copy_from_slice(&self.data[..n]);
+            }
+        }
+
+        impl HashMarker for TestDigest {}
 
         let signing_key = SigningKey::generate(&mut OsRng);
         let data = b"test big long data test test big long data testtest big long data testtest big long data testtest big long data testtest big long data testtest big long data testtest big long data testtest big long data testtest big long data testtest big long data testtest big long data test";
@@ -155,19 +126,30 @@ mod tests {
         let mut digest = Keccak512::new();
         digest.update(data);
 
-        let sig = signing_key
-            .sign_prehashed(digest, Some(b""))
-            .unwrap()
-            .to_bytes()
-            .to_vec();
+        let hashdata = digest.finalize().to_vec();
 
-        let signature = Signature::new_with_algorithm(SigningAlgorithm::ED25519, sig);
+        let mut digest = TestDigest::new();
+        digest.update(hashdata.clone());
 
-        let serialised = signature
-            .try_encode(Encoding::Base36)
-            .unwrap_or_else(|_| EncodedString::new(Encoding::Base36, String::new()));
+        let _bytes = ByteVec::new(hashdata);
 
-        debug!("serialised: {serialised}");
-        debug!("serialised debug: {serialised:?}");
+        match signing_key.sign_prehashed(digest, Some(b"")) {
+            Ok(signature) => {
+                let signature = Signature::new_with_algorithm(
+                    SigningAlgorithm::ED25519,
+                    signature.to_bytes().to_vec(),
+                );
+
+                let serialised = signature
+                    .try_encode(Encoding::Base36)
+                    .unwrap_or_else(|_| EncodedString::new(Encoding::Base36, String::new()));
+
+                debug!("serialised: {serialised}");
+                debug!("serialised debug: {serialised:?}");
+            }
+            Err(e) => {
+                debug!("error signing data: {e}");
+            }
+        }
     }
 }

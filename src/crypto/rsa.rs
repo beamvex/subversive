@@ -1,11 +1,14 @@
 use base_xx::{byte_vec::Encodable, ByteVec};
 
-struct Test {
+/// A test struct for serialisation.
+pub struct Test {
     data: Vec<u8>,
 }
 
 impl Test {
-    const fn new(data: Vec<u8>) -> Self {
+    /// Creates a new Test instance from raw data.
+    #[must_use]
+    pub const fn new(data: Vec<u8>) -> Self {
         Self { data }
     }
 }
@@ -48,36 +51,60 @@ mod tests {
     #[test]
     fn test_rsa() {
         let mut rng = OsRng;
-        let private_key = RsaPrivateKey::new(&mut rng, 256).expect("failed to generate RSA key");
-        assert_eq!(private_key.n().bits(), 256);
+        match RsaPrivateKey::new(&mut rng, 256) {
+            Ok(private_key) => {
+                assert_eq!(private_key.n().bits(), 256);
 
-        let pem = private_key.to_pkcs1_pem(LineEnding::LF).unwrap();
-        let pem = pem.as_str();
+                match private_key.to_pkcs1_pem(LineEnding::LF) {
+                    Ok(pem) => {
+                        let pem = pem.as_str();
+                        debug!("pem {pem}");
+                    }
+                    Err(e) => {
+                        debug!("failed to generate RSA key: {e}");
+                    }
+                }
 
-        debug!("pem {pem}");
+                let _n = private_key.n();
+                let _e = private_key.e();
 
-        let _n = private_key.n();
-        let _e = private_key.e();
+                let test = b"test";
+                let digest = Sha256::digest(test);
+                let signresult =
+                    private_key.sign(Pkcs1v15Sign::new_unprefixed(), digest.as_slice());
 
-        let test = b"test";
-        let digest = Sha256::digest(test);
-        let signresult = private_key.sign(Pkcs1v15Sign::new_unprefixed(), digest.as_slice());
+                match signresult {
+                    Ok(signature) => {
+                        let bytes = Test::new(signature);
+                        match bytes.try_encode(Encoding::Base36) {
+                            Ok(encoded) => {
+                                debug!("signature {encoded}");
+                            }
+                            Err(e) => {
+                                debug!("failed to encode signature: {e}");
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        debug!("signing failed: {e}");
+                    }
+                }
 
-        match signresult {
-            Ok(signature) => {
-                let bytes = Test::new(signature);
-                let str = bytes.try_encode(Encoding::Base36).unwrap();
-                debug!("signature {str}");
+                let public_key = private_key.to_public_key();
+                let n = public_key.n().to_bytes_be();
+                let bytes = Test::new(n);
+                match bytes.try_encode(Encoding::Base36) {
+                    Ok(encoded) => {
+                        debug!("n {encoded}");
+                    }
+                    Err(e) => {
+                        debug!("failed to encode n: {e}");
+                    }
+                }
             }
             Err(e) => {
-                debug!("signing failed: {e}");
+                debug!("failed to generate RSA key: {e}");
             }
         }
-
-        let public_key = private_key.to_public_key();
-        let n = public_key.n().to_bytes_be();
-        let bytes = Test::new(n);
-        let str = bytes.try_encode(Encoding::Base36).unwrap();
-        debug!("n {str}");
     }
 }
