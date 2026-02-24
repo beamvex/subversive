@@ -10,9 +10,6 @@
 
 //pub mod address;
 
-/// Cryptographic primitives and related types.
-pub mod crypto;
-
 #[cfg(test)]
 /// Proof of concept implementations and examples
 pub mod poc;
