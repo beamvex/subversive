@@ -1,21 +1,21 @@
-use crate::{
-    address::key::Key,
-    hashable, serialisable,
-    serialise::{AsBytes, Bytes, FromBytes, StructType},
-};
+use base_xx::ByteVec;
 
 pub struct PublicAddress {
-    public_key: Key,
+    public_key: ByteVec,
+    version: u8,
 }
 
 impl PublicAddress {
     #[must_use]
-    pub const fn new(public_key: Key) -> Self {
-        Self { public_key }
+    pub const fn new(public_key: ByteVec) -> Self {
+        Self {
+            public_key,
+            version: 1,
+        }
     }
 
     #[must_use]
-    pub const fn get_public_key(&self) -> &Key {
+    pub const fn get_public_key(&self) -> &ByteVec {
         &self.public_key
     }
 }

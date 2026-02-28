@@ -8,7 +8,7 @@
 //! - Logging utilities with colored output
 //! - Proof of concept implementations
 
-//pub mod address;
+pub mod address;
 
 #[cfg(test)]
 /// Proof of concept implementations and examples
