@@ -19,17 +19,10 @@ expect_used = "deny"
 allow-expect-in-tests = "allow"
 
 [dependencies]
-ed25519-dalek = { version = "2", features = ["rand_core", "digest"] }
-rand_core = { version = "0.6", features = ["getrandom"] }
-chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
-sha3 = "0.10"
-sha2 = "0.10"
-rsa = "0.9"
-rand = "0.8"
 tokio = { version = "1", features = ["full"] }
-ripemd = "0.2.0-rc.5"
-slogger = "0.1.1"
-base_xx = "0.6.1"
-digest = "0.10"
-crypto-common = "0.1.7"
+slogger = "0.1.2"
+base_xx = "0.6.2"
+slahasher = "0.3.0"
+simple_sign = "0.1.1"
+chrono = "0.4.26"
 
