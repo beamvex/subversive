@@ -11,6 +11,9 @@
 /// Addressing system
 pub mod address;
 
+/// Game system
+pub mod game;
+
 #[cfg(test)]
 /// Proof of concept implementations and examples
 pub mod poc;

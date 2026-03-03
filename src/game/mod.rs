@@ -1,3 +1,5 @@
-mod game;
+mod tests {
 
-pub use game::play;
+    #[test]
+    fn test_play() {}
+}
