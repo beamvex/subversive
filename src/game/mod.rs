@@ -29,7 +29,12 @@ impl TryFrom<ByteVec> for Block {
 impl TryFrom<&Block> for ByteVec {
     type Error = SerialiseError;
     fn try_from(value: &Block) -> Result<Self, Self::Error> {
-        unimplemented!()
+        let duration = value.duration.as_millis().to_be_bytes().to_vec();
+        let mut bytes = Vec::new();
+
+        bytes.extend_from_slice(&duration);
+
+        Ok(Self::new(bytes))
     }
 }
 
@@ -45,7 +50,7 @@ mod tests {
     fn test_play() {
         let private_key = Ed25519Signer::new_random();
 
-        //let bytes = base_xx::ByteVec::new(duration.as_secs().to_be_bytes().to_vec());
+        //let bytes = base_xx::ByteVec::new();
 
         let block = Block::default();
 
@@ -67,5 +72,7 @@ mod tests {
                 Signature::default()
             }
         };
+
+        debug!("signature {signature:?}");
     }
 }
