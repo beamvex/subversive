@@ -835,9 +835,9 @@ dependencies = [
 
 [[package]]
 name = "slahasher"
-version = "0.3.0"
+version = "0.3.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "780da0386960c1ea83a34e592334a4d5b326df7ff1b66bd6eed99d7d4b7a1d51"
+checksum = "7e7ac3ba4424208436a996e5b5a03fdd8be07fdd2333e78d1641a07e11fde685"
 dependencies = [
  "base_xx",
  "chrono",

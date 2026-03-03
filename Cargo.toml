@@ -22,7 +22,7 @@ allow-expect-in-tests = "allow"
 tokio = { version = "1", features = ["full"] }
 slogger = "0.1.2"
 base_xx = "0.6.2"
-slahasher = "0.3.0"
+slahasher = "0.3.1"
 simple_sign = "0.1.1"
 chrono = "0.4.26"
 
