@@ -8,6 +8,7 @@
 //! - Logging utilities with colored output
 //! - Proof of concept implementations
 
+/// Addressing system
 pub mod address;
 
 #[cfg(test)]

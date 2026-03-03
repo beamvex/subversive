@@ -1,5 +1,10 @@
-use base_xx::ByteVec;
+//! Public address type and byte encoding/decoding.
 
+use base_xx::{byte_vec::Encodable, ByteVec};
+
+/// A public address.
+///
+/// Encodes to bytes as: `[version][public_key_bytes...]`.
 pub struct PublicAddress {
     public_key: ByteVec,
     version: u8,
@@ -7,6 +12,7 @@ pub struct PublicAddress {
 
 impl PublicAddress {
     #[must_use]
+    /// Creates a new `PublicAddress` with the default version.
     pub const fn new(public_key: ByteVec) -> Self {
         Self {
             public_key,
@@ -15,40 +21,45 @@ impl PublicAddress {
     }
 
     #[must_use]
+    /// Returns the public key bytes.
     pub const fn get_public_key(&self) -> &ByteVec {
         &self.public_key
     }
-}
 
-impl AsBytes for PublicAddress {
-    type Error = ();
-    fn try_as_bytes(&self) -> Result<Vec<u8>, Self::Error> {
-        let mut bytes = vec![];
-        bytes.extend_from_slice(&self.public_key.try_as_bytes().unwrap());
-        Ok(bytes)
+    #[must_use]
+    /// Returns the address version byte.
+    pub const fn get_version(&self) -> u8 {
+        self.version
     }
 }
 
-impl FromBytes for PublicAddress {
-    type Error = ();
-    fn try_from_bytes(bytes: &[u8]) -> Result<Self, Self::Error> {
-        let bytes = bytes.to_vec();
-        Ok(Self::new(Key::try_from_bytes(&bytes).unwrap()))
+impl TryFrom<&PublicAddress> for ByteVec {
+    type Error = base_xx::SerialiseError;
+    fn try_from(value: &PublicAddress) -> Result<Self, Self::Error> {
+        let mut bytes = Vec::with_capacity(1 + value.public_key.get_bytes().len());
+        bytes.push(value.version);
+        bytes.extend_from_slice(value.public_key.get_bytes());
+        Ok(Self::new(bytes))
     }
 }
 
-impl TryFrom<PublicAddress> for Bytes {
-    type Error = &'static str;
-    fn try_from(value: PublicAddress) -> Result<Self, Self::Error> {
-        Ok(Self::new(
-            StructType::ADDRESS,
-            value.try_as_bytes().unwrap(),
-        ))
+impl TryFrom<ByteVec> for PublicAddress {
+    type Error = base_xx::SerialiseError;
+    fn try_from(value: ByteVec) -> Result<Self, Self::Error> {
+        let bytes = value.get_bytes();
+        if bytes.is_empty() {
+            return Err(base_xx::SerialiseError::new(
+                "PublicAddress requires at least 1 byte for version".to_string(),
+            ));
+        }
+
+        let version = bytes[0];
+        let public_key = ByteVec::new(bytes[1..].to_vec());
+        Ok(Self::new(public_key))
     }
 }
 
-serialisable!(PublicAddress);
-hashable!(PublicAddress);
+impl Encodable for PublicAddress {}
 
 /*
 #[cfg(test)]
