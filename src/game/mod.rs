@@ -1,4 +1,4 @@
-use base_xx::{ByteVec, SerialiseError};
+use base_xx::{byte_vec::Encodable, encoded_string::Decodable, ByteVec, SerialiseError};
 use slahasher::Hashable;
 use std::time::{Duration, SystemTime};
 
@@ -28,7 +28,11 @@ impl TryFrom<ByteVec> for Block {
 
 impl TryFrom<&Block> for ByteVec {
     type Error = SerialiseError;
-    fn try_from(value: &Block) -> Result<Self, Self::Error> {
+    fn try_from(value: &Block) -> Result<Self, SerialiseError> {
+        let fruity = false;
+        if fruity {
+            return Err(SerialiseError::new("feeling fruty".to_string()));
+        }
         let duration = value.duration.as_millis().to_be_bytes().to_vec();
         let mut bytes = Vec::new();
 
@@ -39,6 +43,8 @@ impl TryFrom<&Block> for ByteVec {
 }
 
 impl Hashable for Block {}
+impl Encodable for Block {}
+impl Decodable for Block {}
 
 mod tests {
     use super::*;
@@ -54,7 +60,7 @@ mod tests {
 
         let block = Block::default();
 
-        let signature = match block.try_hash(HashAlgorithm::KECCAK512) {
+        let signature = match &block.try_hash(HashAlgorithm::KECCAK512) {
             Ok(hash) => {
                 let signature = private_key.sign(&hash);
                 match signature {
