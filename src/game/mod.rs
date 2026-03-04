@@ -3,6 +3,7 @@ use slahasher::Hashable;
 use std::time::{Duration, SystemTime};
 
 /// block in a chain
+#[derive(Debug)]
 pub struct Block {
     duration: Duration,
 }
@@ -80,5 +81,6 @@ mod tests {
         };
 
         debug!("signature {signature:?}");
+        debug!("block {block:?}")
     }
 }
