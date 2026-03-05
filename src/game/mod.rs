@@ -64,7 +64,7 @@ mod tests {
 
         let signature = match &block.try_hash(HashAlgorithm::KECCAK512) {
             Ok(hash) => {
-                let signature = private_key.sign(&hash);
+                let signature = private_key.sign(hash);
                 match signature {
                     Ok(signature) => signature,
                     Err(e) => {
@@ -82,6 +82,32 @@ mod tests {
         };
 
         debug!("signature {signature:?}");
-        debug!("block {block:?}")
+        debug!("block {block:?}");
+
+        let private_key2 = Ed25519Signer::new_random();
+
+        let signature2 = match &block.try_hash(HashAlgorithm::KECCAK512) {
+            Ok(hash) => {
+                let signature = private_key2.sign(hash);
+                match signature {
+                    Ok(signature) => signature,
+                    Err(e) => {
+                        eprintln!("Error: {e}");
+                        assert!(false);
+                        Signature::default()
+                    }
+                }
+            }
+            Err(e) => {
+                eprintln!("Error: {e}");
+                assert!(false);
+                Signature::default()
+            }
+        };
+
+        debug!("signature {signature2:?}");
+
+        let winner = signature.gt(&signature2);
+        debug!("winner {winner:?}");
     }
 }
