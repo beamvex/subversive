@@ -48,12 +48,6 @@ impl Hashable for Block {}
 impl Encodable for Block {}
 impl Decodable for Block {}
 
-impl Ord for Signature {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.signature.cmp(&other.signature)
-    }
-}
-
 mod tests {
     use super::*;
     use simple_sign::{Ed25519Signer, Signature, Signer};

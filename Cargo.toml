@@ -21,8 +21,8 @@ allow-expect-in-tests = "allow"
 [dependencies]
 tokio = { version = "1", features = ["full"] }
 slogger = "0.1.2"
-base_xx = "0.7.0"
-slahasher = "0.3.12"
-simple_sign = "0.1.2"
+base_xx = "0.7.1"
+slahasher = "0.3.13"
+simple_sign = "0.1.3"
 chrono = "0.4.26"
 
