@@ -16,17 +16,10 @@
         "-D",
         "clippy::nursery",
     ],
-    "rust-analyzer.cargo.cfgs":[
+    "rust-analyzer.cargo.cfgs": [
         "test"
     ],
-    "rust-analyzer.check.targets":[
+    "rust-analyzer.check.targets": [
         "test"
     ],
-    "rust-analyzer.cargo.features": [
-        "poc"
-    ],
-    "rust-analyzer.check.features": [
-        "poc"
-    ],
- 
 }

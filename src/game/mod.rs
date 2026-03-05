@@ -1,4 +1,5 @@
 use base_xx::{byte_vec::Encodable, encoded_string::Decodable, ByteVec, SerialiseError};
+use simple_sign::Signature;
 use slahasher::Hashable;
 use std::time::{Duration, SystemTime};
 
@@ -46,6 +47,12 @@ impl TryFrom<&Block> for ByteVec {
 impl Hashable for Block {}
 impl Encodable for Block {}
 impl Decodable for Block {}
+
+impl Ord for Signature {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.signature.cmp(&other.signature)
+    }
+}
 
 mod tests {
     use super::*;
