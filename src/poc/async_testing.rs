@@ -16,6 +16,11 @@ impl AsyncTest {
         let (tx, _rx) = tokio::sync::broadcast::channel::<String>(100);
         Self { tx }
     }
+
+    /// Send a message
+    pub fn send(&self, message: String) {
+        let _ = self.tx.send(message);
+    }
 }
 
 impl Default for AsyncTest {

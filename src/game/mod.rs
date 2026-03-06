@@ -92,7 +92,7 @@ mod tests {
 
         debug!("signature {signature2:?}");
 
-        let winner = signature.gt(&signature2);
+        let winner = signature.gt(signature2);
         debug!("winner {winner:?}");
     }
 }
