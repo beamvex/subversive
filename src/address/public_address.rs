@@ -73,7 +73,8 @@ impl Encodable for PublicAddress {}
 mod tests {
 
     use base_xx::ByteVec;
-    use simple_sign::Ed25519Signer;
+    use simple_sign::{Ed25519Signer, Signer};
+    use slahasher::HashAlgorithm;
     use slogger::debug;
 
     use super::*;
@@ -87,5 +88,17 @@ mod tests {
         let public_address = PublicAddress::new(public_address);
 
         debug!("public_address: {public_address:?}");
+
+        let hash = public_address
+            .try_hash(HashAlgorithm::KECCAK512)
+            .unwrap_or_else(|e| {
+                unreachable!("Failed to hash public address {e}");
+            });
+        debug!("hash: {hash:?}");
+
+        let private_address2 = Ed25519Signer::new_random();
+
+        let signature = private_address2.sign(&hash);
+        debug!("signature: {signature:?}");
     }
 }
