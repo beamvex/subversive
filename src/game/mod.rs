@@ -1,12 +1,15 @@
 use base_xx::{byte_vec::Encodable, ByteVec, SerialiseError};
+use chrono::{DateTime, Utc};
 use simple_sign::{Signature, SignatureError, Signer};
-use slahasher::{HashAlgorithm, Hashable};
-use std::time::{Duration, SystemTime};
+use slahasher::{Hash, HashAlgorithm, Hashable, Keccak512};
 
 /// block in a chain
 #[derive(Debug)]
 pub struct Block {
-    duration: Duration,
+    time: DateTime<Utc>,
+    version: u8,
+    root_hash: Hash,
+    previous_block_hash: Hash,
 }
 
 impl Block {
@@ -24,28 +27,40 @@ impl Block {
 }
 
 impl Default for Block {
+    /// Create the "Genesis" block :D
     fn default() -> Self {
-        let current_time = SystemTime::now();
+        let time = DateTime::default();
 
-        let duration = current_time
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap_or_else(|_| unreachable!());
+        let time_millis = time.timestamp_millis();
+        let mut bytes = Vec::new();
 
-        Self { duration }
+        bytes.extend_from_slice(&time_millis.to_be_bytes());
+        let bytes = ByteVec::new(bytes);
+
+        let root_hash = Hash::try_hash(&bytes, HashAlgorithm::KECCAK512)
+            .unwrap_or_else(|_| Hash::new(HashAlgorithm::KECCAK512, ByteVec::new(vec![])));
+        let previous_block_hash = Hash::try_hash(root_hash.get_bytes(), HashAlgorithm::KECCAK512)
+            .unwrap_or_else(|_| Hash::new(HashAlgorithm::KECCAK512, ByteVec::new(vec![])));
+
+        Self {
+            time,
+            version: 1,
+            root_hash,
+            previous_block_hash,
+        }
     }
 }
 
 impl TryFrom<&Block> for ByteVec {
     type Error = SerialiseError;
     fn try_from(value: &Block) -> Result<Self, SerialiseError> {
-        let fruity = false;
-        if fruity {
-            return Err(SerialiseError::new("feeling fruty".to_string()));
-        }
-        let duration = value.duration.as_millis().to_be_bytes().to_vec();
+        let time = value.time.timestamp_millis();
         let mut bytes = Vec::new();
 
-        bytes.extend_from_slice(&duration);
+        bytes.extend_from_slice(&time.to_be_bytes());
+        bytes.extend_from_slice(&value.version.to_be_bytes());
+        bytes.extend_from_slice(value.root_hash.get_bytes().get_bytes());
+        bytes.extend_from_slice(value.previous_block_hash.get_bytes().get_bytes());
 
         Ok(Self::new(bytes))
     }
