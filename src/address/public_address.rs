@@ -6,6 +6,7 @@ use slahasher::Hashable;
 /// A public address.
 ///
 /// Encodes to bytes as: `[version][public_key_bytes...]`.
+#[derive(Debug)]
 pub struct PublicAddress {
     public_key: ByteVec,
     version: u8,
@@ -71,14 +72,19 @@ impl Encodable for PublicAddress {}
 #[cfg(test)]
 mod tests {
 
+    use base_xx::ByteVec;
     use simple_sign::Ed25519Signer;
     use slogger::debug;
+
+    use super::*;
 
     #[test]
     fn test_address() {
         let private_address = Ed25519Signer::new_random();
 
-        let public_address = private_address.get_verifying_key();
+        let public_address = private_address.get_verifying_key().to_bytes();
+        let public_address = ByteVec::new(public_address.to_vec());
+        let public_address = PublicAddress::new(public_address);
 
         debug!("public_address: {public_address:?}");
     }
