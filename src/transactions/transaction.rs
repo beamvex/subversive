@@ -83,6 +83,8 @@ impl Encodable for Transaction {}
 #[cfg(test)]
 mod tests {
 
+    use crate::transactions::TransactionSignature;
+
     use super::*;
     use simple_sign::Ed25519Signer;
     use slogger::debug;
@@ -112,9 +114,13 @@ mod tests {
         let transaction_bytes = ByteVec::try_from(&transaction).unwrap_or_else(|e| {
             panic!("Failed to serialize transaction: {e}");
         });
-        debug!("transaction_bytes: {transaction_bytes:?}");
+        debug!("transaction_bytes: {transaction_bytes:#?}");
 
         let transaction_hash = transaction.try_hash(slahasher::HashAlgorithm::KECCAK512);
-        debug!("transaction_hash: {transaction_hash:?}");
+        debug!("transaction_hash: {transaction_hash:#?}");
+
+        let signature = TransactionSignature::new(&transaction, &private_address)
+            .unwrap_or_else(|e| unreachable!("Error {e}"));
+        debug!("signature:\n {signature:#?}");
     }
 }
