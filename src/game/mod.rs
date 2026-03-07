@@ -1,7 +1,7 @@
 use base_xx::{byte_vec::Encodable, ByteVec, SerialiseError};
 use chrono::{DateTime, Utc};
 use simple_sign::{Signature, SignatureError, Signer};
-use slahasher::{Hash, HashAlgorithm, Hashable, Keccak512};
+use slahasher::{Hash, HashAlgorithm, Hashable};
 
 /// block in a chain
 #[derive(Debug)]
@@ -77,8 +77,6 @@ mod tests {
     #[test]
     fn test_play() {
         let private_key = Ed25519Signer::new_random();
-
-        //let bytes = base_xx::ByteVec::new();
 
         let block = Block::default();
 

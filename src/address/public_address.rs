@@ -1,6 +1,6 @@
 //! Public address type and byte encoding/decoding.
-
 use base_xx::{byte_vec::Encodable, ByteVec};
+use simple_sign::Ed25519Signer;
 use slahasher::Hashable;
 
 /// A public address.
@@ -10,6 +10,15 @@ use slahasher::Hashable;
 pub struct PublicAddress {
     public_key: ByteVec,
     version: u8,
+}
+
+impl Default for PublicAddress {
+    fn default() -> Self {
+        Self {
+            public_key: ByteVec::new(vec![]),
+            version: 1,
+        }
+    }
 }
 
 impl PublicAddress {
@@ -66,6 +75,15 @@ impl TryFrom<ByteVec> for PublicAddress {
     }
 }
 
+impl TryFrom<&Ed25519Signer> for PublicAddress {
+    type Error = base_xx::SerialiseError;
+    fn try_from(value: &Ed25519Signer) -> Result<Self, Self::Error> {
+        let public_key = value.get_verifying_key().to_bytes();
+        let public_key = ByteVec::new(public_key.to_vec());
+        Ok(Self::new(public_key))
+    }
+}
+
 impl Hashable for PublicAddress {}
 impl Encodable for PublicAddress {}
 
@@ -83,10 +101,8 @@ mod tests {
     fn test_address() {
         let private_address = Ed25519Signer::new_random();
 
-        let public_address = private_address.get_verifying_key().to_bytes();
-        let public_address = ByteVec::new(public_address.to_vec());
-        let public_address = PublicAddress::new(public_address);
-
+        let public_address =
+            PublicAddress::try_from(&private_address).unwrap_or_else(|_| unreachable!());
         debug!("public_address: {public_address:?}");
 
         let hash = public_address

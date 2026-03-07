@@ -14,6 +14,9 @@ pub mod address;
 /// Game system
 pub mod game;
 
+/// Transactions system
+pub mod transactions;
+
 #[cfg(test)]
 /// Proof of concept implementations and examples
 pub mod poc;
