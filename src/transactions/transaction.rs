@@ -113,5 +113,8 @@ mod tests {
             panic!("Failed to serialize transaction: {e}");
         });
         debug!("transaction_bytes: {transaction_bytes:?}");
+
+        let transaction_hash = transaction.try_hash(slahasher::HashAlgorithm::KECCAK512);
+        debug!("transaction_hash: {transaction_hash:?}");
     }
 }
