@@ -17,6 +17,9 @@ pub mod game;
 /// Transactions system
 pub mod transactions;
 
+/// Serialization system
+pub mod serialise;
+
 #[cfg(test)]
 /// Proof of concept implementations and examples
 pub mod poc;
