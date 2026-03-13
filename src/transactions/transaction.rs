@@ -2,7 +2,7 @@ use base_xx::{byte_vec::Encodable, ByteVec, SerialiseError};
 use chrono::{DateTime, Utc};
 use slahasher::Hashable;
 
-use crate::address::public_address::PublicAddress;
+use crate::{address::public_address::PublicAddress, serialise::RLEByteVec};
 use std::rc::Rc;
 
 /// A transaction between two public addresses.
@@ -61,7 +61,7 @@ impl TryFrom<&Transaction> for ByteVec {
     type Error = SerialiseError;
 
     fn try_from(value: &Transaction) -> Result<Self, Self::Error> {
-        let mut result = Vec::new();
+        let mut result = RLEByteVec::default();
 
         let from_rc = Rc::clone(&value.from);
         let to_rc = Rc::clone(&value.to);
@@ -69,11 +69,13 @@ impl TryFrom<&Transaction> for ByteVec {
         let from_bytes = Self::try_from(&*from_rc)?;
         let to_bytes = Self::try_from(&*to_rc)?;
 
-        result.extend_from_slice(from_bytes.get_bytes());
-        result.extend_from_slice(to_bytes.get_bytes());
-        result.extend_from_slice(&value.amount.to_le_bytes());
-        result.extend_from_slice(&value.timestamp.timestamp().to_le_bytes());
-        Ok(Self::new(result))
+        result.add_data(Rc::new(from_bytes));
+        result.add_data(Rc::new(to_bytes));
+        result.add_data(Rc::new(Self::new(value.amount.to_le_bytes().to_vec())));
+        result.add_data(Rc::new(Self::new(
+            value.timestamp.timestamp().to_le_bytes().to_vec(),
+        )));
+        Self::try_from(&result)
     }
 }
 

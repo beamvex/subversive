@@ -74,6 +74,12 @@ impl RLEByteVec {
     }
 }
 
+impl Default for RLEByteVec {
+    fn default() -> Self {
+        Self::new(vec![])
+    }
+}
+
 impl TryFrom<&RLEByteVec> for ByteVec {
     type Error = SerialiseError;
 
