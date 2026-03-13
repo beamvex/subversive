@@ -219,6 +219,8 @@ mod tests {
             panic!("Failed to deserialize transaction: {e}");
         });
 
+        debug!("transaction: {transaction:#?}");
+        debug!("transaction_from_bytes: {transaction_from_bytes:#?}");
         assert_eq!(transaction, transaction_from_bytes);
     }
 }
