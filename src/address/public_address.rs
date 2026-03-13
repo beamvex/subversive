@@ -1,14 +1,13 @@
 //! Public address type and byte encoding/decoding.
-use std::rc::Rc;
 
-use base_xx::{byte_vec::Encodable, ByteVec, SerialiseError};
+use base_xx::{byte_vec::Encodable, ByteVec};
 use simple_sign::Ed25519Signer;
 use slahasher::Hashable;
 
 /// A public address.
 ///
 /// Encodes to bytes as: `[version][public_key_bytes...]`.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, PartialOrd, Ord, Eq)]
 pub struct PublicAddress {
     public_key: ByteVec,
     version: u8,
@@ -77,13 +76,6 @@ impl TryFrom<ByteVec> for PublicAddress {
     }
 }
 
-impl TryFrom<Rc<ByteVec>> for PublicAddress {
-    type Error = SerialiseError;
-    fn try_from(value: Rc<ByteVec>) -> Result<Self, Self::Error> {
-        todo!()
-    }
-}
-
 impl TryFrom<&Ed25519Signer> for PublicAddress {
     type Error = base_xx::SerialiseError;
     fn try_from(value: &Ed25519Signer) -> Result<Self, Self::Error> {
@@ -99,7 +91,6 @@ impl Encodable for PublicAddress {}
 #[cfg(test)]
 mod tests {
 
-    use base_xx::ByteVec;
     use simple_sign::{Ed25519Signer, Signer};
     use slahasher::HashAlgorithm;
     use slogger::debug;

@@ -1,12 +1,12 @@
 use base_xx::{byte_vec::Encodable, encoded_string::Decodable, ByteVec, SerialiseError};
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, TimeZone, Utc};
 use slahasher::Hashable;
 
 use crate::{address::public_address::PublicAddress, serialise::RLEByteVec};
 use std::rc::Rc;
 
 /// A transaction between two public addresses.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Transaction {
     from: Rc<PublicAddress>,
     to: Rc<PublicAddress>,
@@ -90,18 +90,49 @@ impl TryFrom<ByteVec> for Transaction {
         let amount_bytes = rle.get(2);
         let timestamp_bytes = rle.get(3);
 
-        let from = PublicAddress::try_from(
-            *from_bytes.ok_or(SerialiseError::new("Missing from field".to_string()))?,
-        )?;
-        let to = PublicAddress::try_from(
-            *to_bytes.ok_or(SerialiseError::new("Missing to field".to_string()))?,
-        )?;
-        let amount = amount_bytes
-            .ok_or(SerialiseError::new("Missing amount field".to_string()))?
-            .try_into()?;
-        let timestamp = timestamp_bytes
-            .ok_or(SerialiseError::new("Missing timestamp".to_string()))?
-            .try_into()?;
+        let from_bytes = from_bytes
+            .ok_or_else(|| SerialiseError::new("Missing from field".to_string()))?
+            .as_ref()
+            .get_bytes();
+        let from = PublicAddress::try_from(ByteVec::new(from_bytes.to_vec()))?;
+
+        let to_bytes = to_bytes
+            .ok_or_else(|| SerialiseError::new("Missing to field".to_string()))?
+            .as_ref()
+            .get_bytes();
+        let to = PublicAddress::try_from(ByteVec::new(to_bytes.to_vec()))?;
+        let amount_bytes = amount_bytes
+            .ok_or_else(|| SerialiseError::new("Missing amount field".to_string()))?
+            .as_ref()
+            .get_bytes();
+        if amount_bytes.len() != 8 {
+            return Err(SerialiseError::new(
+                "Amount field must be 8 bytes (u64 little-endian)".to_string(),
+            ));
+        }
+        let amount: u64 = u64::from_le_bytes(
+            amount_bytes
+                .try_into()
+                .map_err(|_| SerialiseError::new("Invalid amount bytes".to_string()))?,
+        );
+        let timestamp_bytes = timestamp_bytes
+            .ok_or_else(|| SerialiseError::new("Missing timestamp".to_string()))?
+            .as_ref()
+            .get_bytes();
+        if timestamp_bytes.len() != 8 {
+            return Err(SerialiseError::new(
+                "Timestamp field must be 8 bytes (i64 little-endian unix seconds)".to_string(),
+            ));
+        }
+        let timestamp_seconds: i64 = i64::from_le_bytes(
+            timestamp_bytes
+                .try_into()
+                .map_err(|_| SerialiseError::new("Invalid timestamp bytes".to_string()))?,
+        );
+        let timestamp = Utc
+            .timestamp_opt(timestamp_seconds, 0)
+            .single()
+            .ok_or_else(|| SerialiseError::new("Invalid timestamp".to_string()))?;
 
         Ok(Self {
             from: Rc::new(from),
@@ -158,5 +189,35 @@ mod tests {
         let signature = TransactionSignature::new(&transaction, &private_address)
             .unwrap_or_else(|e| unreachable!("Error {e}"));
         debug!("signature:\n {signature:#?}");
+    }
+
+    #[test]
+    fn test_transaction_roundtrip() {
+        let private_address = Ed25519Signer::new_random();
+
+        let public_address =
+            PublicAddress::try_from(&private_address).unwrap_or_else(|_| unreachable!());
+
+        let private_address2 = Ed25519Signer::new_random();
+
+        let public_address2 =
+            PublicAddress::try_from(&private_address2).unwrap_or_else(|_| unreachable!());
+
+        let transaction = Transaction::new(
+            Rc::new(public_address),
+            Rc::new(public_address2),
+            100,
+            Utc::now(),
+        );
+
+        let transaction_bytes = ByteVec::try_from(&transaction).unwrap_or_else(|e| {
+            panic!("Failed to serialize transaction: {e}");
+        });
+
+        let transaction_from_bytes = Transaction::try_from(transaction_bytes).unwrap_or_else(|e| {
+            panic!("Failed to deserialize transaction: {e}");
+        });
+
+        assert_eq!(transaction, transaction_from_bytes);
     }
 }
