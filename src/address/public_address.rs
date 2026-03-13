@@ -1,5 +1,7 @@
 //! Public address type and byte encoding/decoding.
-use base_xx::{byte_vec::Encodable, ByteVec};
+use std::rc::Rc;
+
+use base_xx::{byte_vec::Encodable, ByteVec, SerialiseError};
 use simple_sign::Ed25519Signer;
 use slahasher::Hashable;
 
@@ -72,6 +74,13 @@ impl TryFrom<ByteVec> for PublicAddress {
         }
         let public_key = ByteVec::new(bytes[1..].to_vec());
         Ok(Self::new(public_key))
+    }
+}
+
+impl TryFrom<Rc<ByteVec>> for PublicAddress {
+    type Error = SerialiseError;
+    fn try_from(value: Rc<ByteVec>) -> Result<Self, Self::Error> {
+        todo!()
     }
 }
 

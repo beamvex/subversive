@@ -1,4 +1,4 @@
-use base_xx::{byte_vec::Encodable, ByteVec, SerialiseError};
+use base_xx::{byte_vec::Encodable, encoded_string::Decodable, ByteVec, SerialiseError};
 use chrono::{DateTime, Utc};
 use slahasher::Hashable;
 
@@ -79,8 +79,42 @@ impl TryFrom<&Transaction> for ByteVec {
     }
 }
 
+impl TryFrom<ByteVec> for Transaction {
+    type Error = SerialiseError;
+
+    fn try_from(value: ByteVec) -> Result<Self, Self::Error> {
+        let rle = RLEByteVec::try_from(value)?;
+        let rle = rle.get_data();
+        let from_bytes = rle.first();
+        let to_bytes = rle.get(1);
+        let amount_bytes = rle.get(2);
+        let timestamp_bytes = rle.get(3);
+
+        let from = PublicAddress::try_from(
+            *from_bytes.ok_or(SerialiseError::new("Missing from field".to_string()))?,
+        )?;
+        let to = PublicAddress::try_from(
+            *to_bytes.ok_or(SerialiseError::new("Missing to field".to_string()))?,
+        )?;
+        let amount = amount_bytes
+            .ok_or(SerialiseError::new("Missing amount field".to_string()))?
+            .try_into()?;
+        let timestamp = timestamp_bytes
+            .ok_or(SerialiseError::new("Missing timestamp".to_string()))?
+            .try_into()?;
+
+        Ok(Self {
+            from: Rc::new(from),
+            to: Rc::new(to),
+            amount,
+            timestamp,
+        })
+    }
+}
+
 impl Hashable for Transaction {}
 impl Encodable for Transaction {}
+impl Decodable for Transaction {}
 
 #[cfg(test)]
 mod tests {
