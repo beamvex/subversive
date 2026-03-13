@@ -1,5 +1,5 @@
 use base_xx::{byte_vec::Encodable, encoded_string::Decodable, ByteVec, SerialiseError};
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{DateTime, TimeZone, Timelike, Utc};
 use slahasher::Hashable;
 
 use crate::{address::public_address::PublicAddress, serialise::RLEByteVec};
@@ -18,12 +18,13 @@ pub struct Transaction {
 impl Transaction {
     /// Creates a new transaction.
     #[must_use]
-    pub const fn new(
+    pub fn new(
         from: Rc<PublicAddress>,
         to: Rc<PublicAddress>,
         amount: u64,
         timestamp: DateTime<Utc>,
     ) -> Self {
+        let timestamp = timestamp.with_nanosecond(0).unwrap_or(timestamp);
         Self {
             from,
             to,
