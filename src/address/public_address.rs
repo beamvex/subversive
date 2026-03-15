@@ -90,7 +90,6 @@ impl Encodable for PublicAddress {}
 #[cfg(test)]
 mod tests {
 
-    use base_xx::ByteVec;
     use simple_sign::{Ed25519Signer, Signer};
     use slahasher::HashAlgorithm;
     use slogger::debug;
