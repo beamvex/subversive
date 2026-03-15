@@ -1,4 +1,5 @@
 //! Public address type and byte encoding/decoding.
+
 use base_xx::{byte_vec::Encodable, ByteVec};
 use simple_sign::Ed25519Signer;
 use slahasher::Hashable;
@@ -6,7 +7,7 @@ use slahasher::Hashable;
 /// A public address.
 ///
 /// Encodes to bytes as: `[version][public_key_bytes...]`.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, PartialOrd, Ord, Eq)]
 pub struct PublicAddress {
     public_key: ByteVec,
     version: u8,
