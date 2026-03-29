@@ -4,6 +4,7 @@ use slahasher::Hashable;
 
 use crate::{address::public_address::PublicAddress, serialise::RLEByteVec};
 use std::rc::Rc;
+use std::sync::Arc;
 
 /// A transaction between two public addresses.
 #[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
@@ -72,11 +73,26 @@ impl TryFrom<&Transaction> for ByteVec {
 
         result.add_data(Rc::new(from_bytes));
         result.add_data(Rc::new(to_bytes));
-        result.add_data(Rc::new(Self::new(value.amount.to_le_bytes().to_vec())));
         result.add_data(Rc::new(Self::new(
-            value.timestamp.timestamp().to_le_bytes().to_vec(),
+            value.amount.to_le_bytes().to_vec().into(),
+        )));
+        result.add_data(Rc::new(Self::new(
+            value.timestamp.timestamp().to_le_bytes().to_vec().into(),
         )));
         Self::try_from(&result)
+    }
+}
+
+impl base_xx::byte_vec::TryIntoByteVec for Transaction {
+    fn try_into_byte_vec(value: Arc<Self>) -> Result<Arc<ByteVec>, SerialiseError> {
+        Ok(Arc::new(ByteVec::try_from(value.as_ref())?))
+    }
+}
+
+impl TryFrom<Arc<ByteVec>> for Transaction {
+    type Error = SerialiseError;
+    fn try_from(value: Arc<ByteVec>) -> Result<Self, Self::Error> {
+        Self::try_from((*value).clone())
     }
 }
 
@@ -95,13 +111,13 @@ impl TryFrom<ByteVec> for Transaction {
             .ok_or_else(|| SerialiseError::new("Missing from field".to_string()))?
             .as_ref()
             .get_bytes();
-        let from = PublicAddress::try_from(ByteVec::new(from_bytes.to_vec()))?;
+        let from = PublicAddress::try_from(ByteVec::new(from_bytes.to_vec().into()))?;
 
         let to_bytes = to_bytes
             .ok_or_else(|| SerialiseError::new("Missing to field".to_string()))?
             .as_ref()
             .get_bytes();
-        let to = PublicAddress::try_from(ByteVec::new(to_bytes.to_vec()))?;
+        let to = PublicAddress::try_from(ByteVec::new(to_bytes.to_vec().into()))?;
         let amount_bytes = amount_bytes
             .ok_or_else(|| SerialiseError::new("Missing amount field".to_string()))?
             .as_ref()
@@ -155,7 +171,9 @@ mod tests {
 
     use super::*;
     use simple_sign::Ed25519Signer;
+    use slahasher::Hash;
     use slogger::debug;
+    use std::sync::Arc;
 
     #[test]
     fn test_transaction() {
@@ -184,10 +202,14 @@ mod tests {
         });
         debug!("transaction_bytes: {transaction_bytes:#?}");
 
-        let transaction_hash = transaction.try_hash(slahasher::HashAlgorithm::KECCAK512);
+        let transaction_hash = Hash::try_hash(
+            Arc::new(transaction_bytes),
+            slahasher::HashAlgorithm::KECCAK512,
+        )
+        .unwrap_or_else(|e| unreachable!("Failed to hash transaction bytes {e}"));
         debug!("transaction_hash: {transaction_hash:#?}");
 
-        let signature = TransactionSignature::new(&transaction, &private_address)
+        let signature = TransactionSignature::new(&transaction, Arc::new(private_address))
             .unwrap_or_else(|e| unreachable!("Error {e}"));
         debug!("signature:\n {signature:#?}");
     }

@@ -2,14 +2,15 @@ use base_xx::{byte_vec::Encodable, ByteVec, SerialiseError};
 use chrono::{DateTime, Utc};
 use simple_sign::{Signature, SignatureError, Signer};
 use slahasher::{Hash, HashAlgorithm, Hashable};
+use std::sync::Arc;
 
 /// block in a chain
 #[derive(Debug)]
 pub struct Block {
     time: DateTime<Utc>,
     version: u8,
-    root_hash: Hash,
-    previous_block_hash: Hash,
+    root_hash: Arc<Hash>,
+    previous_block_hash: Arc<Hash>,
 }
 
 impl Block {
@@ -18,11 +19,11 @@ impl Block {
     /// # Errors
     ///
     /// Returns an error if the block cannot be hashed or the signer fails to sign
-    pub fn try_sign(&self, signer: &impl Signer) -> Result<Signature, SignatureError> {
-        match self.try_hash(HashAlgorithm::KECCAK512) {
-            Ok(hash) => signer.sign(&hash),
-            Err(e) => Err(SignatureError::new(e.to_string())),
-        }
+    pub fn try_sign<S: Signer>(&self, signer: Arc<S>) -> Result<Arc<Signature>, SignatureError> {
+        let bytes = ByteVec::try_from(self).map_err(|e| SignatureError::new(e.to_string()))?;
+        let hash = Hash::try_hash(Arc::new(bytes), HashAlgorithm::KECCAK512)
+            .map_err(|e| SignatureError::new(e.to_string()))?;
+        signer.sign(hash)
     }
 }
 
@@ -35,12 +36,27 @@ impl Default for Block {
         let mut bytes = Vec::new();
 
         bytes.extend_from_slice(&time_millis.to_be_bytes());
-        let bytes = ByteVec::new(bytes);
+        let bytes = Arc::new(ByteVec::new(bytes.into()));
 
-        let root_hash = Hash::try_hash(&bytes, HashAlgorithm::KECCAK512)
-            .unwrap_or_else(|_| Hash::new(HashAlgorithm::KECCAK512, ByteVec::new(vec![])));
-        let previous_block_hash = Hash::try_hash(root_hash.get_bytes(), HashAlgorithm::KECCAK512)
-            .unwrap_or_else(|_| Hash::new(HashAlgorithm::KECCAK512, ByteVec::new(vec![])));
+        let root_hash = Hash::try_hash(Arc::clone(&bytes), HashAlgorithm::KECCAK512)
+            .unwrap_or_else(|_| {
+                Arc::new(Hash::new(
+                    HashAlgorithm::KECCAK512,
+                    ByteVec::new(vec![].into()),
+                ))
+            });
+        let previous_block_hash = Hash::try_hash(
+            root_hash
+                .try_to_byte_vec()
+                .unwrap_or_else(|_| Arc::new(ByteVec::new(vec![].into()))),
+            HashAlgorithm::KECCAK512,
+        )
+        .unwrap_or_else(|_| {
+            Arc::new(Hash::new(
+                HashAlgorithm::KECCAK512,
+                ByteVec::new(vec![].into()),
+            ))
+        });
 
         Self {
             time,
@@ -62,25 +78,33 @@ impl TryFrom<&Block> for ByteVec {
         bytes.extend_from_slice(value.root_hash.get_bytes().get_bytes());
         bytes.extend_from_slice(value.previous_block_hash.get_bytes().get_bytes());
 
-        Ok(Self::new(bytes))
+        Ok(Self::new(bytes.into()))
+    }
+}
+
+impl base_xx::byte_vec::TryIntoByteVec for Block {
+    fn try_into_byte_vec(value: Arc<Self>) -> Result<Arc<ByteVec>, SerialiseError> {
+        Ok(Arc::new(ByteVec::try_from(value.as_ref())?))
     }
 }
 
 impl Hashable for Block {}
 impl Encodable for Block {}
 
+#[cfg(test)]
 mod tests {
     use super::*;
     use simple_sign::Ed25519Signer;
     use slogger::debug;
+    use std::sync::Arc;
 
     #[test]
     fn test_play() {
-        let private_key = Ed25519Signer::new_random();
+        let private_key = Arc::new(Ed25519Signer::new_random());
 
         let block = Block::default();
 
-        let signature = block.try_sign(&private_key);
+        let signature = block.try_sign(Arc::clone(&private_key));
         let signature = match &signature {
             Ok(signature) => signature,
             Err(e) => {
@@ -92,9 +116,9 @@ mod tests {
         debug!("signature {signature:?}");
         debug!("block {block:?}");
 
-        let private_key2 = Ed25519Signer::new_random();
+        let private_key2 = Arc::new(Ed25519Signer::new_random());
 
-        let signature2 = block.try_sign(&private_key2);
+        let signature2 = block.try_sign(Arc::clone(&private_key2));
         let signature2 = match &signature2 {
             Ok(signature) => signature,
             Err(e) => {

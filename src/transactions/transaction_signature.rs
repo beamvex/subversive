@@ -1,6 +1,7 @@
 use base_xx::{byte_vec::Encodable, ByteVec, SerialiseError};
 use simple_sign::{Ed25519Signer, Signature, SignatureError, Signer};
-use slahasher::{Hash, HashAlgorithm, Hashable};
+use slahasher::{Hash, HashAlgorithm};
+use std::sync::Arc;
 
 use crate::transactions::Transaction;
 
@@ -8,10 +9,10 @@ use crate::transactions::Transaction;
 #[derive(Debug, PartialEq, Eq)]
 pub struct TransactionSignature {
     /// Hash/Id of the transaction
-    id: Hash,
+    id: Arc<Hash>,
 
     /// Signature of the transaction
-    signature: Signature,
+    signature: Arc<Signature>,
 }
 
 impl TransactionSignature {
@@ -26,24 +27,19 @@ impl TransactionSignature {
     ///
     /// # Errors
     /// * `SignatureError` - If the transaction cannot be hashed
-    pub fn new(transaction: &Transaction, signer: &Ed25519Signer) -> Result<Self, SignatureError> {
-        let id = match transaction.try_hash(HashAlgorithm::KECCAK512) {
-            Ok(id) => id,
-            Err(e) => {
-                return Err(SignatureError::new(format!(
-                    "Failed to hash transaction: {e}"
-                )))
-            }
-        };
+    pub fn new(
+        transaction: &Transaction,
+        signer: Arc<Ed25519Signer>,
+    ) -> Result<Self, SignatureError> {
+        let bytes = base_xx::ByteVec::try_from(transaction)
+            .map_err(|e| SignatureError::new(format!("Failed to serialize transaction: {e}")))?;
 
-        let signature = match signer.sign(&id) {
-            Ok(signature) => signature,
-            Err(e) => {
-                return Err(SignatureError::new(format!(
-                    "Failed to sign transaction: {e}"
-                )))
-            }
-        };
+        let id = Hash::try_hash(Arc::new(bytes), HashAlgorithm::KECCAK512)
+            .map_err(|e| SignatureError::new(format!("Failed to hash transaction: {e}")))?;
+
+        let signature = signer
+            .sign(Arc::clone(&id))
+            .map_err(|e| SignatureError::new(format!("Failed to sign transaction: {e}")))?;
 
         Ok(Self { id, signature })
     }
@@ -53,13 +49,22 @@ impl TryFrom<&TransactionSignature> for ByteVec {
     type Error = SerialiseError;
 
     fn try_from(value: &TransactionSignature) -> Result<Self, Self::Error> {
-        let id_bytes = Self::try_from(&value.id)?;
-        let signature_bytes = Self::try_from(&value.signature)?;
+        let id_bytes =
+            <Hash as base_xx::byte_vec::TryIntoByteVec>::try_into_byte_vec(Arc::clone(&value.id))?;
+        let signature_bytes = <Signature as base_xx::byte_vec::TryIntoByteVec>::try_into_byte_vec(
+            Arc::clone(&value.signature),
+        )?;
 
         let mut bytes = Vec::new();
         bytes.extend_from_slice(id_bytes.get_bytes());
         bytes.extend_from_slice(signature_bytes.get_bytes());
-        Ok(Self::new(bytes))
+        Ok(Self::new(bytes.into()))
+    }
+}
+
+impl base_xx::byte_vec::TryIntoByteVec for TransactionSignature {
+    fn try_into_byte_vec(value: Arc<Self>) -> Result<Arc<ByteVec>, SerialiseError> {
+        Ok(Arc::new(ByteVec::try_from(value.as_ref())?))
     }
 }
 

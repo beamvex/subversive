@@ -91,7 +91,7 @@ impl TryFrom<&RLEByteVec> for ByteVec {
             result.extend_from_slice(&encode_len(len)?);
             result.extend_from_slice(bytes);
         }
-        Ok(Self::new(result))
+        Ok(Self::new(result.into()))
     }
 }
 
@@ -117,7 +117,7 @@ impl TryFrom<&ByteVec> for RLEByteVec {
                 .get(offset..end)
                 .ok_or_else(|| SerialiseError::new("Unexpected end of input".to_string()))?;
 
-            out.push(Rc::new(ByteVec::new(slice.to_vec())));
+            out.push(Rc::new(ByteVec::new(slice.to_vec().into())));
             offset = end;
         }
 
@@ -140,9 +140,9 @@ mod tests {
     #[test]
     fn test_rle_bytevec_roundtrip() {
         let mut rle = RLEByteVec::new(vec![]);
-        rle.add_data(Rc::new(ByteVec::new(vec![1, 2, 3])));
-        rle.add_data(Rc::new(ByteVec::new(vec![])));
-        rle.add_data(Rc::new(ByteVec::new(vec![9; 300])));
+        rle.add_data(Rc::new(ByteVec::new(vec![1, 2, 3].into())));
+        rle.add_data(Rc::new(ByteVec::new(vec![].into())));
+        rle.add_data(Rc::new(ByteVec::new(vec![9; 300].into())));
 
         let encoded: ByteVec = match ByteVec::try_from(&rle) {
             Ok(encoded) => encoded,

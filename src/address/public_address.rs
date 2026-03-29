@@ -1,6 +1,8 @@
 //! Public address type and byte encoding/decoding.
 
 use base_xx::{byte_vec::Encodable, ByteVec};
+use std::sync::Arc;
+
 use simple_sign::Ed25519Signer;
 use slahasher::Hashable;
 
@@ -16,7 +18,7 @@ pub struct PublicAddress {
 impl Default for PublicAddress {
     fn default() -> Self {
         Self {
-            public_key: ByteVec::new(vec![]),
+            public_key: ByteVec::new(vec![].into()),
             version: 1,
         }
     }
@@ -51,7 +53,13 @@ impl TryFrom<&PublicAddress> for ByteVec {
         let mut bytes = Vec::with_capacity(1 + value.public_key.get_bytes().len());
         bytes.push(value.version);
         bytes.extend_from_slice(value.public_key.get_bytes());
-        Ok(Self::new(bytes))
+        Ok(Self::new(bytes.into()))
+    }
+}
+
+impl base_xx::byte_vec::TryIntoByteVec for PublicAddress {
+    fn try_into_byte_vec(value: Arc<Self>) -> Result<Arc<ByteVec>, base_xx::SerialiseError> {
+        Ok(Arc::new(ByteVec::try_from(value.as_ref())?))
     }
 }
 
@@ -71,7 +79,7 @@ impl TryFrom<ByteVec> for PublicAddress {
                 "PublicAddress version must be 1".to_string(),
             ));
         }
-        let public_key = ByteVec::new(bytes[1..].to_vec());
+        let public_key = ByteVec::new(bytes[1..].to_vec().into());
         Ok(Self::new(public_key))
     }
 }
@@ -80,7 +88,7 @@ impl TryFrom<&Ed25519Signer> for PublicAddress {
     type Error = base_xx::SerialiseError;
     fn try_from(value: &Ed25519Signer) -> Result<Self, Self::Error> {
         let public_key = value.get_verifying_key().to_bytes();
-        let public_key = ByteVec::new(public_key.to_vec());
+        let public_key = ByteVec::new(public_key.to_vec().into());
         Ok(Self::new(public_key))
     }
 }
@@ -93,6 +101,7 @@ mod tests {
 
     use simple_sign::{Ed25519Signer, Signer};
     use slahasher::HashAlgorithm;
+    use slahasher::Hashable;
     use slogger::debug;
 
     use super::*;
@@ -105,16 +114,15 @@ mod tests {
             PublicAddress::try_from(&private_address).unwrap_or_else(|_| unreachable!());
         debug!("public_address: {public_address:?}");
 
-        let hash = public_address
-            .try_hash(HashAlgorithm::KECCAK512)
-            .unwrap_or_else(|e| {
-                unreachable!("Failed to hash public address {e}");
-            });
+        let hash = Hashable::try_hash(Arc::new(public_address), HashAlgorithm::KECCAK512)
+            .unwrap_or_else(|e| unreachable!("Failed to hash public address {e}"));
         debug!("hash: {hash:?}");
 
         let private_address2 = Ed25519Signer::new_random();
 
-        let signature = private_address2.sign(&hash);
+        let signature = Arc::new(private_address2)
+            .sign(Arc::clone(&hash))
+            .unwrap_or_else(|e| unreachable!("Failed to sign hash {e}"));
         debug!("signature: {signature:?}");
     }
 }
